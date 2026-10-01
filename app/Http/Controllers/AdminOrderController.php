@@ -84,7 +84,7 @@ class AdminOrderController extends Controller
     {
         $order->load(['user', 'items']);
 
-        $statuses = ['pending', 'paid', 'processing', 'ready_for_pickup', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded'];
+        $statuses = ['pending', 'paid', 'processing', 'ready_for_pickup', 'shipped', 'delivered', 'completed', 'cancelled', 'refund_pending', 'refund_failed', 'refunded'];
 
         // Pickup points the admin can reassign this order to.
         $pickupPoints = PickupPoint::with('location')
@@ -97,7 +97,7 @@ class AdminOrderController extends Controller
     public function update(Request $request, Order $order)
     {
         $request->validate([
-            'status'          => 'required|in:pending,paid,processing,ready_for_pickup,shipped,delivered,completed,cancelled,refunded',
+            'status'          => 'required|in:pending,paid,processing,ready_for_pickup,shipped,delivered,completed,cancelled,refund_pending,refund_failed,refunded',
             'payment_method'  => 'nullable|string|max:255',
             'pickup_point_id' => 'nullable|integer|exists:pickup_points,id',
         ]);
@@ -524,19 +524,29 @@ class AdminOrderController extends Controller
             if (!empty($return->refund_id)) {
                 // Already refunded earlier — keep statuses aligned, don't double-refund.
                 $order->update(['status' => 'refunded']);
+                $return->update(['status' => 'refunded']);
                 $refundMessage = ' (refund was already issued)';
             } else {
-                $result = $this->refundOrder($order);
+                $result  = $this->refundOrder($order);
+                $outcome = $order->applyRefundOutcome($result, (float) $order->total);
 
-                if ($result['handled'] && $result['success']) {
-                    $return->update([
-                        'status'        => 'refunded',
-                        'refund_id'     => $result['refund_id'],
-                        'refund_status' => $result['refund_status'],
-                        'refunded_at'   => now(),
-                    ]);
-                    $order->update(['status' => 'refunded']);
-                    $refundMessage = ' Refund issued to the customer — it will reflect in 5–10 business days.';
+                // Mirror the verified outcome + evidence onto the return record.
+                $return->update([
+                    'status'                => $outcome === 'refund_failed' ? 'approved' : 'refunded',
+                    // Only store a refund_id for a real refund — it gates re-attempts.
+                    'refund_id'             => $outcome === 'refund_failed' ? null : ($result['refund_id'] ?? null),
+                    'refund_status'         => $result['refund_status'] ?? null,
+                    'refund_amount'         => $order->refund_amount,
+                    'refunded_at'           => $outcome === 'refund_failed' ? null : now(),
+                    'refund_failure_reason' => $outcome === 'refund_failed' ? ($result['message'] ?? 'Refund failed.') : null,
+                ]);
+
+                if ($outcome === 'refund_failed') {
+                    $refundMessage = ' Automatic refund failed — please process the refund manually. (' . ($result['message'] ?? '') . ')';
+                } else {
+                    $refundMessage = $outcome === 'refunded'
+                        ? ' Refund issued to the customer — it will reflect in 5–10 business days.'
+                        : ' Refund initiated — it is still processing at the gateway.';
 
                     try {
                         $recipient = $order->user?->email ?? $order->customer_email;
@@ -546,14 +556,6 @@ class AdminOrderController extends Controller
                     } catch (\Exception $e) {
                         Log::error('Refund email failed for order #' . $order->order_number . ': ' . $e->getMessage());
                     }
-                } elseif ($result['handled'] && !$result['success']) {
-                    // Gateway call failed — mark refunded but flag for manual handling.
-                    $order->update(['status' => 'refunded']);
-                    $refundMessage = ' Automatic refund failed — please process the refund manually. (' . $result['message'] . ')';
-                } else {
-                    // No supported gateway — manual refund required.
-                    $order->update(['status' => 'refunded']);
-                    $refundMessage = ' This order can\'t be auto-refunded (' . $result['message'] . ') — please process the refund manually.';
                 }
             }
         }
@@ -642,25 +644,36 @@ class AdminOrderController extends Controller
 
         $order = $cancellation->order;
         $refundMessage = '';
+        $refundOutcome = null;   // 'refunded' | 'refund_pending' | 'refund_failed'
 
         if ($order) {
             if ($request->status === 'refunded') {
-                if (empty($cancellation->refund_id)) {
-                    $result = $this->refundOrder($order);
-                    if ($result['handled'] && $result['success']) {
-                        $cancellation->update([
-                            'refund_id'     => $result['refund_id'],
-                            'refund_status' => $result['refund_status'],
-                            'refunded_at'   => now(),
-                        ]);
-                        $refundMessage = ' Refund issued to the customer.';
-                    } elseif ($result['handled']) {
-                        $refundMessage = ' Automatic refund failed — please process manually. (' . $result['message'] . ')';
-                    } else {
-                        $refundMessage = ' This order can\'t be auto-refunded (' . $result['message'] . ') — please process manually.';
-                    }
+                if (!empty($cancellation->refund_id)) {
+                    // Already refunded earlier — don't double-refund.
+                    $order->update(['status' => 'refunded']);
+                    $refundOutcome = 'refunded';
+                    $refundMessage = ' (refund was already issued)';
+                } else {
+                    $result        = $this->refundOrder($order);
+                    $refundOutcome = $order->applyRefundOutcome($result, (float) $order->total);
+
+                    // Mirror the verified outcome + evidence onto the cancellation.
+                    $cancellation->update([
+                        'status'                => $refundOutcome === 'refund_failed' ? 'approved' : 'refunded',
+                        // Only store a refund_id for a real refund — it gates re-attempts.
+                        'refund_id'             => $refundOutcome === 'refund_failed' ? null : ($result['refund_id'] ?? null),
+                        'refund_status'         => $result['refund_status'] ?? null,
+                        'refund_amount'         => $order->refund_amount,
+                        'refunded_at'           => $refundOutcome === 'refund_failed' ? null : now(),
+                        'refund_failure_reason' => $refundOutcome === 'refund_failed' ? ($result['message'] ?? 'Refund failed.') : null,
+                    ]);
+
+                    $refundMessage = $refundOutcome === 'refund_failed'
+                        ? ' Automatic refund failed — please process manually. (' . ($result['message'] ?? '') . ')'
+                        : ($refundOutcome === 'refunded'
+                            ? ' Refund issued to the customer.'
+                            : ' Refund initiated — still processing at the gateway.');
                 }
-                $order->update(['status' => 'refunded']);
             } elseif ($request->status === 'approved') {
                 $order->update(['status' => 'cancelled']);
             } elseif ($request->status === 'rejected') {
@@ -673,14 +686,19 @@ class AdminOrderController extends Controller
             $order->load('cancellation');
 
             // ── Notify the customer of the outcome ────────────────────────────
+            // Only send the "refunded" email when a refund actually went through —
+            // never when the gateway refund failed.
             $recipient = $order->user?->email ?? $order->customer_email;
             if ($recipient) {
                 try {
-                    match ($request->status) {
-                        'refunded' => Mail::to($recipient)->send(new OrderRefunded($order)),
-                        'approved' => Mail::to($recipient)->send(new OrderCancelled($order)),
-                        'rejected' => Mail::to($recipient)->send(new OrderCancellationRejected($order)),
-                        default    => null,
+                    match (true) {
+                        $request->status === 'refunded' && $refundOutcome !== 'refund_failed'
+                            => Mail::to($recipient)->send(new OrderRefunded($order)),
+                        $request->status === 'approved'
+                            => Mail::to($recipient)->send(new OrderCancelled($order)),
+                        $request->status === 'rejected'
+                            => Mail::to($recipient)->send(new OrderCancellationRejected($order)),
+                        default => null,
                     };
                 } catch (\Exception $e) {
                     Log::error('Failed to send cancellation-review email for order #' . $order->order_number . ' (status: ' . $request->status . '): ' . $e->getMessage());

@@ -20,7 +20,8 @@ use Tests\TestCase;
  * A cart must be charged the location's `truck_shipping_cost` (instead of the
  * regular `shipping_cost`) when ANY of these is true:
  *   1. A product / subcategory / category carries the requires_truck flag.
- *   2. Total cart weight >= truck_weight_threshold_kg.
+ *   2. Total cart weight >  truck_weight_threshold_kg   (strictly over — the exact
+ *      boundary stays on regular shipping, matching the browser and admin copy).
  *   3. Order value      >= truck_order_value_threshold_ngn.
  *
  * The server is the source of truth (the browser only sends IDs + quantities),
@@ -133,7 +134,7 @@ class CheckoutTruckDeliveryTest extends TestCase
     /** @test */
     public function weight_accumulates_across_quantity_to_cross_the_threshold()
     {
-        // 16 kg each × 2 = 32 kg >= 30, even though a single unit is under.
+        // 16 kg each × 2 = 32 kg > 30, even though a single unit is under.
         $user     = User::factory()->create();
         $product  = $this->makeProduct(['weight_kg' => 16]);
         $location = $this->makeLocation();
@@ -141,6 +142,21 @@ class CheckoutTruckDeliveryTest extends TestCase
         $out = $this->checkoutDelivery($user, $product, 2, $location);
 
         $this->assertSame(self::TRUCK_FEE, $out['fee']);
+    }
+
+    /** @test */
+    public function weight_exactly_at_threshold_stays_on_regular_shipping()
+    {
+        // Boundary: the server must use strictly greater-than, exactly like the
+        // browser (checkout.blade.php) and the admin copy ("exceeds / above").
+        // A cart sitting precisely on 30 kg must NOT be surprised with a truck fee.
+        $user     = User::factory()->create();
+        $product  = $this->makeProduct(['weight_kg' => 30]);   // 30 kg == 30 kg
+        $location = $this->makeLocation();
+
+        $out = $this->checkoutDelivery($user, $product, 1, $location);
+
+        $this->assertSame(self::REGULAR_FEE, $out['fee']);
     }
 
     /** @test */

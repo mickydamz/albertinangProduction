@@ -83,8 +83,10 @@ class OrderSelfCancelRefundTest extends TestCase
     // ── Paystack ────────────────────────────────────────────────────────────
 
     /** @test */
-    public function paystack_self_cancel_auto_refunds_and_marks_order_refunded()
+    public function paystack_self_cancel_initiates_refund_and_marks_order_refund_pending()
     {
+        // Paystack queues the refund (status 'pending'), so the money has not yet
+        // moved — the order is refund_pending, not refunded, and carries evidence.
         Http::fake([
             'api.paystack.co/refund' => Http::response([
                 'status'  => true,
@@ -100,7 +102,11 @@ class OrderSelfCancelRefundTest extends TestCase
         $order->refresh();
         $cancellation = $order->cancellation()->first();
 
-        $this->assertSame('refunded', $order->status);
+        $this->assertSame('refund_pending', $order->status);
+        $this->assertSame('555001', (string) $order->refund_id);
+        $this->assertSame(50000.0, (float) $order->refund_amount);
+        $this->assertNotNull($order->refunded_at);
+        $this->assertNull($order->refund_failure_reason);
         $this->assertNotNull($cancellation);
         $this->assertSame('refunded', $cancellation->status);
         $this->assertSame('555001', (string) $cancellation->refund_id);
@@ -115,7 +121,7 @@ class OrderSelfCancelRefundTest extends TestCase
     }
 
     /** @test */
-    public function paystack_self_cancel_falls_back_to_approved_when_refund_declines()
+    public function paystack_self_cancel_marks_refund_failed_when_refund_declines()
     {
         Http::fake([
             'api.paystack.co/refund' => Http::response([
@@ -132,9 +138,12 @@ class OrderSelfCancelRefundTest extends TestCase
         $order->refresh();
         $cancellation = $order->cancellation()->first();
 
-        // Refund failed: the order is cancelled (not refunded) and the request is
-        // left as 'approved' for the team to refund manually.
-        $this->assertSame('cancelled', $order->status);
+        // Refund failed: never shown as refunded. The order is flagged
+        // refund_failed with the gateway reason, and the request is left
+        // 'approved' for the team to refund manually.
+        $this->assertSame('refund_failed', $order->status);
+        $this->assertNull($order->refund_id);
+        $this->assertNotNull($order->refund_failure_reason);
         $this->assertSame('approved', $cancellation->status);
         $this->assertNull($cancellation->refund_id);
         $this->assertStringContainsString('could not process your refund automatically', session('success'));
@@ -173,7 +182,7 @@ class OrderSelfCancelRefundTest extends TestCase
         $order->refresh();
         $cancellation = $order->cancellation()->first();
 
-        $this->assertSame('cancelled', $order->status);
+        $this->assertSame('refund_failed', $order->status);
         $this->assertSame('approved', $cancellation->status);
         $this->assertNull($cancellation->refund_id);
     }
@@ -190,7 +199,7 @@ class OrderSelfCancelRefundTest extends TestCase
         $order->refresh();
         $cancellation = $order->cancellation()->first();
 
-        $this->assertSame('cancelled', $order->status);
+        $this->assertSame('refund_failed', $order->status);
         $this->assertSame('approved', $cancellation->status);
         $this->assertNull($cancellation->refund_id);
     }
@@ -207,7 +216,7 @@ class OrderSelfCancelRefundTest extends TestCase
         $order->refresh();
         $cancellation = $order->cancellation()->first();
 
-        $this->assertSame('cancelled', $order->status);
+        $this->assertSame('refund_failed', $order->status);
         $this->assertSame('approved', $cancellation->status);
         $this->assertNull($cancellation->refund_id);
     }

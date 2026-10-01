@@ -23,6 +23,11 @@ use Auditable;
         'payment_method',
         'payment_id',
         'reference',
+        'refund_id',
+        'refund_status',
+        'refund_amount',
+        'refunded_at',
+        'refund_failure_reason',
         'fulfillment_method',
         'pickup_location',
         'pickup_location_id',
@@ -45,9 +50,62 @@ use Auditable;
         'total'               => 'decimal:2',
         'total_usd'           => 'decimal:2',
         'coupon_discount_ngn' => 'decimal:2',
+        'refund_amount'       => 'decimal:2',
+        'refunded_at'         => 'datetime',
         'created_at'          => 'datetime',
         'updated_at'          => 'datetime',
     ];
+
+    /**
+     * Gateway refund statuses that mean the money has actually moved back to the
+     * customer (terminal success). Anything else a successful refund *request*
+     * returns (pending / processing) is still in flight → refund_pending.
+     */
+    public const REFUND_TERMINAL_STATUSES = ['processed', 'succeeded', 'success', 'reversed', 'completed'];
+
+    /**
+     * Record the outcome of a gateway refund on the order — the single place that
+     * maps a refund result to an order status, so financial status only ever
+     * changes from a verified gateway outcome (never optimistically on failure).
+     *
+     * Expects the normalised shape used by the refund helpers:
+     *   handled, success, refund_id, refund_status, message
+     *
+     * Returns the resulting status so callers can tailor their flash message.
+     */
+    public function applyRefundOutcome(array $result, ?float $amount = null): string
+    {
+        $amount ??= (float) $this->total;
+
+        if (!empty($result['success'])) {
+            $gatewayStatus = strtolower((string) ($result['refund_status'] ?? ''));
+            $status = in_array($gatewayStatus, self::REFUND_TERMINAL_STATUSES, true)
+                ? 'refunded'
+                : 'refund_pending';
+
+            $this->update([
+                'status'                => $status,
+                'refund_id'             => $result['refund_id']     ?? null,
+                'refund_status'         => $result['refund_status'] ?? null,
+                'refund_amount'         => $amount,
+                'refunded_at'           => now(),
+                'refund_failure_reason' => null,
+            ]);
+
+            return $status;
+        }
+
+        // Failed or unsupported gateway: never report this as refunded. Persist
+        // the failure reason so the team can reconcile and refund manually.
+        $this->update([
+            'status'                => 'refund_failed',
+            'refund_status'         => $result['refund_status'] ?? 'failed',
+            'refund_amount'         => $amount,
+            'refund_failure_reason' => $result['message'] ?? 'Refund failed.',
+        ]);
+
+        return 'refund_failed';
+    }
 
     // ── Boot ────────────────────────────────────────────────────────────────
 

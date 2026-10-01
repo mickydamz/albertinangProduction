@@ -130,7 +130,10 @@ class OrderController extends Controller
         $weightThresholdKg      = (float) \App\Models\Setting::get('truck_weight_threshold_kg', 30);
         $orderValueThresholdNgn = (float) \App\Models\Setting::get('truck_order_value_threshold_ngn', 1000000);
 
-        if ($totalWeightKg >= $weightThresholdKg) {
+        // Strictly greater-than, mirroring the browser (checkout.blade.php) and the
+        // admin copy ("weight exceeds / above the threshold"). Using >= here would
+        // charge a truck fee at the exact boundary that the customer was never shown.
+        if ($totalWeightKg > $weightThresholdKg) {
             $requiresTruck = true;
         }
         if (($subtotalKobo / 100) >= $orderValueThresholdNgn) {
@@ -435,12 +438,27 @@ class OrderController extends Controller
         $refundResult = null;
 
         if ($order->payment_method === 'paystack') {
-            $refundResult = $this->processPaystackRefund($order, $cancellation);
+            $refundResult = $this->processPaystackRefund($order);
         } elseif ($order->payment_method === 'stripe') {
-            $refundResult = $this->processStripeRefund($order, $cancellation);
+            $refundResult = $this->processStripeRefund($order);
         }
 
-        if (!$refundResult || !$refundResult['success']) {
+        if ($refundResult) {
+            // A gateway refund was attempted — record the verified outcome on the
+            // order (refunded / refund_pending / refund_failed) and mirror it on
+            // the cancellation request. A failed refund is never shown as refunded.
+            $outcome = $order->applyRefundOutcome($refundResult, (float) $order->total);
+            $cancellation->update([
+                'status'                => $outcome === 'refund_failed' ? 'approved' : 'refunded',
+                // Only store a refund_id for a real refund — it gates re-attempts.
+                'refund_id'             => $outcome === 'refund_failed' ? null : ($refundResult['refund_id'] ?? null),
+                'refund_status'         => $refundResult['refund_status'] ?? null,
+                'refund_amount'         => $order->refund_amount,
+                'refunded_at'           => $outcome === 'refund_failed' ? null : now(),
+                'refund_failure_reason' => $outcome === 'refund_failed' ? ($refundResult['message'] ?? 'Refund failed.') : null,
+            ]);
+        } else {
+            // Non-online payment — nothing to auto-refund; leave the order cancelled.
             $cancellation->update(['status' => 'approved']);
         }
 
@@ -469,8 +487,18 @@ class OrderController extends Controller
         return back()->with('success', $message);
     }
 
-    private function processPaystackRefund(Order $order, OrderCancellation $cancellation): array
+    /**
+     * Call the Paystack refund API and return a normalised result. Pure — it does
+     * not mutate the order/cancellation; the caller records the outcome via
+     * Order::applyRefundOutcome() so financial status lives in one place.
+     *   handled, success, refund_id, refund_status, message
+     */
+    private function processPaystackRefund(Order $order): array
     {
+        if (empty($order->reference)) {
+            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => 'No payment reference on this order.'];
+        }
+
         try {
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . config('services.paystack.secret'),
@@ -486,36 +514,36 @@ class OrderController extends Controller
             $data = $response->json();
 
             if ($response->successful() && ($data['status'] ?? false)) {
-                $order->update(['status' => 'refunded']);
-
-                $cancellation->update([
-                    'status'        => 'refunded',
-                    'refund_id'     => $data['data']['id']     ?? null,
-                    'refund_status' => $data['data']['status'] ?? 'pending',
-                    'refunded_at'   => now(),
-                ]);
-
                 \Log::info('Paystack refund initiated for order #' . $order->id, [
                     'refund_id' => $data['data']['id'] ?? null,
                 ]);
 
-                return ['success' => true, 'data' => $data['data']];
+                return [
+                    'handled'       => true,
+                    'success'       => true,
+                    'refund_id'     => $data['data']['id']     ?? null,
+                    'refund_status' => $data['data']['status'] ?? 'pending',
+                    'message'       => '',
+                ];
             }
 
-            \Log::error('Paystack refund failed for order #' . $order->id, [
-                'response' => $data,
-            ]);
+            \Log::error('Paystack refund failed for order #' . $order->id, ['response' => $data]);
 
-            return ['success' => false, 'message' => $data['message'] ?? 'Refund failed.'];
+            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $data['message'] ?? 'Refund failed.'];
 
         } catch (\Exception $e) {
             \Log::error('Paystack refund exception for order #' . $order->id . ': ' . $e->getMessage());
 
-            return ['success' => false, 'message' => $e->getMessage()];
+            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $e->getMessage()];
         }
     }
 
-    private function processStripeRefund(Order $order, OrderCancellation $cancellation): array
+    /**
+     * Call the Stripe refund SDK and return a normalised result. Pure — the caller
+     * records the outcome via Order::applyRefundOutcome().
+     *   handled, success, refund_id, refund_status, message
+     */
+    private function processStripeRefund(Order $order): array
     {
         try {
             $paymentIntentId = $order->payment_id;
@@ -525,27 +553,24 @@ class OrderController extends Controller
                     'payment_id' => $paymentIntentId,
                 ]);
 
-                return ['success' => false, 'message' => 'No valid Stripe PaymentIntent found on this order.'];
+                return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => 'No valid Stripe PaymentIntent found on this order.'];
             }
 
             $refund = $this->createStripeRefund($paymentIntentId, $order);
 
-            if (in_array($refund->status, ['succeeded', 'pending'])) {
-                $order->update(['status' => 'refunded']);
-
-                $cancellation->update([
-                    'status'        => 'refunded',
-                    'refund_id'     => $refund->id,
-                    'refund_status' => $refund->status,
-                    'refunded_at'   => now(),
-                ]);
-
+            if (in_array($refund->status, ['succeeded', 'pending'], true)) {
                 \Log::info('Stripe refund initiated for order #' . $order->id, [
                     'refund_id' => $refund->id,
                     'status'    => $refund->status,
                 ]);
 
-                return ['success' => true, 'data' => $refund];
+                return [
+                    'handled'       => true,
+                    'success'       => true,
+                    'refund_id'     => $refund->id,
+                    'refund_status' => $refund->status,
+                    'message'       => '',
+                ];
             }
 
             \Log::error('Stripe refund did not succeed for order #' . $order->id, [
@@ -553,17 +578,17 @@ class OrderController extends Controller
                 'status'    => $refund->status ?? null,
             ]);
 
-            return ['success' => false, 'message' => 'Refund status: ' . ($refund->status ?? 'unknown')];
+            return ['handled' => true, 'success' => false, 'refund_id' => $refund->id ?? null, 'refund_status' => $refund->status ?? null, 'message' => 'Refund status: ' . ($refund->status ?? 'unknown')];
 
         } catch (ApiErrorException $e) {
             \Log::error('Stripe refund API error for order #' . $order->id . ': ' . $e->getMessage());
 
-            return ['success' => false, 'message' => $e->getMessage()];
+            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $e->getMessage()];
 
         } catch (\Exception $e) {
             \Log::error('Stripe refund exception for order #' . $order->id . ': ' . $e->getMessage());
 
-            return ['success' => false, 'message' => $e->getMessage()];
+            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $e->getMessage()];
         }
     }
 

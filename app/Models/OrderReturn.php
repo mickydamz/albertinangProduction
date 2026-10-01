@@ -16,12 +16,15 @@ class OrderReturn extends Model
         'reviewed_at',
         'refund_id',
         'refund_status',
+        'refund_amount',
         'refunded_at',
+        'refund_failure_reason',
     ];
 
     protected $casts = [
-        'reviewed_at' => 'datetime',
-        'refunded_at' => 'datetime',
+        'reviewed_at'   => 'datetime',
+        'refunded_at'   => 'datetime',
+        'refund_amount' => 'decimal:2',
     ];
 
     public function order() { return $this->belongsTo(Order::class); }

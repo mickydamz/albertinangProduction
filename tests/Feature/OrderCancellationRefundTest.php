@@ -95,7 +95,11 @@ class OrderCancellationRefundTest extends TestCase
         $order->refresh();
         $cancellation->refresh();
 
-        $this->assertSame('refunded', $order->status);
+        // Paystack queues the refund (status 'pending') → order is refund_pending
+        // with evidence; the cancellation request is marked refunded.
+        $this->assertSame('refund_pending', $order->status);
+        $this->assertSame('987654', (string) $order->refund_id);
+        $this->assertSame(50000.0, (float) $order->refund_amount);
         $this->assertSame('refunded', $cancellation->status);
         $this->assertSame('987654', (string) $cancellation->refund_id);
         $this->assertSame('pending', $cancellation->refund_status);
@@ -114,7 +118,7 @@ class OrderCancellationRefundTest extends TestCase
     }
 
     /** @test */
-    public function paystack_refund_failure_marks_refunded_but_flags_for_manual_handling()
+    public function paystack_refund_failure_marks_refund_failed_and_flags_for_manual_handling()
     {
         Http::fake([
             'api.paystack.co/refund' => Http::response([
@@ -132,11 +136,17 @@ class OrderCancellationRefundTest extends TestCase
         $order->refresh();
         $cancellation->refresh();
 
-        // Order is still moved to refunded, but no gateway refund id was stored
+        // Failed gateway refund is NEVER shown as refunded: the order is flagged
+        // refund_failed with the reason, the cancellation falls back to approved,
         // and the admin is told to handle it manually.
-        $this->assertSame('refunded', $order->status);
+        $this->assertSame('refund_failed', $order->status);
+        $this->assertNotNull($order->refund_failure_reason);
+        $this->assertSame('approved', $cancellation->status);
         $this->assertNull($cancellation->refund_id);
         $this->assertStringContainsString('process manually', session('success'));
+
+        // And no "your refund is done" email went out.
+        Mail::assertNotQueued(OrderRefunded::class);
     }
 
     /** @test */
@@ -209,7 +219,8 @@ class OrderCancellationRefundTest extends TestCase
         $order->refresh();
         $cancellation->refresh();
 
-        $this->assertSame('refunded', $order->status);
+        $this->assertSame('refund_failed', $order->status);
+        $this->assertSame('approved', $cancellation->status);
         $this->assertNull($cancellation->refund_id);
         $this->assertStringContainsString('process manually', session('success'));
     }
@@ -229,9 +240,9 @@ class OrderCancellationRefundTest extends TestCase
         Http::assertNothingSent();
 
         $order->refresh();
-        $this->assertSame('refunded', $order->status);
+        $this->assertSame('refund_failed', $order->status);
         $this->assertNull($cancellation->fresh()->refund_id);
-        $this->assertStringContainsString('auto-refunded', session('success'));
+        $this->assertStringContainsString('process manually', session('success'));
     }
 
     // ── Approve / reject (no refund) ──────────────────────────────────────────
