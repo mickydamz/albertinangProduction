@@ -683,9 +683,12 @@ Route::post('/webhooks/paystack', [PaystackWebhookController::class, 'handle'])
     ->name('webhooks.paystack')
     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
+// Setup helper (symlinks storage). Admin-only — it runs an Artisan command and
+// must never be reachable unauthenticated.
 Route::get('/foo', function () {
     Artisan::call('storage:link');
-});
+    return response()->json(['message' => 'storage linked']);
+})->middleware(['auth', 'role:admin']);
 
 Route::get('/cities', function (Request $request) {
     $countryCode = $request->query('country');
@@ -704,13 +707,19 @@ Route::post('/paystack/confirm-order', [OrderController::class, 'verifyAndStoreP
     ->name('paystack.confirm_order')
     ->middleware(['auth', 'throttle:checkout-confirm']);
 
+// These admin-only mutations live outside the admin group, so they must carry
+// the same guard explicitly — otherwise anyone could toggle storefront
+// visibility of brands/categories/subcategories.
 Route::patch('brands/{brand}/toggle-active', [AdminBrandController::class, 'toggleActive'])
+    ->middleware(['auth', 'role:admin'])
     ->name('admin.brands.toggleActive');
 
 Route::patch('categories/{category}/toggle-active', [AdminCategoryController::class, 'toggleActive'])
+    ->middleware(['auth', 'role:admin'])
     ->name('admin.categories.toggleActive');
 
 Route::patch('subcategories/{Subcategory}/toggle-active', [AdminCategoryController::class, 'toggleActiveSubcategory'])
+    ->middleware(['auth', 'role:admin'])
     ->name('admin.subcategories.toggleActive');
 
 

@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Brand;
+use App\Models\Category;
+use App\Models\Subcategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Routing\Middleware\ThrottleRequests;
@@ -52,5 +55,42 @@ class AdminAccessControlTest extends TestCase
     {
         $this->actingAs(User::factory()->create(['role' => 'admin']))
             ->get('/admin/users')->assertOk();
+    }
+
+    // ── Toggle-active routes defined outside the admin group ─────────────────────
+    // These live in web.php outside the role:admin group, so they carry the guard
+    // explicitly. Regression: they previously had NO middleware at all.
+
+    /** @test */
+    public function a_guest_cannot_toggle_brand_category_or_subcategory_visibility()
+    {
+        $brand       = Brand::create(['name' => 'B ' . uniqid(), 'is_active' => true]);
+        $category    = Category::create(['name' => 'C ' . uniqid(), 'is_active' => true]);
+        $subcategory = Subcategory::create(['name' => 'S ' . uniqid(), 'category_id' => $category->id, 'is_active' => true]);
+
+        $this->patch(route('admin.brands.toggleActive', $brand))->assertRedirect(route('login'));
+        $this->patch(route('admin.categories.toggleActive', $category))->assertRedirect(route('login'));
+        $this->patch(route('admin.subcategories.toggleActive', $subcategory))->assertRedirect(route('login'));
+
+        $this->assertTrue((bool) $brand->fresh()->is_active);
+        $this->assertTrue((bool) $category->fresh()->is_active);
+        $this->assertTrue((bool) $subcategory->fresh()->is_active);
+    }
+
+    /** @test */
+    public function a_non_admin_cannot_toggle_brand_category_or_subcategory_visibility()
+    {
+        $user        = User::factory()->create(); // non-admin
+        $brand       = Brand::create(['name' => 'B ' . uniqid(), 'is_active' => true]);
+        $category    = Category::create(['name' => 'C ' . uniqid(), 'is_active' => true]);
+        $subcategory = Subcategory::create(['name' => 'S ' . uniqid(), 'category_id' => $category->id, 'is_active' => true]);
+
+        $this->actingAs($user)->patch(route('admin.brands.toggleActive', $brand))->assertForbidden();
+        $this->actingAs($user)->patch(route('admin.categories.toggleActive', $category))->assertForbidden();
+        $this->actingAs($user)->patch(route('admin.subcategories.toggleActive', $subcategory))->assertForbidden();
+
+        $this->assertTrue((bool) $brand->fresh()->is_active);
+        $this->assertTrue((bool) $category->fresh()->is_active);
+        $this->assertTrue((bool) $subcategory->fresh()->is_active);
     }
 }
