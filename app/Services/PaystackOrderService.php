@@ -184,6 +184,10 @@ class PaystackOrderService
                     ]);
                 }
 
+                // Remove the purchased items from inventory, atomically with the
+                // order. Product rows are locked; oversell is allowed and flagged.
+                $order->deductStock();
+
                 if (!empty($couponData['id'])) {
                     $coupon = Coupon::lockForUpdate()->find($couponData['id']);
                     if ($coupon) {
