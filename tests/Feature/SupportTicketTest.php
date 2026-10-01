@@ -78,6 +78,80 @@ class SupportTicketTest extends TestCase
             ->assertSessionHasErrors(['subject', 'description', 'priority']);
     }
 
+    // ── Edit / Update ────────────────────────────────────────────────────────────
+
+    /** @test */
+    public function the_owner_can_open_the_edit_page()
+    {
+        // Regression: the edit view reads $replies (Quick Info panel); the
+        // controller used to omit it, causing an HTTP 500 on this page.
+        $owner  = User::factory()->create();
+        $ticket = $this->makeTicket($owner);
+
+        $this->actingAs($owner)->get("/tickets/{$ticket->id}/edit")->assertOk();
+    }
+
+    /** @test */
+    public function the_owner_can_update_their_ticket()
+    {
+        $owner  = User::factory()->create(['role' => 'user']);
+        $ticket = $this->makeTicket($owner, ['priority' => 'low']);
+
+        $this->actingAs($owner)->put("/tickets/{$ticket->id}", [
+            'subject'     => 'Updated subject',
+            'description' => 'Updated description text.',
+            'priority'    => 'high',
+        ])->assertRedirect(route('tickets.index'));
+
+        $this->assertDatabaseHas('tickets', [
+            'id'       => $ticket->id,
+            'subject'  => 'Updated subject',
+            'priority' => 'high',
+        ]);
+    }
+
+    /** @test */
+    public function updating_a_ticket_requires_subject_description_and_priority()
+    {
+        $owner  = User::factory()->create();
+        $ticket = $this->makeTicket($owner);
+
+        $this->actingAs($owner)
+            ->from("/tickets/{$ticket->id}/edit")
+            ->put("/tickets/{$ticket->id}", [])
+            ->assertRedirect("/tickets/{$ticket->id}/edit")
+            ->assertSessionHasErrors(['subject', 'description', 'priority']);
+    }
+
+    /** @test */
+    public function a_user_cannot_open_the_edit_page_for_another_users_ticket()
+    {
+        $owner    = User::factory()->create();
+        $attacker = User::factory()->create();
+        $ticket   = $this->makeTicket($owner);
+
+        $this->actingAs($attacker)->get("/tickets/{$ticket->id}/edit")->assertForbidden();
+    }
+
+    /** @test */
+    public function a_user_cannot_update_another_users_ticket()
+    {
+        $owner    = User::factory()->create();
+        $attacker = User::factory()->create();
+        $ticket   = $this->makeTicket($owner, ['subject' => 'Original subject']);
+
+        $this->actingAs($attacker)->put("/tickets/{$ticket->id}", [
+            'subject'     => 'Hijacked subject',
+            'description' => 'Hijacked description.',
+            'priority'    => 'high',
+        ])->assertForbidden();
+
+        $this->assertDatabaseHas('tickets', [
+            'id'      => $ticket->id,
+            'subject' => 'Original subject',
+        ]);
+    }
+
     // ── List scoping ───────────────────────────────────────────────────────────
 
     /** @test */

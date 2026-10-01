@@ -91,7 +91,9 @@ class TicketController extends Controller
     {
         $this->authorizeAccess($ticket);
 
-        return view('tickets.edit', compact('ticket'));
+        $replies = $ticket->replies()->with('user')->get();
+
+        return view('tickets.edit', compact('ticket', 'replies'));
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
@@ -100,10 +102,13 @@ class TicketController extends Controller
     {
         $this->authorizeAccess($ticket);
 
+        // The edit form submits subject / priority / description (same fields as
+        // create) — not status. Validate those so saving actually works and the
+        // chosen priority persists.
         $validated = $request->validate([
             'subject'     => 'required|max:255',
             'description' => 'required',
-            'status'      => 'required|in:open,closed,pending',
+            'priority'    => 'required|in:low,medium,high',
         ]);
 
         $ticket->update($validated);
