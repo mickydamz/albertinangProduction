@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('product_tag', function (Blueprint $table) {
+            if (!Schema::hasColumn('product_tag', 'created_at')) {
+                $table->timestamp('created_at')->nullable();
+            }
+            if (!Schema::hasColumn('product_tag', 'updated_at')) {
+                $table->timestamp('updated_at')->nullable();
+            }
+            if (!Schema::hasColumn('product_tag', 'selected_options')) {
+                $table->json('selected_options')->nullable();
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('product_tag', function (Blueprint $table) {
+            foreach (['created_at', 'updated_at', 'selected_options'] as $col) {
+                if (Schema::hasColumn('product_tag', $col)) {
+                    $table->dropColumn($col);
+                }
+            }
+        });
+    }
+};

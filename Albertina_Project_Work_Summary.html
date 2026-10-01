@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Albertina Nigeria – Project Work Summary</title>
+<style>
+  body {
+    font-family: Calibri, Arial, sans-serif;
+    font-size: 11pt;
+    color: #1a1a1a;
+    margin: 72pt 72pt 72pt 72pt;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 22pt;
+    font-weight: bold;
+    color: #1a5c2e;
+    border-bottom: 2pt solid #1a5c2e;
+    padding-bottom: 6pt;
+    margin-bottom: 4pt;
+  }
+  h2 {
+    font-size: 14pt;
+    font-weight: bold;
+    color: #1a5c2e;
+    margin-top: 18pt;
+    margin-bottom: 4pt;
+    border-bottom: 1pt solid #c8e6c9;
+    padding-bottom: 3pt;
+  }
+  h3 {
+    font-size: 11pt;
+    font-weight: bold;
+    color: #2e7d32;
+    margin-top: 10pt;
+    margin-bottom: 2pt;
+  }
+  p {
+    margin: 4pt 0 8pt 0;
+  }
+  ul {
+    margin: 4pt 0 8pt 18pt;
+    padding: 0;
+  }
+  li {
+    margin-bottom: 4pt;
+  }
+  .meta {
+    font-size: 10pt;
+    color: #666;
+    margin-bottom: 18pt;
+  }
+  .section-box {
+    background: #f9fdf9;
+    border-left: 4pt solid #1a5c2e;
+    padding: 8pt 12pt;
+    margin: 10pt 0;
+  }
+  .tag {
+    display: inline-block;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-size: 9pt;
+    padding: 1pt 6pt;
+    border-radius: 3pt;
+    margin-right: 4pt;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8pt 0 14pt 0;
+    font-size: 10.5pt;
+  }
+  th {
+    background: #1a5c2e;
+    color: #fff;
+    padding: 6pt 10pt;
+    text-align: left;
+  }
+  td {
+    border: 1pt solid #c8e6c9;
+    padding: 5pt 10pt;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background: #f1f8f1;
+  }
+  .divider {
+    border: none;
+    border-top: 1pt solid #e0e0e0;
+    margin: 18pt 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>Albertina Nigeria – Project Work Summary</h1>
+<p class="meta">Project: Laravel 9 B2C/B2B Electronics E-Commerce Platform &nbsp;|&nbsp; Prepared: September 2026</p>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>1. Admin Store Settings Panel</h2>
+<p>Built a full settings management system so the admin can configure store-wide details without touching code.</p>
+
+<h3>What was built</h3>
+<ul>
+  <li><strong>Settings database table</strong> — a key/value store with seeded defaults (store name, address, phone, email, logo path, delivery enabled, pickup enabled).</li>
+  <li><strong>Setting model</strong> — static <code>get()</code>, <code>set()</code>, and <code>clearCache()</code> methods with per-request in-memory caching so the table is only queried once per page load.</li>
+  <li><strong>AdminSettingsController</strong> — <code>index()</code> shows the form pre-filled with current values; <code>update()</code> saves changes and handles logo file upload.</li>
+  <li><strong>Admin settings view</strong> — two-column form with: store name, logo upload (with live JS preview), address, phone, email, and delivery/pickup toggles.</li>
+  <li><strong>"Store Settings" link</strong> added to the admin sidebar navigation.</li>
+</ul>
+
+<h3>Default values seeded</h3>
+<table>
+  <tr><th>Setting</th><th>Default Value</th></tr>
+  <tr><td>Store Name</td><td>Albertina Nigeria</td></tr>
+  <tr><td>Store Address</td><td>17-18 Zik's Avenue, Uwani, Enugu</td></tr>
+  <tr><td>Store Phone</td><td>08064066170</td></tr>
+  <tr><td>Store Email</td><td>Info@Albertinang.com</td></tr>
+  <tr><td>Delivery Enabled</td><td>Yes</td></tr>
+  <tr><td>Pickup Enabled</td><td>Yes</td></tr>
+</table>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>2. Dynamic Branding Across the Entire Platform</h2>
+<p>Settings from the admin panel are now automatically reflected everywhere — the storefront, PDF invoices, and customer emails — without any manual code changes.</p>
+
+<h3>Storefront (simslayout)</h3>
+<ul>
+  <li>Header and footer logos switch to the uploaded logo; fall back to the default image if none is set.</li>
+  <li>Browser tab title uses the live store name.</li>
+  <li>Contact bar (phone, address, email) and footer details are all pulled from settings.</li>
+</ul>
+
+<h3>PDF Invoices (DomPDF)</h3>
+<ul>
+  <li>Logo is read directly from the filesystem and base64-encoded as a data URI — required because DomPDF cannot resolve HTTP URLs for images.</li>
+  <li>MIME type detected automatically, so PNG, JPEG, or WebP logos all work correctly.</li>
+</ul>
+
+<h3>Customer Emails</h3>
+<ul>
+  <li>Logo URL built as a full absolute URL (<code>APP_URL + /storage/…</code>) so email clients can fetch it.</li>
+  <li>Footer brand name and support email address are dynamic.</li>
+</ul>
+
+<h3>Invoice browser view (invoicelayout)</h3>
+<ul>
+  <li>Header logo switches to the uploaded logo with a fallback to the default asset.</li>
+</ul>
+
+<h3>Admin panel (adminlayout)</h3>
+<ul>
+  <li>Sidebar brand name and page titles use the live store name.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>3. Post-Login Redirect Fix</h2>
+<p>Previously, logging in always sent users to their role's dashboard even if they had been trying to access a specific page before being asked to log in.</p>
+<ul>
+  <li>Changed all role-based redirects in <code>LoginController</code> to use <code>redirect()->intended()</code>.</li>
+  <li>Laravel stores the originally-requested URL in the session; <code>intended()</code> sends the user there first, falling back to the role dashboard only if no prior URL was stored.</li>
+  <li>Applies to all roles: admin, supplier, affiliate, manager, and regular customer.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>4. Banner Click Navigation</h2>
+<p>Banners on the customer homepage were already stored with a <code>link</code> field in the database but clicks had no effect.</p>
+<ul>
+  <li>Wrapped each banner image in an anchor tag pointing to <code>$banner->link</code>.</li>
+  <li>Opens in a new tab (<code>target="_blank"</code>) with safe <code>rel="noopener noreferrer"</code> attributes.</li>
+  <li>Only renders the anchor when a link is actually set; banners without a link are unaffected.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>5. Project Cleanup — Dead Code &amp; Files Removed</h2>
+<p>Large amounts of dead, duplicate, and non-ecommerce code were removed. No ecommerce functionality was changed.</p>
+
+<h3>Bulk directories deleted (saved ~1.4 GB of disk space)</h3>
+<table>
+  <tr><th>Directory</th><th>Size</th><th>Reason Removed</th></tr>
+  <tr><td>resources/viewsss/</td><td>~372 MB</td><td>Entire duplicate views folder</td></tr>
+  <tr><td>resources/views/html/</td><td>~350 MB</td><td>Static HTML dump, not used by the app</td></tr>
+  <tr><td>public/sims/</td><td>~303 MB</td><td>Contained WordPress files, not referenced by the app</td></tr>
+  <tr><td>public/storageres/</td><td>~718 MB</td><td>Stale duplicate of public/storage/</td></tr>
+  <tr><td>public/nk5/</td><td>~28 MB</td><td>Dead template assets</td></tr>
+  <tr><td>public/maintemplate/</td><td>~15 MB</td><td>Unused template files</td></tr>
+</table>
+
+<h3>Non-ecommerce features removed</h3>
+<table>
+  <tr><th>Feature</th><th>Files Deleted</th></tr>
+  <tr><td>Deposits (wallet top-up)</td><td>DepositController, AdminDepositController, Deposit model, DepositNotification mail, DepositForm &amp; DepositReceipt Livewire components, deposit views</td></tr>
+  <tr><td>Withdrawals</td><td>WithdrawController, AdminWithdrawalController, Withdrawal model, withdraw views</td></tr>
+  <tr><td>Bank account management</td><td>AdminBankController, BankAccount model, BankAccountNotification mail, BankSelection Livewire component, bank views, send-bank-account-email admin tool</td></tr>
+  <tr><td>Crypto addresses</td><td>CryptoAddressController, CryptoAddress model</td></tr>
+  <tr><td>CashApp integration</td><td>CashAppController, CashApp deposit views</td></tr>
+  <tr><td>KYC / ID Verification</td><td>IdVerificationController, IdVerification model, idvs views, verifyid/idverification methods in UserController</td></tr>
+  <tr><td>Old Stripe deposit flow</td><td>StripeController (the deposit-wallet version, separate from checkout Stripe)</td></tr>
+  <tr><td>Manager dashboard</td><td>ManagerDashboardController</td></tr>
+  <tr><td>Legacy home page</td><td>HomeController</td></tr>
+  <tr><td>Dead user metrics</td><td>UserMetric model, metrics() relationship on User</td></tr>
+  <tr><td>Dead payment controllers</td><td>AuthorizeNetController, FormerPaymentController</td></tr>
+  <tr><td>Dead product controller</td><td>ORIGINALAdminProductController</td></tr>
+</table>
+
+<h3>Dead view directories removed</h3>
+<ul>
+  <li>resources/views/bank/</li>
+  <li>resources/views/idvs/</li>
+  <li>resources/views/withdraw/</li>
+  <li>resources/views/deposit/</li>
+  <li>resources/views/nk5/</li>
+  <li>resources/views/formerbanners/</li>
+  <li>resources/views/product/</li>
+  <li>resources/views/user/cart/</li>
+  <li>resources/views/mail/</li>
+</ul>
+
+<h3>Dead layouts removed</h3>
+<ul>
+  <li>admin.blade.php (superseded by adminlayout.blade.php)</li>
+  <li>affiliatelayout.blade.php</li>
+  <li>ecommerce.blade.php</li>
+  <li>homeLayout.blade.php</li>
+  <li>smartlayout.blade.php</li>
+  <li>app.bladeOriginal.php</li>
+</ul>
+
+<h3>Route file cleaned up</h3>
+<ul>
+  <li>Removed all <code>use</code> imports for deleted controllers.</li>
+  <li>Removed all route definitions for deposits, withdrawals, bank accounts, crypto addresses, CashApp, ID verification, and Stripe deposit flow.</li>
+  <li>Removed dead admin routes that pointed to deleted controllers.</li>
+</ul>
+
+<h3>Model relationships cleaned up</h3>
+<ul>
+  <li><code>Country</code> model — removed <code>bankAccounts()</code> and <code>deposits()</code> relationships.</li>
+  <li><code>PaymentMethod</code> model — removed <code>deposits()</code> relationship.</li>
+  <li><code>User</code> model — removed <code>idverification()</code>, <code>isVerified()</code>, and <code>metrics()</code> methods.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>6. Bug Fixes</h2>
+
+<h3>Blade parse error — contact bar in storefront</h3>
+<ul>
+  <li><strong>Cause:</strong> Inline <code>@if/@else/@endif</code> blocks where the fallback text started with a digit (e.g. <code>@else17-18 Zik's…</code>) — Blade parsed <code>@else17</code> as an unknown directive.</li>
+  <li><strong>Fix:</strong> Split all conditional blocks onto separate lines in simslayout.blade.php.</li>
+</ul>
+
+<h3>Settings form showing empty defaults</h3>
+<ul>
+  <li><strong>Cause:</strong> Migration seeded null values for address/phone/email.</li>
+  <li><strong>Fix:</strong> Updated migration seed with real default values; existing installations patched via Artisan tinker.</li>
+</ul>
+
+<h3>Autoload crash — BankAccount model not found</h3>
+<ul>
+  <li><strong>Cause:</strong> BankAccount model file was deleted but six files still imported it.</li>
+  <li><strong>Fix:</strong> Removed all imports and usages across CartController, AdminController, Country model, PaymentMethod model, UserController, and User model.</li>
+</ul>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>7. What Was Kept (Intentionally)</h2>
+<div class="section-box">
+  <p>The following features were reviewed and confirmed to stay:</p>
+  <ul>
+    <li><strong>Affiliate program</strong> — affiliate dashboard, commission tracking, affiliate admin management, affiliate routes. Kept by explicit decision.</li>
+    <li><strong>Stripe checkout</strong> — the <em>order checkout</em> Stripe flow in <code>OrderController</code> (separate from the deleted deposit Stripe flow). Fully functional.</li>
+    <li><strong>Paystack checkout</strong> — initiate, verify, and confirm order flows. Fully functional.</li>
+    <li><strong>Supplier role</strong> — supplier dashboard, product management by suppliers.</li>
+    <li><strong>Admin KYC review</strong> — admin-side KYC review panel kept; only the user-side submission flow was removed.</li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>8. Summary of New Files Created</h2>
+<table>
+  <tr><th>File</th><th>Purpose</th></tr>
+  <tr><td>database/migrations/2025_01_14_000003_create_settings_table.php</td><td>Creates and seeds the settings table</td></tr>
+  <tr><td>app/Models/Setting.php</td><td>Key/value settings model with caching</td></tr>
+  <tr><td>app/Http/Controllers/AdminSettingsController.php</td><td>Admin settings read/write logic</td></tr>
+  <tr><td>resources/views/admin/settings/index.blade.php</td><td>Admin settings form view</td></tr>
+</table>
+
+<hr class="divider">
+<p class="meta" style="text-align:center;">Albertina Nigeria Ltd &nbsp;|&nbsp; Internal Development Record &nbsp;|&nbsp; 2026</p>
+
+</body>
+</html>
