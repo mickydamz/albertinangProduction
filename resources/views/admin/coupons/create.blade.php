@@ -143,7 +143,7 @@
 
                                 {{-- Max uses --}}
                                 <div class="mb-1">
-                                    <label class="form-label fw-bold">Max uses</label>
+                                    <label class="form-label fw-bold">Total redemption limit</label>
                                     <input type="number"
                                            name="max_uses"
                                            value="{{ old('max_uses') }}"
@@ -153,12 +153,16 @@
                                     @error('max_uses')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
-                                    <small class="text-muted">Total redemptions across all customers.</small>
+                                    <small class="text-muted">
+                                        Total redemptions across <strong>all</strong> customers. Leave blank for unlimited.
+                                        This is separate from customer reuse below — unlimited here does <strong>not</strong>
+                                        let the same customer redeem it more than once.
+                                    </small>
                                 </div>
 
                                 {{-- Usage per customer --}}
                                 <div class="mb-1">
-                                    <label class="form-label fw-bold">Usage per customer</label>
+                                    <label class="form-label fw-bold">Allow the same customer to reuse</label>
                                     <div class="d-flex gap-2">
                                         <label class="discount-type-card {{ old('multi_use') ? '' : 'selected' }}"
                                                for="use_single">
@@ -166,7 +170,7 @@
                                                    value="0" {{ old('multi_use') ? '' : 'checked' }}
                                                    onchange="updateUsageType()">
                                             <i data-feather="user-check" style="width:20px;height:20px;"></i>
-                                            <span>Single use</span>
+                                            <span>Once per customer</span>
                                         </label>
                                         <label class="discount-type-card {{ old('multi_use') ? 'selected' : '' }}"
                                                for="use_multi">
@@ -174,12 +178,13 @@
                                                    value="1" {{ old('multi_use') ? 'checked' : '' }}
                                                    onchange="updateUsageType()">
                                             <i data-feather="repeat" style="width:20px;height:20px;"></i>
-                                            <span>Multiple uses</span>
+                                            <span>Customer can reuse</span>
                                         </label>
                                     </div>
                                     <small class="text-muted">
-                                        Single use: each customer can redeem this coupon only once.
-                                        Multiple uses: a customer may redeem it repeatedly (subject to Max uses).
+                                        Once per customer: each customer may redeem it a single time.
+                                        Customer can reuse: the same customer may redeem it repeatedly
+                                        (still capped by the total redemption limit above, if set).
                                     </small>
                                 </div>
 

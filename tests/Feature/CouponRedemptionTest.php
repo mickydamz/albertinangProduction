@@ -204,4 +204,54 @@ class CouponRedemptionTest extends TestCase
         $res->assertStatus(200)->assertJsonPath('success', true);
         $this->assertEquals(5000, $res->json('discount_ngn'));
     }
+
+    /** @test */
+    public function a_reusable_coupon_lets_the_same_customer_redeem_again()
+    {
+        // multi_use = true is the control that allows a customer to reuse a coupon.
+        $user   = User::factory()->create();
+        $coupon = $this->makeCoupon(['multi_use' => true]);
+
+        CouponUsage::create([
+            'coupon_id' => $coupon->id,
+            'user_id'   => $user->id,
+            'order_id'  => null,
+        ]);
+
+        $res = $this->apply($user, $coupon->code, 50000);
+
+        $res->assertStatus(200)->assertJsonPath('success', true);
+    }
+
+    /** @test */
+    public function an_unlimited_total_coupon_still_blocks_reuse_when_not_marked_reusable()
+    {
+        // Total redemption limit (max_uses) and per-customer reuse (multi_use) are
+        // independent: leaving the total unlimited does NOT let one customer reuse it.
+        $user   = User::factory()->create();
+        $coupon = $this->makeCoupon(['max_uses' => null, 'multi_use' => false]);
+
+        CouponUsage::create([
+            'coupon_id' => $coupon->id,
+            'user_id'   => $user->id,
+            'order_id'  => null,
+        ]);
+
+        $res = $this->apply($user, $coupon->code, 50000);
+
+        $res->assertStatus(422)->assertJsonPath('success', false);
+        $this->assertStringContainsStringIgnoringCase('already used', $res->json('message'));
+    }
+
+    /** @test */
+    public function a_coupon_exactly_at_its_minimum_order_amount_is_accepted()
+    {
+        // Boundary: subtotal == minimum must pass (the rejection is strictly "below").
+        $user   = User::factory()->create();
+        $coupon = $this->makeCoupon(['min_order_amount' => 20000]);
+
+        $res = $this->apply($user, $coupon->code, 20000);
+
+        $res->assertStatus(200)->assertJsonPath('success', true);
+    }
 }
