@@ -1,1 +1,0 @@
-<?php /**PATH C:\Users\BSEMA\Downloads\Ecommerce_zip\resources\views/emails/partials/progress.blade.php ENDPATH**/ ?>
