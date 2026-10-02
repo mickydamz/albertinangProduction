@@ -21,7 +21,7 @@
     <p class="greeting">
         Hi <strong>{{ $order->user?->name ?? 'Valued Customer' }}</strong>,<br><br>
         Great news — your order has been confirmed and is now being prepared.
-        You'll receive another update once your item(s) are on their way.
+        @if($order->fulfillment_method === 'pickup') You'll receive another update when your order is ready for pickup. @else You'll receive another update once your item(s) are on their way. @endif
     </p>
 
     {{-- Order Items --}}
@@ -88,7 +88,7 @@
                     ₦{{ number_format($order->total, 0) }}
                 </td>
             </tr>
-            @if($order->total_usd)
+            @if((float) $order->total_usd >= 0.005)
             <tr>
                 <td colspan="2" style="padding:2px 0 0; font-size:11px; color:#7a9a60; text-align:right;">
                     ≈ ${{ number_format($order->total_usd, 2) }} USD

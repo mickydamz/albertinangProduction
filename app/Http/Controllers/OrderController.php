@@ -284,17 +284,25 @@ class OrderController extends Controller
         ]);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $user = Auth::user();
-
-        $orders = Order::where('user_id', $user->id)
-            ->with(['items', 'return', 'cancellation'])
-            ->latest()
-            ->paginate(10);
-
+        $filters = $request->validate([
+            'period' => 'nullable|in:all,1,3,6,12',
+            'status' => 'nullable|in:all,pending,paid,processing,ready_for_pickup,shipped,delivered,completed,cancelled,refunded',
+            'sort' => 'nullable|in:newest,oldest,price-high,price-low',
+            'search' => 'nullable|string|max:100',
+        ]);
+        $query = Order::where('user_id', Auth::id())->with(['items', 'return', 'cancellation']);
+        if (($filters['period'] ?? 'all') !== 'all') {
+            $query->where('created_at', '>=', now()->subMonthsNoOverflow((int) $filters['period']));
+        }
+        if (($filters['status'] ?? 'all') !== 'all') $query->where('status', $filters['status']);
+        if (!empty($filters['search'])) $query->where('order_number', 'like', '%'.$filters['search'].'%');
+        $sort = $filters['sort'] ?? 'newest';
+        $query->orderBy(in_array($sort, ['price-high', 'price-low']) ? 'total' : 'created_at',
+            in_array($sort, ['oldest', 'price-low']) ? 'asc' : 'desc')->orderBy('id', 'desc');
+        $orders = $query->paginate(10)->withQueryString();
         $orderCount = $orders->total();
-
         return view('sims.orders', compact('orders', 'orderCount'));
     }
 
@@ -382,6 +390,13 @@ class OrderController extends Controller
             'evidence' => 'nullable|image|max:4096',
         ]);
 
+        if (!$order->canReturn()) {
+            return back()->with('error', 'Returns are available only after delivery or completed collection.');
+        }
+        if ($order->return) {
+            return back()->with('error', 'You have already submitted a return request for this order.');
+        }
+
         $path = null;
         if ($request->hasFile('evidence')) {
             $path = $request->file('evidence')->store('returns', 'public');
@@ -415,13 +430,17 @@ class OrderController extends Controller
             return back()->with('error', 'You have already submitted a cancellation request for this order.');
         }
 
-        if (!in_array($order->status, ['paid', 'pending', 'processing'])) {
+        if (!$order->canCancel()) {
             return back()->with('error', 'This order cannot be cancelled at its current status.');
         }
 
         $request->validate([
             'reason' => 'required|string|min:20|max:1000',
         ]);
+
+        if ($order->payment_method === 'paystack') {
+            app(\App\Services\PaystackRefundService::class)->validateAmount($request->all());
+        }
 
         $cancellation = OrderCancellation::create([
             'order_id' => $order->id,
@@ -461,7 +480,7 @@ class OrderController extends Controller
 
         $message = 'Your order has been cancelled.';
         if ($refundResult && $refundResult['success']) {
-            $message .= ' A refund has been initiated and will reflect in 5–10 business days.';
+            $message .= ' Your refund request is being processed. We will notify you when the payment provider confirms completion.';
         } elseif (in_array($order->payment_method, ['paystack', 'stripe'])) {
             $message .= ' We could not process your refund automatically — our team will handle it manually.';
         }
@@ -471,48 +490,7 @@ class OrderController extends Controller
 
     private function processPaystackRefund(Order $order, OrderCancellation $cancellation): array
     {
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.paystack.secret'),
-                'Content-Type'  => 'application/json',
-            ])->post('https://api.paystack.co/refund', [
-                'transaction'   => $order->reference,
-                'amount'        => (int) ($order->total * 100),
-                'currency'      => 'NGN',
-                'customer_note' => 'Refund for cancelled order #' . $order->order_number,
-                'merchant_note' => 'Auto-refund on cancellation',
-            ]);
-
-            $data = $response->json();
-
-            if ($response->successful() && ($data['status'] ?? false)) {
-                $order->update(['status' => 'refunded']);
-
-                $cancellation->update([
-                    'status'        => 'refunded',
-                    'refund_id'     => $data['data']['id']     ?? null,
-                    'refund_status' => $data['data']['status'] ?? 'pending',
-                    'refunded_at'   => now(),
-                ]);
-
-                \Log::info('Paystack refund initiated for order #' . $order->id, [
-                    'refund_id' => $data['data']['id'] ?? null,
-                ]);
-
-                return ['success' => true, 'data' => $data['data']];
-            }
-
-            \Log::error('Paystack refund failed for order #' . $order->id, [
-                'response' => $data,
-            ]);
-
-            return ['success' => false, 'message' => $data['message'] ?? 'Refund failed.'];
-
-        } catch (\Exception $e) {
-            \Log::error('Paystack refund exception for order #' . $order->id . ': ' . $e->getMessage());
-
-            return ['success' => false, 'message' => $e->getMessage()];
-        }
+        return app(\App\Services\PaystackRefundService::class)->initiate($order, $cancellation);
     }
 
     private function processStripeRefund(Order $order, OrderCancellation $cancellation): array

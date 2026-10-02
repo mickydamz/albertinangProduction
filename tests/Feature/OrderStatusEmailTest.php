@@ -98,12 +98,27 @@ class OrderStatusEmailTest extends TestCase
     public function completing_an_order_also_sends_a_review_request()
     {
         $customer = User::factory()->create();
-        $order    = $this->orderFor($customer, 'delivered');
+        $order    = $this->orderFor($customer, 'ready_for_pickup');
+        $order->update(['fulfillment_method' => 'pickup']);
 
         $this->setStatus($this->admin(), $order, 'completed')->assertRedirect();
 
         Mail::assertQueued(OrderCompleted::class, fn ($m) => $m->hasTo($customer->email));
         Mail::assertQueued(OrderReviewRequest::class, fn ($m) => $m->hasTo($customer->email));
+    }
+
+    /** @test */
+    public function delivery_invites_review_on_delivered_and_not_again_on_completed()
+    {
+        $customer = User::factory()->create();
+        $order = $this->orderFor($customer, 'shipped');
+        $order->update(['fulfillment_method' => 'delivery']);
+        $admin = $this->admin();
+        $this->setStatus($admin, $order, 'delivered')->assertRedirect();
+        Mail::assertQueued(OrderReviewRequest::class, fn ($mail) => $mail->hasTo($customer->email));
+        $this->setStatus($admin, $order, 'delivered')->assertRedirect();
+        $this->setStatus($admin, $order, 'completed')->assertRedirect();
+        Mail::assertQueued(OrderReviewRequest::class, 1);
     }
 
     /** @test */

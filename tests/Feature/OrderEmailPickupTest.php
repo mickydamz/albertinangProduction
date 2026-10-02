@@ -58,6 +58,46 @@ class OrderEmailPickupTest extends TestCase
         return $order;
     }
 
+    /** @test */
+    public function processing_copy_matches_the_fulfilment_method()
+    {
+        $pickup = (new OrderProcessing($this->makePickupOrder()))->render();
+        $this->assertStringContainsString('ready for pickup', $pickup);
+        $this->assertStringNotContainsString('as soon as it ships', $pickup);
+        $delivery = (new OrderProcessing($this->makePickupOrder([
+            'fulfillment_method' => 'delivery', 'pickup_location' => null,
+            'pickup_point_name' => null, 'pickup_point_address' => null,
+        ])))->render();
+        $this->assertStringContainsString('as soon as it ships', $delivery);
+    }
+
+    /** @test */
+    public function processed_refund_hides_zero_usd_and_uses_processed_wording()
+    {
+        $order = $this->makePickupOrder(['status' => 'refunded', 'total_usd' => '0.00']);
+        $html = (new \App\Mail\OrderRefunded($order))->render();
+        $this->assertStringNotContainsString('$0.00 USD', $html);
+        $this->assertStringNotContainsString('successfully initiated', $html);
+        $this->assertStringContainsString('Paystack has confirmed', $html);
+        $order->total_usd = 35.50;
+        $this->assertStringContainsString('$35.50 USD', (new \App\Mail\OrderRefunded($order))->render());
+    }
+
+    /** @test */
+    public function paid_confirmation_uses_pickup_wording_and_hides_zero_conversion()
+    {
+        $order = $this->makePickupOrder(['total_usd' => '0.00']);
+        $html = (new OrderConfirmation($order))->render();
+        $this->assertStringContainsString('ready for pickup', $html);
+        $this->assertStringNotContainsString('once your item(s) are on their way', $html);
+        $this->assertStringNotContainsString('$0.00 USD', $html);
+        $order->fulfillment_method = 'delivery';
+        $order->total_usd = 40;
+        $html = (new OrderConfirmation($order))->render();
+        $this->assertStringContainsString('once your item(s) are on their way', $html);
+        $this->assertStringContainsString('$40.00 USD', $html);
+    }
+
     /** Every lifecycle email that shows fulfilment details. */
     public function pickup_mailables(): array
     {

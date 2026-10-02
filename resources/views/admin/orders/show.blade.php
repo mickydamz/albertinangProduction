@@ -434,6 +434,9 @@
                     @endphp
                     <span class="badge bg-{{ $returnColors[$order->return->status] ?? 'secondary' }}">
                         {{ ucfirst($order->return->status) }}
+                        @if($order->return->refund_status)
+                            <div class="small">Refund: {{ ucfirst(str_replace('-', ' ', $order->return->refund_status)) }}</div>
+                        @endif
                     </span>
                 </div>
                 <div class="card-body pt-2">
@@ -525,6 +528,9 @@
                     @endphp
                     <span class="badge bg-{{ $cancelColors[$order->cancellation->status] ?? 'secondary' }}">
                         {{ ucfirst($order->cancellation->status) }}
+                        @if($order->cancellation->refund_status)
+                            <div class="small">Refund: {{ ucfirst(str_replace('-', ' ', $order->cancellation->refund_status)) }}</div>
+                        @endif
                     </span>
                 </div>
                 <div class="card-body pt-2">

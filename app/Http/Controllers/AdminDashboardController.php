@@ -19,7 +19,8 @@ class AdminDashboardController extends Controller
         $userCounts        = User::selectRaw("COUNT(*) as total, SUM(role = 'supplier') as suppliers")->first();
         $totalUsers        = (int) $userCounts->total;
         $totalSuppliers    = (int) $userCounts->suppliers;
-        $totalTransactions = Transaction::count() + Order::count();
+        $totalOrders       = Order::count();
+        $totalTransactions = Transaction::count() + $totalOrders;
         $totalProducts     = Product::count();
 
         $recentActivity = AuditLog::with('user')
@@ -29,7 +30,7 @@ class AdminDashboardController extends Controller
             ->get();
 
         return view('admin.dashboard', compact(
-            'totalUsers', 'totalSuppliers', 'totalTransactions', 'totalProducts',
+            'totalUsers', 'totalSuppliers', 'totalTransactions', 'totalOrders', 'totalProducts',
             'recentActivity'
         ));
     }
@@ -51,10 +52,13 @@ class AdminDashboardController extends Controller
     private function monthlyRows(string $model, ?string $whereClause = null, string $aggregate = 'COUNT(*) as n'): \Illuminate\Support\Collection
     {
         $start = now()->subMonths(11)->startOfMonth();
-        return $model::selectRaw("YEAR(created_at) as y, MONTH(created_at) as m, {$aggregate}")
+        $sqlite = DB::connection((new $model)->getConnectionName())->getDriverName() === 'sqlite';
+        $year = $sqlite ? "CAST(strftime('%Y', created_at) AS INTEGER)" : 'YEAR(created_at)';
+        $month = $sqlite ? "CAST(strftime('%m', created_at) AS INTEGER)" : 'MONTH(created_at)';
+        return $model::selectRaw("{$year} as y, {$month} as m, {$aggregate}")
             ->where('created_at', '>=', $start)
             ->when($whereClause, fn ($q) => $q->whereRaw($whereClause))
-            ->groupByRaw('YEAR(created_at), MONTH(created_at)')
+            ->groupByRaw("{$year}, {$month}")
             ->get()
             ->keyBy(fn ($r) => $r->y . '-' . $r->m);
     }
@@ -181,7 +185,7 @@ class AdminDashboardController extends Controller
         return response()->json([
             'labels'   => $labels,
             'datasets' => [[
-                'label'                => 'Revenue (₦)',
+                'label'                => 'Order value (₦)',
                 'data'                 => $totals,
                 'fill'                 => true,
                 'tension'              => 0.4,

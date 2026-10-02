@@ -14,6 +14,7 @@ class PaystackWebhookController extends Controller
         $secret  = config('services.paystack.secret');
 
         // Verify HMAC-SHA512 over the raw body (not re-encoded JSON).
+        if (!$secret) return response('Webhook not configured', 503);
         $expected = hash_hmac('sha512', $rawBody, $secret);
         $received = $request->header('X-Paystack-Signature', '');
 
@@ -24,6 +25,13 @@ class PaystackWebhookController extends Controller
 
         $payload = json_decode($rawBody, true);
         $event   = $payload['event'] ?? '';
+
+        if (in_array($event, ['refund.pending','refund.processing','refund.needs-attention','refund.failed','refund.processed'], true)) {
+            $data = $payload['data'] ?? [];
+            $data['status'] = substr($event, strlen('refund.'));
+            app(\App\Services\PaystackRefundService::class)->apply($data);
+            return response('OK', 200);
+        }
 
         if ($event !== 'charge.success') {
             // Log anything unexpected so we notice new event types in production.

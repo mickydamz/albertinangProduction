@@ -13,7 +13,7 @@
 
 @section('header_sub')
     Your order is now being prepared by our team.<br>
-    We'll notify you as soon as it ships.
+    @if($order->fulfillment_method === 'pickup') We'll notify you when it is ready for pickup. @else We'll notify you as soon as it ships. @endif
 @endsection
 
 @php
@@ -28,7 +28,7 @@
     <p class="greeting">
         Hi <strong>{{ $order->user?->name ?? 'Valued Customer' }}</strong>,<br><br>
         Good news — our team has picked up your order and it's now being processed.
-        Everything is on track and we'll send you another update once your item(s) are on their way.
+        @if($order->fulfillment_method === 'pickup') We'll send you another update when your order is ready for collection. @else Everything is on track and we'll send you another update once your item(s) are on their way. @endif
     </p>
 
     {{-- Order Items --}}

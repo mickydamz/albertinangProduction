@@ -488,31 +488,40 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
             </div>
 
             {{-- Filters --}}
-            <div class="op-filters">
+            <form method="GET" action="{{ route('account.orders') }}" class="op-filters">
+                <label for="periodFilter" class="op-filter-label">Date:</label>
+                <select name="period" id="periodFilter" aria-label="Order date range">
+                    @foreach(['all' => 'All history', '1' => 'Last month', '3' => 'Last 3 months', '6' => 'Last 6 months', '12' => 'Last year'] as $value => $label)
+                        <option value="{{ $value }}" @selected(request('period', 'all') == $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
                 <span class="op-filter-label">Filter:</span>
-                <select class="op-filter-select" id="statusFilter" aria-label="Filter by status">
-                    <option value="all">All Orders</option>
-                    <option value="pending">Pending</option>
-                    <option value="processing">Processing</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="completed">Completed</option>
-                    <option value="paid">Paid</option>
-                    <option value="cancelled">Cancelled</option>
-                    <option value="refunded">Refunded</option>
+                <select class="op-filter-select" name="status" id="statusFilter" aria-label="Filter by status">
+                    <option value="all" @selected(request('status', 'all') === 'all')>All Orders</option>
+                    <option value="pending" @selected(request('status', 'all') === 'pending')>Pending</option>
+                    <option value="processing" @selected(request('status', 'all') === 'processing')>Processing</option>
+                    <option value="shipped" @selected(request('status', 'all') === 'shipped')>Shipped</option>
+                    <option value="delivered" @selected(request('status', 'all') === 'delivered')>Delivered</option>
+                    <option value="completed" @selected(request('status', 'all') === 'completed')>Completed</option>
+                    <option value="paid" @selected(request('status', 'all') === 'paid')>Paid</option>
+                    <option value="cancelled" @selected(request('status', 'all') === 'cancelled')>Cancelled</option>
+                    <option value="refunded" @selected(request('status', 'all') === 'refunded')>Refunded</option>
                 </select>
                 <span class="op-filter-label">Sort:</span>
-                <select class="op-filter-select" id="sortFilter" aria-label="Sort orders">
-                    <option value="newest">Newest First</option>
-                    <option value="oldest">Oldest First</option>
-                    <option value="price-high">Total: High → Low</option>
-                    <option value="price-low">Total: Low → High</option>
+                <select class="op-filter-select" name="sort" id="sortFilter" aria-label="Sort orders">
+                    <option value="newest" @selected(request('sort', 'newest') === 'newest')>Newest First</option>
+                    <option value="oldest" @selected(request('sort', 'newest') === 'oldest')>Oldest First</option>
+                    <option value="price-high" @selected(request('sort', 'newest') === 'price-high')>Total: High → Low</option>
+                    <option value="price-low" @selected(request('sort', 'newest') === 'price-low')>Total: Low → High</option>
                 </select>
                 <div class="op-search">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="orderSearch" placeholder="Search orders…" aria-label="Search orders">
+                    <input type="text" name="search" value="{{ request('search') }}" id="orderSearch" placeholder="Search orders…" aria-label="Search orders">
                 </div>
-            </div>
+                <button type="submit" class="op-btn op-btn--primary">Apply filters</button>
+                <a href="{{ route('account.orders') }}" class="op-btn op-btn--outline">Reset</a>
+            </form>
+            <p style="margin-bottom:16px">{{ $orderCount }} matching orders</p>
 
             {{-- Orders list --}}
             @if(!empty($orders) && count($orders) > 0)
@@ -528,6 +537,7 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                             // Pickup display — prefer the specific point, fall back to the city/location
                             $pickupHeadline = $order->pickup_point_name ?: $order->pickup_location;
                             $statusLower = strtolower($order->status);
+                            $refundProgress = \App\Support\RefundProgress::forOrder($order);
                         @endphp
 
                         <div class="op-card"
@@ -547,8 +557,13 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                                     {{-- Order number shown as a monospace badge --}}
                                     <span class="op-card__order-num">{{ $order->order_number }}</span>
                                     <span class="op-status {{ $statusLower }}">
-                                        {{ ucfirst($order->status) }}
+                                        Order status: {{ $order->status === 'refunded' ? ($refundProgress['label'] ?? 'Refund awaiting confirmation') : ucfirst(str_replace('_', ' ', $order->status)) }}
                                     </span>
+                                    @if($refundProgress)
+                                        <span class="op-status {{ $refundProgress['processed'] ? 'refunded' : 'pending' }}">
+                                            Refund status: {{ $refundProgress['label'] }}
+                                        </span>
+                                    @endif
                                 </div>
                                 <div class="op-card__head-right">
                                     <span class="op-card__date">
@@ -623,6 +638,42 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                                         @endif
                                     </div>
 
+                                    @if($order->fulfillment_method === 'delivery')
+                                    <div class="op-card__strip-cell">
+                                        <div class="op-strip-label">Home delivery</div>
+                                        @if($order->shipping_address)
+                                            <div class="op-strip-val" style="font-size:12.5px;font-family:var(--font-body);font-weight:600;">{{ $order->shipping_address }}</div>
+                                        @endif
+                                        <div class="op-strip-sub">{{ $order->delivery_location_name }}, {{ $order->delivery_state_name }}</div>
+                                        <div class="op-strip-sub">Delivery fee: ₦{{ number_format($order->shipping_cost, 2) }}</div>
+                                    </div>
+                                    @else
+                                        @php $collectionPoint = $pickupHeadline ?: 'your selected collection point'; @endphp
+                                        @if(in_array($order->status, ['pending', 'paid', 'processing'], true))
+                                            <div class="op-card__strip-cell">
+                                                <div class="op-strip-label">Collection</div>
+                                                <div class="op-strip-sub">We're preparing your order — we'll let you know when it's ready to collect at {{ $collectionPoint }}.</div>
+                                            </div>
+                                        @elseif($order->status === 'ready_for_pickup')
+                                            <div class="op-card__strip-cell">
+                                                <div class="op-strip-label">Ready for collection</div>
+                                                <div class="op-strip-sub">Bring your order number and photo ID to {{ $collectionPoint }} to collect your order.</div>
+                                            </div>
+                                        @elseif($order->status === 'completed')
+                                            <div class="op-card__strip-cell">
+                                                <div class="op-strip-label">Collection</div>
+                                                <div class="op-strip-sub">Collected from {{ $collectionPoint }}. Thank you!</div>
+                                            </div>
+                                        @endif
+                                        {{-- cancelled / refunded / refund states: nothing to collect, so no instruction --}}
+                                    @endif
+                                    @if($refundProgress)
+                                    <section aria-label="Refund progress" class="op-card__strip-cell">
+                                        <div class="op-strip-label">Refund progress</div>
+                                        <div class="op-strip-val">{{ $refundProgress['label'] }}</div>
+                                        <div class="op-strip-sub">{{ $refundProgress['message'] }}</div>
+                                    </section>
+                                    @endif
                                     {{-- Items --}}
                                     <div class="op-card__items">
                                         @foreach($order->items as $item)
@@ -694,15 +745,42 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                                     @if($order->return)
                                         @php
                                             $rs = strtolower($order->return->status);
+                                            // Base the wording on the order's real refund state, not just the
+                                            // request record — approving a return triggers the refund, so an
+                                            // 'approved' record can actually mean the refund failed or is pending.
+                                            $refundDone   = $order->status === 'refunded';
+                                            $refundFailed = $order->status === 'refund_failed';
+                                            $refundBusy   = in_array($order->status, ['refund_pending', 'partially_refunded'], true);
                                             $rnMap = [
-                                                'pending'  => ['fa-clock',          'Return requested',  'We\'re reviewing your request.'],
-                                                'approved' => ['fa-check-circle',   'Return approved',   'Please follow the return instructions sent to you.'],
-                                                'rejected' => ['fa-times-circle',   'Return rejected',   $order->return->admin_notes ?: 'Contact support for details.'],
-                                                'refunded' => ['fa-rotate-left',    'Return refunded',   'Your refund has been processed.'],
+                                                'pending'  => ['fa-clock', 'Return requested', 'We\'re reviewing your request.'],
+                                                'approved' => $refundFailed
+                                                    ? ['fa-exclamation-triangle', 'Return approved', 'We couldn\'t process the refund automatically — our team will sort it out.']
+                                                    : ($refundBusy
+                                                        ? ['fa-rotate-left', 'Refund processing', 'Your return is approved and the gateway is confirming your refund.']
+                                                        : ['fa-check-circle', 'Return approved', 'Please follow the return instructions sent to you.']),
+                                                'rejected' => ['fa-times-circle', 'Return rejected', $order->return->admin_notes ?: 'Contact support for details.'],
+                                                'refunded' => $refundDone
+                                                    ? ['fa-rotate-left', 'Return refunded', 'Your refund has been processed.']
+                                                    : ($refundFailed
+                                                        ? ['fa-exclamation-triangle', 'Refund failed', 'We could not confirm the refund — our team will sort it out.']
+                                                        : ['fa-rotate-left', 'Refund processing', 'The gateway is confirming your refund.']),
                                             ];
                                             $rn = $rnMap[$rs] ?? ['fa-info-circle', 'Return '.$rs, ''];
+                                            // Colour follows the true state: red if the refund failed, amber while
+                                            // it is still confirming, otherwise the request's own status colour.
+                                            $rnClass = $refundFailed ? 'rejected'
+                                                     : (($refundBusy && in_array($rs, ['approved','refunded'], true)) ? 'pending'
+                                                     : $rs);
                                         @endphp
-                                        <div class="op-request-note {{ $rs }}">
+                                        @if($refundProgress)
+                                            @php
+                                                $rn = ['fa-rotate-left', $refundProgress['label'], $refundProgress['message']];
+                                            @endphp
+                                            @php
+                                                $rnClass = $refundProgress['processed'] ? 'refunded' : ($refundProgress['status'] === 'failed' ? 'rejected' : 'pending');
+                                            @endphp
+                                        @endif
+                                        <div class="op-request-note {{ $rnClass }}">
                                             <i class="fas {{ $rn[0] }}"></i>
                                             <div>
                                                 <span class="rn-title">{{ $rn[1] }}</span>
@@ -715,12 +793,46 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
 
                                     {{-- Cancellation request status note --}}
                                     @if($order->cancellation)
-                                        @php $cs = strtolower($order->cancellation->status); @endphp
-                                        <div class="op-request-note {{ in_array($cs,['approved','refunded']) ? $cs : 'pending' }}">
+                                        @php
+                                            $cs = strtolower($order->cancellation->status);
+                                            // A cancellation marked "refunded" only means the refund was initiated.
+                                            // Reflect the order's real refund state so we never claim a refund is
+                                            // done while the gateway is still confirming it (mirrors the return note).
+                                            $refundDone     = $order->status === 'refunded';
+                                            $refundFailed   = $order->status === 'refund_failed';
+                                            $cnMap = [
+                                                'pending'  => ['Cancellation requested', 'We\'re reviewing your request.'],
+                                                'approved' => $refundFailed
+                                                    ? ['Refund failed', 'We couldn\'t process the refund automatically — our team will sort it out.']
+                                                    : ['Cancellation approved', 'Your cancellation has been approved.'],
+                                                'rejected' => ['Cancellation rejected',  $order->cancellation->admin_notes ?: 'Contact support for details.'],
+                                                'refunded' => [
+                                                    $refundDone ? 'Cancellation refunded' : ($refundFailed ? 'Refund failed' : 'Refund processing'),
+                                                    $refundDone ? 'Your refund has been processed.' : ($refundFailed ? 'We could not confirm the refund — our team will sort it out.' : 'The gateway is confirming your refund.'),
+                                                ],
+                                            ];
+                                            $cn = $cnMap[$cs] ?? ['Cancellation '.$cs, ''];
+                                            // Colour follows the TRUE state: amber while processing, not green.
+                                            $cnClass = $refundFailed ? 'rejected'
+                                                     : (($cs === 'refunded' && !$refundDone) ? 'pending'
+                                                     : (in_array($cs, ['approved','refunded'], true) ? $cs : 'pending'));
+                                        @endphp
+                                        @if($refundProgress)
+                                            @php
+                                                $cn = [$refundProgress['label'], $refundProgress['message']];
+                                            @endphp
+                                            @php
+                                                $cnClass = $refundProgress['processed'] ? 'refunded' : ($refundProgress['status'] === 'failed' ? 'rejected' : 'pending');
+                                            @endphp
+                                        @endif
+                                        <div class="op-request-note {{ $cnClass }}">
                                             <i class="fas fa-ban"></i>
                                             <div>
-                                                <span class="rn-title">Cancellation {{ $cs }}</span>
+                                                <span class="rn-title">{{ $cn[0] }}</span>
                                                 <span class="rn-sub"> — requested {{ $order->cancellation->created_at->format('d M Y') }}</span>
+                                                @if($cn[1])
+                                                    <span class="rn-sub">{{ $cn[1] }}</span>
+                                                @endif
                                             </div>
                                         </div>
                                     @endif
@@ -744,7 +856,7 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
 </a>
 
                                         {{-- Cancel — available right after purchase, before the order leaves the warehouse --}}
-                                        @if(in_array($statusLower, ['pending', 'paid', 'processing']) && !$order->cancellation)
+                                        @if($order->canCancel() && !$order->cancellation)
                                             <a href="{{ url('/account/orders/' . $order->id . '/cancel') }}"
                                                class="op-btn op-btn--danger">
                                                 <i class="fas fa-times"></i> Cancel
@@ -752,7 +864,7 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                                         @endif
 
                                         {{-- Return — available once the order is on its way or has arrived --}}
-                                        @if(in_array($statusLower, ['shipped', 'delivered', 'completed']) && !$order->return)
+                                        @if($order->canReturn() && !$order->return)
                                             <a href="{{ url('/account/orders/' . $order->id . '/return') }}"
                                                class="op-btn op-btn--outline">
                                                 <i class="fas fa-undo"></i> Return
@@ -765,12 +877,13 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                         </div>
                     @endforeach
                 </div>
+                <nav aria-label="Order history pages" style="margin-top:20px">{{ $orders->links() }}</nav>
 
             @else
                 <div class="op-empty">
                     <div class="op-empty__icon"><i class="fas fa-shopping-bag"></i></div>
-                    <h3>No Orders Yet</h3>
-                    <p>You haven't placed any orders yet. Explore our range of products and find something you'll love.</p>
+                    <h3>No matching orders</h3>
+                    <p>Try another date range or reset your filters to see all your orders.</p>
                     <a href="{{ url('/') }}" class="op-btn op-btn--primary" style="margin:0 auto;">
                         <i class="fas fa-store"></i> Start Shopping
                     </a>
@@ -798,38 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // ── Filter + sort ───────────────────────────────────────────────────────
-    const cards        = document.querySelectorAll('.op-card');
-    const statusFilter = document.getElementById('statusFilter');
-    const sortFilter   = document.getElementById('sortFilter');
-    const searchInput  = document.getElementById('orderSearch');
-    const list         = document.getElementById('ordersList');
 
-    function applyFilters() {
-        const status = statusFilter?.value || 'all';
-        const search = searchInput?.value.toLowerCase() || '';
-
-        cards.forEach(card => {
-            const match = (status === 'all' || card.dataset.status === status)
-                       && (!search || card.textContent.toLowerCase().includes(search));
-            card.style.display = match ? '' : 'none';
-        });
-
-        // Sort visible cards
-        const sort    = sortFilter?.value || 'newest';
-        const visible = Array.from(cards).filter(c => c.style.display !== 'none');
-        visible.sort((a, b) => {
-            if (sort === 'oldest')     return a.dataset.date  - b.dataset.date;
-            if (sort === 'price-high') return b.dataset.total - a.dataset.total;
-            if (sort === 'price-low')  return a.dataset.total - b.dataset.total;
-            return b.dataset.date - a.dataset.date; // newest
-        });
-        if (list) visible.forEach(c => list.appendChild(c));
-    }
-
-    statusFilter?.addEventListener('change', applyFilters);
-    sortFilter?.addEventListener('change',   applyFilters);
-    searchInput?.addEventListener('input',   applyFilters);
 });
 </script>
 

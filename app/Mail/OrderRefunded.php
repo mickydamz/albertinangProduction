@@ -14,12 +14,17 @@ class OrderRefunded extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Order $order) {}
+    public function __construct(public Order $order, public ?string $refundStatus = null) {}
+
+    public function progress(): array
+    {
+        return $this->refundStatus ? \App\Support\RefundProgress::forStatus($this->refundStatus) : (\App\Support\RefundProgress::forOrder($this->order) ?? \App\Support\RefundProgress::forStatus('unknown'));
+    }
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Refund for Order ' . $this->order->order_number . ' Has Been Processed – Albertina Nigeria',
+            subject: $this->progress()['label'] . ' for Order ' . $this->order->order_number . ' – Albertina Nigeria',
         );
     }
 
@@ -29,6 +34,7 @@ class OrderRefunded extends Mailable implements ShouldQueue
             view: 'emails.order-refunded',
             with: [
                 'order' => $this->order->load('items', 'user'),
+                'refundProgress' => $this->progress(),
             ],
         );
     }

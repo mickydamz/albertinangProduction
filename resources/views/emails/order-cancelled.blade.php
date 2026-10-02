@@ -71,7 +71,7 @@
             </tr>
             <tr>
                 <td colspan="2" style="padding-top:6px; font-size:12px; color:#dc2626;">
-                    If a payment was made, a refund will be processed within 3–5 business days.
+                    {{ (\App\Support\RefundProgress::forOrder($order)['message'] ?? 'Cancellation does not confirm a completed refund. We will notify you of any refund updates.') }}
                 </td>
             </tr>
         </table>
@@ -95,7 +95,7 @@
             @endif -->
             <tr>
                 <td colspan="2" style="padding-top:10px; font-size:12px; color:#7a9a60; border-top:1px solid #dcefd0; padding-top:10px;">
-                    Refunds typically reflect within 3–5 business days depending on your bank or card provider.
+                    After the payment provider confirms processing, your bank may take up to 10 business days to credit the funds.
                 </td>
             </tr>
         </table>

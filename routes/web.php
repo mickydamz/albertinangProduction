@@ -459,6 +459,9 @@ Route::middleware(['auth', 'role:supplier'])->prefix('supplier')->name('supplier
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 
+    Route::get('/paystack/refund-test-readiness', [\App\Http\Controllers\PaystackRefundStatusController::class, 'readiness'])->name('paystack.refund-test-readiness');
+    Route::get('/orders/{order}/paystack-refund-status', [\App\Http\Controllers\PaystackRefundStatusController::class, 'show'])->middleware('throttle:10,1')->name('orders.paystack-refund-status');
+
     // ── Dashboard ─────────────────────────────────────────────────────────────
     Route::get('/',          [AdminDashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard', [AdminDashboardController::class, 'index']);

@@ -14,6 +14,20 @@ class Order extends Model
 
 use Auditable;  
 
+    public function canCancel(): bool
+    {
+        $allowed = ['pending', 'paid', 'processing'];
+        if ($this->fulfillment_method === 'pickup') $allowed[] = 'ready_for_pickup';
+        return in_array($this->status, $allowed, true);
+    }
+
+    public function canReturn(): bool
+    {
+        if ($this->fulfillment_method === 'delivery') return $this->status === 'delivered';
+        if ($this->fulfillment_method === 'pickup') return $this->status === 'completed';
+        return in_array($this->status, ['delivered', 'completed'], true);
+    }
+
     protected $fillable = [
         'user_id',
         'status',

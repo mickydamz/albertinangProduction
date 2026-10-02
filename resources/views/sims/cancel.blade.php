@@ -188,6 +188,13 @@
     </div>
 
     @if($existingCancellation)
+        @if($existingCancellation->refund_status)
+            <div class="alert alert-info" role="status">
+                Refund: {{ in_array($existingCancellation->refund_status, ['pending','requesting','processing']) ? 'Processing — awaiting Paystack confirmation' : ucfirst(str_replace('-', ' ', $existingCancellation->refund_status)) }}.
+                @if(in_array($existingCancellation->refund_status, ['unknown','failed','needs-attention'])) Our team needs to review this refund. @endif
+            </div>
+        @endif
+
 
         <div class="cancel-status-card">
             <div class="cancel-status-card__top">

@@ -134,7 +134,7 @@
         }
 
         .al-hamburger {
-            display: none; width: 36px; height: 36px;
+            display: flex; width: 36px; height: 36px;
             align-items: center; justify-content: center;
             border: 1px solid var(--al-border); border-radius: 8px;
             background: none; cursor: pointer; color: var(--al-text-3);
@@ -147,53 +147,6 @@
             margin-right: 16px; text-decoration: none; height: 100%;
         }
         .al-logo img { height: 34px; width: auto; max-width: 150px; object-fit: contain; display: block; }
-
-        /* ════════════════════════════════════════
-           HORIZONTAL NAV
-        ════════════════════════════════════════ */
-        .al-hnav {
-            flex: 1; display: flex; align-items: center;
-            height: 100%; gap: 2px; overflow: visible;
-        }
-        .al-hnav-group { position: relative; display: flex; align-items: center; height: 100%; }
-
-        .al-hnav-item {
-            display: flex; align-items: center; gap: 6px;
-            padding: 0 10px; height: 36px; border-radius: 7px;
-            font-size: 13.5px; font-weight: 500; font-family: 'Inter', sans-serif;
-            color: var(--al-text-3); text-decoration: none;
-            border: none; background: none; cursor: pointer; white-space: nowrap;
-            transition: color .13s, background .13s;
-        }
-        .al-hnav-item:hover { color: var(--al-text); background: #f3f4f6; }
-        .al-hnav-item.active { color: var(--al-primary); background: var(--al-primary-lt); font-weight: 600; }
-        .al-hnav-chev { font-size: 9px; color: var(--al-text-4); transition: transform .18s; margin-left: 2px; }
-        .al-hnav-group.open > .al-hnav-item .al-hnav-chev { transform: rotate(180deg); }
-
-        /* Dropdowns */
-        .al-hnav-dd {
-            position: absolute; top: calc(100% + 6px); left: 0;
-            min-width: 190px; background: var(--al-surface);
-            border: 1px solid var(--al-border); border-radius: 10px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.09);
-            padding: 4px; display: none; z-index: 600;
-            animation: alFade .15s ease;
-        }
-        .al-hnav-dd.open { display: block; }
-        .al-hnav-dd a {
-            display: flex; align-items: center; gap: 8px;
-            padding: 7px 12px; border-radius: 7px;
-            font-size: 13px; color: var(--al-text-2);
-            text-decoration: none; white-space: nowrap;
-            transition: background .12s;
-        }
-        .al-hnav-dd a i { width: 15px; font-size: 12px; color: var(--al-text-4); text-align: center; flex-shrink: 0; transition: color .12s; }
-        .al-hnav-dd a:hover { background: #f3f4f6; color: var(--al-text); }
-        .al-hnav-dd a:hover i { color: var(--al-primary); }
-        .al-hnav-dd a.al-active { color: var(--al-primary); background: var(--al-primary-lt); font-weight: 500; }
-        .al-hnav-dd a.al-active i { color: var(--al-primary); }
-
-        @keyframes alFade { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
 
         /* Topbar right */
         .al-topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: 12px; }
@@ -572,28 +525,63 @@
             .al-topbar-right { margin-left: auto; }
             .al-content { padding: 16px; }
         }
+
+        .al-admin-context { display:flex; flex-direction:column; gap:2px; flex:1; font-size:13px; }
+        .al-admin-context span { color:var(--al-text-3); font-size:12px; }
+        .al-skip-link { position:fixed; left:16px; top:-80px; z-index:1000; padding:12px; background:#fff; }
+        .al-skip-link:focus { top:8px; }
+        :focus-visible { outline:3px solid #3d8012; outline-offset:3px; }
+        .al-nav-tools { padding:12px; border-bottom:1px solid var(--al-border); }
+        .al-nav-tools label { display:block; font-weight:600; margin-bottom:6px; }
+        .al-nav-tools input { width:100%; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font:inherit; }
+        .al-nav-tools small { display:block; color:var(--al-text-3); margin-top:5px; }
+        .al-nav-group { margin:6px 0; }
+        .al-nav-group summary { display:flex; align-items:center; gap:9px; cursor:pointer; padding:10px; font-weight:600; border-radius:8px; color:var(--al-text-2); list-style:none; }
+        .al-nav-group summary::-webkit-details-marker { display:none; }
+        .al-nav-group summary::after { content:'›'; margin-left:auto; }
+        .al-nav-group[open] summary::after { transform:rotate(90deg); }
+        .al-nav-group summary:hover { background:#f3f4f6; }
+        .al-nav-group .al-dsub { max-height:none; overflow:visible; }
+        .al-dsub a { padding:9px 10px 9px 28px; white-space:normal; }
+        .al-dsub a.al-active { background:var(--al-primary-lt); }
+        [hidden] { display:none !important; }
+        .al-nav-close { display:none; margin-left:auto; border:1px solid var(--al-border); border-radius:6px; background:#fff; padding:7px 10px; }
+        .al-workspace { margin-bottom:24px; }
+        .al-shortcuts { display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 20px; }
+        .al-shortcuts a { padding:10px 14px; border:1px solid var(--al-border); border-radius:8px; background:#fff; color:var(--al-text); text-decoration:none; }
+        .al-directory { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:14px; }
+        .al-directory-card { padding:18px; border:1px solid var(--al-border); border-radius:12px; background:#fff; }
+        .al-directory-card h3 { font-size:16px; margin:0 0 8px; }
+        .al-directory-card p { color:var(--al-text-3); font-size:13px; margin-bottom:12px; }
+        .al-directory-card a { display:block; padding:7px 0; text-decoration:none; }
+        @media(min-width:1025px) {
+            .al-drawer { top:var(--al-top); width:264px; transform:none; z-index:250; }
+            .al-drawer-logo { display:none; }
+            .al-content { margin-left:264px; }
+            body.al-menu-hidden .al-drawer { transform:translateX(-100%); visibility:hidden; }
+            body.al-menu-hidden .al-content { margin-left:0; }
+        }
+        @media(max-width:1024px) {
+            .al-nav-close { display:block; }
+            .al-content { margin-left:0; }
+            .al-directory { grid-template-columns:1fr; }
+        }
     </style>
 
     @stack('styles')
 </head>
 
 <body>
+<a class="al-skip-link" href="#adminContent">Skip to page content</a>
 
 @php
-    // Catalog — everything that makes up a product listing
-    $catOpen  = request()->routeIs('admin.products.*','admin.categories.*','admin.subcategories.*','admin.brands.index','admin.brands.create','admin.brands.edit','admin.tags.*','admin.colors.*','admin.sizes.*','admin.banners.*');
-    // Sales — orders and the money that flows from them
-    $salesOpen = request()->routeIs('admin.orders.*','admin.returns.*','admin.cancellations.*','admin.paystack-transactions.*');
-    // Customers — people and their interactions
-    $custOpen = request()->routeIs('admin.users.*','admin.brands.assign','admin.reviews.*','admin.tickets.*');
-    // Delivery — how goods reach the customer
-    $delOpen  = request()->routeIs('admin.states.*','admin.locations.*','admin.pickup-points.*','admin.store-locations.*','admin.shipping.*','admin.weight.*');
-    // Marketing — promotions
-    $mktOpen  = request()->routeIs('admin.coupons.*','admin.discount.*');
-    // Content — public-facing pages
-    $contentOpen = request()->routeIs('admin.about.*','admin.contact.*','admin.faqs.*');
-    // Settings — store configuration & system
-    $setOpen  = request()->routeIs('admin.markup.*','admin.currencies.*','admin.audit.*','admin.settings.*','admin.invoice.settings*');
+    $adminNavigation = config('admin_navigation', []);
+    $adminSection = 'Overview';
+    foreach ($adminNavigation as $group) {
+        foreach ($group['items'] as $item) {
+            if (request()->routeIs(...$item['matches'])) $adminSection = $group['label'];
+        }
+    }
 @endphp
 
 <div class="al-shell">
@@ -604,7 +592,7 @@
     <header class="al-topbar">
 
         {{-- Mobile hamburger --}}
-        <button class="al-hamburger" id="alHamburger" aria-label="Toggle menu">
+        <button class="al-hamburger" id="alHamburger" aria-label="Open navigation" aria-controls="alDrawer" aria-expanded="false">
             <i class="fas fa-bars"></i>
         </button>
 
@@ -617,111 +605,7 @@
             @endif
         </a>
 
-        {{-- Horizontal nav (desktop) --}}
-        <nav class="al-hnav">
-
-            {{-- Catalog --}}
-            <div class="al-hnav-group">
-                <button class="al-hnav-item {{ $catOpen ? 'active' : '' }}">
-                    <i class="fas fa-box-open" style="font-size:12px;"></i> Catalog
-                    <i class="fas fa-chevron-down al-hnav-chev"></i>
-                </button>
-                <div class="al-hnav-dd">
-                    <a href="{{ route('admin.products.index') }}" class="{{ request()->routeIs('admin.products.*') ? 'al-active' : '' }}"><i class="fas fa-box"></i> Products</a>
-                    <a href="{{ route('admin.categories.index') }}" class="{{ request()->routeIs('admin.categories.*','admin.subcategories.*') ? 'al-active' : '' }}"><i class="fas fa-folder-open"></i> Categories</a>
-                    <a href="{{ route('admin.brands.index') }}" class="{{ request()->routeIs('admin.brands.index','admin.brands.create','admin.brands.edit') ? 'al-active' : '' }}"><i class="fas fa-copyright"></i> Brands</a>
-                    <a href="{{ route('admin.tags.index') }}" class="{{ request()->routeIs('admin.tags.*') ? 'al-active' : '' }}"><i class="fas fa-hashtag"></i> Tags</a>
-                    <a href="{{ route('admin.colors.index') }}" class="{{ request()->routeIs('admin.colors.*') ? 'al-active' : '' }}"><i class="fas fa-palette"></i> Colors</a>
-                    <a href="{{ route('admin.sizes.index') }}" class="{{ request()->routeIs('admin.sizes.*') ? 'al-active' : '' }}"><i class="fas fa-ruler-combined"></i> Sizes</a>
-                    <a href="{{ route('admin.banners.index') }}" class="{{ request()->routeIs('admin.banners.*') ? 'al-active' : '' }}"><i class="fas fa-images"></i> Banners</a>
-                </div>
-            </div>
-
-            {{-- Sales --}}
-            <div class="al-hnav-group">
-                <button class="al-hnav-item {{ $salesOpen ? 'active' : '' }}">
-                    <i class="fas fa-shopping-bag" style="font-size:12px;"></i> Sales
-                    <i class="fas fa-chevron-down al-hnav-chev"></i>
-                </button>
-                <div class="al-hnav-dd">
-                    <a href="{{ route('admin.orders.index') }}" class="{{ request()->routeIs('admin.orders.index') ? 'al-active' : '' }}"><i class="fas fa-list-ul"></i> All Orders</a>
-                    <a href="{{ route('admin.returns.index') }}" class="{{ request()->routeIs('admin.returns.*') ? 'al-active' : '' }}"><i class="fas fa-rotate-left"></i> Returns</a>
-                    <a href="{{ route('admin.cancellations.index') }}" class="{{ request()->routeIs('admin.cancellations.*') ? 'al-active' : '' }}"><i class="fas fa-ban"></i> Cancellations</a>
-                    <a href="{{ route('admin.paystack-transactions.index') }}" class="{{ request()->routeIs('admin.paystack-transactions.*') ? 'al-active' : '' }}"><i class="fas fa-credit-card"></i> Paystack Txns</a>
-                </div>
-            </div>
-
-            {{-- Customers --}}
-            <div class="al-hnav-group">
-                <button class="al-hnav-item {{ $custOpen ? 'active' : '' }}">
-                    <i class="fas fa-users" style="font-size:12px;"></i> Customers
-                    <i class="fas fa-chevron-down al-hnav-chev"></i>
-                </button>
-                <div class="al-hnav-dd">
-                    <a href="/admin/users" class="{{ request()->is('admin/users') ? 'al-active' : '' }}"><i class="fas fa-users"></i> All Users</a>
-                    <a href="{{ route('admin.brands.assign') }}" class="{{ request()->routeIs('admin.brands.assign') ? 'al-active' : '' }}"><i class="fas fa-handshake"></i> Assign Brands</a>
-                    <a href="{{ route('admin.reviews.index') }}" class="{{ request()->routeIs('admin.reviews.*') ? 'al-active' : '' }}"><i class="fas fa-star"></i> Reviews</a>
-                    <a href="{{ route('admin.tickets.index') }}" class="{{ request()->routeIs('admin.tickets.*') ? 'al-active' : '' }}"><i class="fas fa-headset"></i> Support Tickets</a>
-                </div>
-            </div>
-
-            {{-- Delivery --}}
-            <div class="al-hnav-group">
-                <button class="al-hnav-item {{ $delOpen ? 'active' : '' }}">
-                    <i class="fas fa-truck" style="font-size:12px;"></i> Delivery
-                    <i class="fas fa-chevron-down al-hnav-chev"></i>
-                </button>
-                <div class="al-hnav-dd">
-                    <a href="{{ route('admin.states.index') }}" class="{{ request()->routeIs('admin.states.*') ? 'al-active' : '' }}"><i class="fas fa-map"></i> States</a>
-                    <a href="{{ route('admin.locations.index') }}" class="{{ request()->routeIs('admin.locations.*') ? 'al-active' : '' }}"><i class="fas fa-location-dot"></i> Delivery Locations</a>
-                    <a href="{{ route('admin.pickup-points.index') }}" class="{{ request()->routeIs('admin.pickup-points.*') ? 'al-active' : '' }}"><i class="fas fa-store"></i> Pickup Points</a>
-                    <a href="{{ route('admin.store-locations.index') }}" class="{{ request()->routeIs('admin.store-locations.*') ? 'al-active' : '' }}"><i class="fas fa-map-marker-alt"></i> Store Locations</a>
-                    <a href="{{ route('admin.shipping.index') }}" class="{{ request()->routeIs('admin.shipping.*') ? 'al-active' : '' }}"><i class="fas fa-truck"></i> Shipping</a>
-                    <a href="{{ route('admin.weight.index') }}" class="{{ request()->routeIs('admin.weight.*') ? 'al-active' : '' }}"><i class="fas fa-weight-hanging"></i> Weight &amp; Delivery</a>
-                </div>
-            </div>
-
-            {{-- Marketing --}}
-            <div class="al-hnav-group">
-                <button class="al-hnav-item {{ $mktOpen ? 'active' : '' }}">
-                    <i class="fas fa-bullhorn" style="font-size:12px;"></i> Marketing
-                    <i class="fas fa-chevron-down al-hnav-chev"></i>
-                </button>
-                <div class="al-hnav-dd">
-                    <a href="{{ route('admin.coupons.index') }}" class="{{ request()->routeIs('admin.coupons.*') ? 'al-active' : '' }}"><i class="fas fa-ticket"></i> Coupons</a>
-                    <a href="{{ route('admin.discount.index') }}" class="{{ request()->routeIs('admin.discount.*') ? 'al-active' : '' }}"><i class="fas fa-scissors"></i> Discounts</a>
-                </div>
-            </div>
-
-            {{-- Settings --}}
-            <div class="al-hnav-group">
-                <button class="al-hnav-item {{ $setOpen ? 'active' : '' }}">
-                    <i class="fas fa-gear" style="font-size:12px;"></i> Settings
-                    <i class="fas fa-chevron-down al-hnav-chev"></i>
-                </button>
-                <div class="al-hnav-dd">
-                    <a href="{{ route('admin.settings.index') }}" class="{{ request()->routeIs('admin.settings.*') ? 'al-active' : '' }}"><i class="fas fa-sliders"></i> Store Settings</a>
-                    <a href="{{ route('admin.markup.index') }}" class="{{ request()->routeIs('admin.markup.*') ? 'al-active' : '' }}"><i class="fas fa-percent"></i> Markup</a>
-                    <a href="{{ route('admin.currencies.index') }}" class="{{ request()->routeIs('admin.currencies.*') ? 'al-active' : '' }}"><i class="fas fa-coins"></i> Currencies</a>
-                    <a href="{{ route('admin.audit.index') }}" class="{{ request()->routeIs('admin.audit.*') ? 'al-active' : '' }}"><i class="fas fa-clock-rotate-left"></i> Audit Trail</a>
-                    <a href="{{ route('admin.invoice.settings') }}" class="{{ request()->routeIs('admin.invoice.settings*') ? 'al-active' : '' }}"><i class="fas fa-file-invoice"></i> Invoice Settings</a>
-                </div>
-            </div>
-
-            {{-- Content --}}
-            <div class="al-hnav-group">
-                <button class="al-hnav-item {{ $contentOpen ? 'active' : '' }}">
-                    <i class="fas fa-file-alt" style="font-size:12px;"></i> Content
-                    <i class="fas fa-chevron-down al-hnav-chev"></i>
-                </button>
-                <div class="al-hnav-dd">
-                    <a href="{{ route('admin.about.index') }}" class="{{ request()->routeIs('admin.about.*') ? 'al-active' : '' }}"><i class="fas fa-circle-info"></i> About Us</a>
-                    <a href="{{ route('admin.contact.index') }}" class="{{ request()->routeIs('admin.contact.*') ? 'al-active' : '' }}"><i class="fas fa-address-book"></i> Contact Us</a>
-                    <a href="{{ route('admin.faqs.index') }}" class="{{ request()->routeIs('admin.faqs.*') ? 'al-active' : '' }}"><i class="fas fa-circle-question"></i> FAQs</a>
-                </div>
-            </div>
-
-        </nav>
+        <div class="al-admin-context"><strong>Store administration</strong><span>{{ $adminSection }}</span></div>
 
         {{-- Topbar right --}}
         <div class="al-topbar-right">
@@ -771,89 +655,8 @@
             @endif
         </a>
 
-        <nav class="al-dnav">
+        @include('admin.partials.navigation')
 
-            <button class="al-dnav-item al-dgroup-toggle {{ $catOpen ? 'open' : '' }}" data-target="dNavCatalog">
-                <i class="fas fa-box-open ni"></i> Catalog
-                <i class="fas fa-chevron-right al-dnav-chev"></i>
-            </button>
-            <div class="al-dsub {{ $catOpen ? 'open' : '' }}" id="dNavCatalog">
-                <a href="{{ route('admin.products.index') }}" class="{{ request()->routeIs('admin.products.*') ? 'al-active' : '' }}"><i class="fas fa-box"></i> Products</a>
-                <a href="{{ route('admin.categories.index') }}" class="{{ request()->routeIs('admin.categories.*','admin.subcategories.*') ? 'al-active' : '' }}"><i class="fas fa-folder-open"></i> Categories</a>
-                <a href="{{ route('admin.brands.index') }}" class="{{ request()->routeIs('admin.brands.index','admin.brands.create','admin.brands.edit') ? 'al-active' : '' }}"><i class="fas fa-copyright"></i> Brands</a>
-                <a href="{{ route('admin.tags.index') }}" class="{{ request()->routeIs('admin.tags.*') ? 'al-active' : '' }}"><i class="fas fa-hashtag"></i> Tags</a>
-                <a href="{{ route('admin.colors.index') }}" class="{{ request()->routeIs('admin.colors.*') ? 'al-active' : '' }}"><i class="fas fa-palette"></i> Colors</a>
-                <a href="{{ route('admin.sizes.index') }}" class="{{ request()->routeIs('admin.sizes.*') ? 'al-active' : '' }}"><i class="fas fa-ruler-combined"></i> Sizes</a>
-                <a href="{{ route('admin.banners.index') }}" class="{{ request()->routeIs('admin.banners.*') ? 'al-active' : '' }}"><i class="fas fa-images"></i> Banners</a>
-            </div>
-
-            <button class="al-dnav-item al-dgroup-toggle {{ $salesOpen ? 'open' : '' }}" data-target="dNavSales">
-                <i class="fas fa-shopping-bag ni"></i> Sales
-                <i class="fas fa-chevron-right al-dnav-chev"></i>
-            </button>
-            <div class="al-dsub {{ $salesOpen ? 'open' : '' }}" id="dNavSales">
-                <a href="{{ route('admin.orders.index') }}" class="{{ request()->routeIs('admin.orders.index') ? 'al-active' : '' }}"><i class="fas fa-list-ul"></i> All Orders</a>
-                <a href="{{ route('admin.returns.index') }}" class="{{ request()->routeIs('admin.returns.*') ? 'al-active' : '' }}"><i class="fas fa-rotate-left"></i> Returns</a>
-                <a href="{{ route('admin.cancellations.index') }}" class="{{ request()->routeIs('admin.cancellations.*') ? 'al-active' : '' }}"><i class="fas fa-ban"></i> Cancellations</a>
-                <a href="{{ route('admin.paystack-transactions.index') }}" class="{{ request()->routeIs('admin.paystack-transactions.*') ? 'al-active' : '' }}"><i class="fas fa-credit-card"></i> Paystack Txns</a>
-            </div>
-
-            <button class="al-dnav-item al-dgroup-toggle {{ $custOpen ? 'open' : '' }}" data-target="dNavCustomers">
-                <i class="fas fa-users ni"></i> Customers
-                <i class="fas fa-chevron-right al-dnav-chev"></i>
-            </button>
-            <div class="al-dsub {{ $custOpen ? 'open' : '' }}" id="dNavCustomers">
-                <a href="/admin/users" class="{{ request()->is('admin/users') ? 'al-active' : '' }}"><i class="fas fa-users"></i> All Users</a>
-                <a href="{{ route('admin.brands.assign') }}" class="{{ request()->routeIs('admin.brands.assign') ? 'al-active' : '' }}"><i class="fas fa-handshake"></i> Assign Brands</a>
-                <a href="{{ route('admin.reviews.index') }}" class="{{ request()->routeIs('admin.reviews.*') ? 'al-active' : '' }}"><i class="fas fa-star"></i> Reviews</a>
-                <a href="{{ route('admin.tickets.index') }}" class="{{ request()->routeIs('admin.tickets.*') ? 'al-active' : '' }}"><i class="fas fa-headset"></i> Support Tickets</a>
-            </div>
-
-            <button class="al-dnav-item al-dgroup-toggle {{ $delOpen ? 'open' : '' }}" data-target="dNavDelivery">
-                <i class="fas fa-truck ni"></i> Delivery
-                <i class="fas fa-chevron-right al-dnav-chev"></i>
-            </button>
-            <div class="al-dsub {{ $delOpen ? 'open' : '' }}" id="dNavDelivery">
-                <a href="{{ route('admin.states.index') }}" class="{{ request()->routeIs('admin.states.*') ? 'al-active' : '' }}"><i class="fas fa-map"></i> States</a>
-                <a href="{{ route('admin.locations.index') }}" class="{{ request()->routeIs('admin.locations.*') ? 'al-active' : '' }}"><i class="fas fa-location-dot"></i> Delivery Locations</a>
-                <a href="{{ route('admin.pickup-points.index') }}" class="{{ request()->routeIs('admin.pickup-points.*') ? 'al-active' : '' }}"><i class="fas fa-store"></i> Pickup Points</a>
-                <a href="{{ route('admin.store-locations.index') }}" class="{{ request()->routeIs('admin.store-locations.*') ? 'al-active' : '' }}"><i class="fas fa-map-marker-alt"></i> Store Locations</a>
-                <a href="{{ route('admin.shipping.index') }}" class="{{ request()->routeIs('admin.shipping.*') ? 'al-active' : '' }}"><i class="fas fa-truck"></i> Shipping</a>
-                <a href="{{ route('admin.weight.index') }}" class="{{ request()->routeIs('admin.weight.*') ? 'al-active' : '' }}"><i class="fas fa-weight-hanging"></i> Weight &amp; Delivery</a>
-            </div>
-
-            <button class="al-dnav-item al-dgroup-toggle {{ $mktOpen ? 'open' : '' }}" data-target="dNavMarketing">
-                <i class="fas fa-bullhorn ni"></i> Marketing
-                <i class="fas fa-chevron-right al-dnav-chev"></i>
-            </button>
-            <div class="al-dsub {{ $mktOpen ? 'open' : '' }}" id="dNavMarketing">
-                <a href="{{ route('admin.coupons.index') }}" class="{{ request()->routeIs('admin.coupons.*') ? 'al-active' : '' }}"><i class="fas fa-ticket"></i> Coupons</a>
-                <a href="{{ route('admin.discount.index') }}" class="{{ request()->routeIs('admin.discount.*') ? 'al-active' : '' }}"><i class="fas fa-scissors"></i> Discounts</a>
-            </div>
-
-            <button class="al-dnav-item al-dgroup-toggle {{ $setOpen ? 'open' : '' }}" data-target="dNavSettings">
-                <i class="fas fa-gear ni"></i> Settings
-                <i class="fas fa-chevron-right al-dnav-chev"></i>
-            </button>
-            <div class="al-dsub {{ $setOpen ? 'open' : '' }}" id="dNavSettings">
-                <a href="{{ route('admin.settings.index') }}" class="{{ request()->routeIs('admin.settings.*') ? 'al-active' : '' }}"><i class="fas fa-sliders"></i> Store Settings</a>
-                <a href="{{ route('admin.markup.index') }}" class="{{ request()->routeIs('admin.markup.*') ? 'al-active' : '' }}"><i class="fas fa-percent"></i> Markup</a>
-                <a href="{{ route('admin.currencies.index') }}" class="{{ request()->routeIs('admin.currencies.*') ? 'al-active' : '' }}"><i class="fas fa-coins"></i> Currencies</a>
-                <a href="{{ route('admin.audit.index') }}" class="{{ request()->routeIs('admin.audit.*') ? 'al-active' : '' }}"><i class="fas fa-clock-rotate-left"></i> Audit Trail</a>
-                <a href="{{ route('admin.invoice.settings') }}" class="{{ request()->routeIs('admin.invoice.settings*') ? 'al-active' : '' }}"><i class="fas fa-file-invoice"></i> Invoice Settings</a>
-            </div>
-
-            <button class="al-dnav-item al-dgroup-toggle {{ $contentOpen ? 'open' : '' }}" data-target="dNavContent">
-                <i class="fas fa-file-alt ni"></i> Content
-                <i class="fas fa-chevron-right al-dnav-chev"></i>
-            </button>
-            <div class="al-dsub {{ $contentOpen ? 'open' : '' }}" id="dNavContent">
-                <a href="{{ route('admin.about.index') }}" class="{{ request()->routeIs('admin.about.*') ? 'al-active' : '' }}"><i class="fas fa-circle-info"></i> About Us</a>
-                <a href="{{ route('admin.contact.index') }}" class="{{ request()->routeIs('admin.contact.*') ? 'al-active' : '' }}"><i class="fas fa-address-book"></i> Contact Us</a>
-                <a href="{{ route('admin.faqs.index') }}" class="{{ request()->routeIs('admin.faqs.*') ? 'al-active' : '' }}"><i class="fas fa-circle-question"></i> FAQs</a>
-            </div>
-
-        </nav>
 
         <div class="al-drawer-foot">
             <a href="{{ url('/') }}" target="_blank">
@@ -872,7 +675,7 @@
     {{-- ══════════════════════════════════════════
          PAGE CONTENT
     ══════════════════════════════════════════ --}}
-    <main class="al-content">
+    <main class="al-content" id="adminContent" tabindex="-1">
         @yield('content')
     </main>
 
@@ -886,7 +689,7 @@
 <script>
 if (typeof feather === 'undefined') { window.feather = { replace: function(){} }; }
 </script>
-<script src="{{ asset('/app-asset/js/core/app.js') }}"></script>
+
 <script>
 (function restoreScroll() {
     document.documentElement.style.setProperty('overflow-y', 'auto', 'important');
@@ -909,58 +712,68 @@ if (typeof feather === 'undefined') { window.feather = { replace: function(){} }
     const userBtn   = document.getElementById('alUserBtn');
     const userDD    = document.getElementById('alUserDD');
 
-    // Mobile drawer
-    if (hamburger) hamburger.addEventListener('click', function () {
-        drawer.classList.toggle('open');
-        overlay.classList.toggle('open');
+    const desktopMenu = window.matchMedia('(min-width: 1025px)');
+    let menuHidden = false;
+    try { menuHidden = localStorage.getItem('albertina.admin.menuHidden') === 'true'; } catch (_) {}
+    function syncMenu() {
+        document.body.classList.toggle('al-menu-hidden', menuHidden);
+        const shown = desktopMenu.matches ? !menuHidden : drawer.classList.contains('open');
+        hamburger.setAttribute('aria-expanded', String(shown));
+        hamburger.setAttribute('aria-label', shown ? 'Hide navigation' : 'Open navigation');
+    }
+    syncMenu();
+    desktopMenu.addEventListener('change', function () {
+        drawer.classList.remove('open'); overlay.classList.remove('open'); syncMenu();
     });
-    if (overlay) overlay.addEventListener('click', function () {
-        drawer.classList.remove('open');
-        overlay.classList.remove('open');
+    hamburger.addEventListener('click', function () {
+        if (desktopMenu.matches) {
+            menuHidden = !menuHidden;
+            try { localStorage.setItem('albertina.admin.menuHidden', String(menuHidden)); } catch (_) {}
+        } else {
+            drawer.classList.toggle('open'); overlay.classList.toggle('open');
+            if (drawer.classList.contains('open')) document.getElementById('adminMenuSearch').focus();
+        }
+        syncMenu();
+        window.dispatchEvent(new Event('resize'));
     });
 
-    // Horizontal nav dropdowns — click to open, click outside to close
-    document.querySelectorAll('.al-hnav-group').forEach(function (grp) {
-        const btn = grp.querySelector('.al-hnav-item');
-        const dd  = grp.querySelector('.al-hnav-dd');
-        if (!btn || !dd) return;
-        btn.addEventListener('click', function (e) {
-            e.stopPropagation();
-            var wasOpen = grp.classList.contains('open');
-            document.querySelectorAll('.al-hnav-group').forEach(function (g) {
-                g.classList.remove('open');
-                var d = g.querySelector('.al-hnav-dd');
-                if (d) d.classList.remove('open');
+    const menuSearch = document.getElementById('adminMenuSearch');
+    const menuGroups = Array.from(document.querySelectorAll('[data-admin-nav-group]'));
+    const originalOpen = menuGroups.map(group => group.open);
+    if (menuSearch) menuSearch.addEventListener('input', function () {
+        const term = this.value.trim().toLocaleLowerCase();
+        let matches = 0;
+        menuGroups.forEach(function (group, index) {
+            let count = 0;
+            group.querySelectorAll('[data-nav-search]').forEach(function (link) {
+                const match = !term || (group.dataset.adminNavGroup + ' ' + link.dataset.navSearch).toLocaleLowerCase().includes(term);
+                link.hidden = !match;
+                if (match) count++;
             });
-            if (!wasOpen) {
-                grp.classList.add('open');
-                dd.classList.add('open');
-            }
+            group.hidden = count === 0;
+            group.open = term ? count > 0 : originalOpen[index];
+            matches += count;
         });
+        document.getElementById('adminNavEmpty').hidden = matches > 0;
+        document.getElementById('adminNavResults').textContent = term ? matches + ' pages found' : '';
     });
-    document.addEventListener('click', function () {
-        document.querySelectorAll('.al-hnav-group').forEach(function (g) {
-            g.classList.remove('open');
-            var d = g.querySelector('.al-hnav-dd');
-            if (d) d.classList.remove('open');
-        });
+    function closeDrawer() {
+        drawer.classList.remove('open'); overlay.classList.remove('open');
+        syncMenu();
+    }
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && drawer.classList.contains('open')) {
+            closeDrawer(); hamburger.focus();
+        }
+        if (event.key === 'Tab' && drawer.classList.contains('open') && window.matchMedia('(max-width: 1024px)').matches) {
+            const focusable = Array.from(drawer.querySelectorAll('a[href],input,button,summary')).filter(el => el.getClientRects().length && !el.closest('[hidden]'));
+            const first = focusable[0], last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
     });
-    document.querySelectorAll('.al-hnav-dd').forEach(function (dd) {
-        dd.addEventListener('click', function (e) { e.stopPropagation(); });
-    });
-
-    // Mobile drawer accordion
-    document.querySelectorAll('.al-dgroup-toggle').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            var targetId = btn.getAttribute('data-target');
-            var sub = document.getElementById(targetId);
-            if (!sub) return;
-            var wasOpen = sub.classList.contains('open');
-            document.querySelectorAll('.al-dsub').forEach(function (s) { s.classList.remove('open'); });
-            document.querySelectorAll('.al-dgroup-toggle').forEach(function (b) { b.classList.remove('open'); });
-            if (!wasOpen) { sub.classList.add('open'); btn.classList.add('open'); }
-        });
-    });
+    document.getElementById('adminNavClose').addEventListener('click', function () { closeDrawer(); hamburger.focus(); });
+    if (overlay) overlay.addEventListener('click', closeDrawer);
 
     // User dropdown
     if (userBtn) {

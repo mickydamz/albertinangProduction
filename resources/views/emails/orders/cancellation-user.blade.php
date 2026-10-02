@@ -19,15 +19,16 @@
         </div>
     </div>
 
-    {{-- Refund note --}}
-    @if($order->payment_method === 'paystack' && $order->status === 'refunded')
-        <p class="greeting">
-            A refund of <strong>₦{{ number_format($order->total, 2) }}</strong> has been initiated to your original payment method and should reflect within <strong>5–10 business days</strong>.
-        </p>
+    @php
+
+        $refundProgress = \App\Support\RefundProgress::forOrder($order);
+
+    @endphp
+    @if($refundProgress)
+        <div class="info-block"><div class="info-block-title">{{ $refundProgress['label'] }}</div>
+        <div class="info-block-content">{{ $refundProgress['message'] }}</div></div>
     @elseif($order->payment_method === 'paystack')
-        <p class="greeting">
-            Our team will process your refund manually and it will reflect within <strong>5–10 business days</strong>. We'll be in touch if we need any additional information.
-        </p>
+        <p class="greeting">Our team is reviewing whether a refund is due. No completed refund has been confirmed yet.</p>
     @endif
 
     {{-- View orders button --}}

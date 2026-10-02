@@ -18,3 +18,7 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Local preview database
+/database/local-preview.sqlite
+/database/local-preview.sqlite-*

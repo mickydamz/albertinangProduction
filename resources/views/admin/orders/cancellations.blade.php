@@ -113,6 +113,9 @@
                                             @endphp
                                             <span class="badge bg-{{ $colors[$cancellation->status] ?? 'secondary' }}">
                                                 {{ ucfirst($cancellation->status) }}
+                                                @if($cancellation->refund_status)
+                                                    <div class="small">Refund: {{ ucfirst(str_replace('-', ' ', $cancellation->refund_status)) }}</div>
+                                                @endif
                                             </span>
                                         </td>
                                         <td data-label="Submitted" class="small text-muted">{{ $cancellation->created_at->diffForHumans() }}</td>

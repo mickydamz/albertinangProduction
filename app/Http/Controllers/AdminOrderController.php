@@ -102,6 +102,11 @@ class AdminOrderController extends Controller
             'pickup_point_id' => 'nullable|integer|exists:pickup_points,id',
         ]);
 
+        if ($order->payment_method === 'paystack' && $request->status === 'refunded'
+            && !\Illuminate\Support\Facades\DB::table('paystack_refunds')->where('order_id',$order->id)->where('status','processed')->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['status'=>'Paystack must confirm the refund before the order can be marked refunded.']);
+        }
+
         $oldStatus = $order->status;
         $newStatus = $request->status;
 
@@ -146,8 +151,9 @@ class AdminOrderController extends Controller
                     Log::error('Failed to send order status email for order #' . $order->order_number . ' (status: ' . $newStatus . '): ' . $e->getMessage());
                 }
 
-                // Review-request email — sent right after the completion email, only on completion.
-                if ($newStatus === 'completed') {
+                // Invite a review at the final status for this fulfilment method.
+                if (($order->fulfillment_method === 'delivery' && $newStatus === 'delivered')
+                    || ($order->fulfillment_method !== 'delivery' && $newStatus === 'completed')) {
                     try {
                         Mail::to($recipient)->send(new OrderReviewRequest($order));
                     } catch (\Exception $e) {
@@ -509,6 +515,22 @@ class AdminOrderController extends Controller
             'admin_notes' => 'nullable|string|max:1000',
         ]);
 
+        if ($return->order?->payment_method === 'paystack') {
+            $service = app(\App\Services\PaystackRefundService::class);
+            $service->validateAmount($request->all());
+            if ($request->status === 'rejected' && $return->refund_status) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['status'=>'A requested refund cannot be rejected or undone here.']);
+            }
+            $return->update(['admin_notes'=>$request->admin_notes]);
+            if (in_array($request->status, ['approved','refunded'], true)) {
+                $result = $service->initiate($return->order, $return);
+                return back()->with($result['success'] ? 'success' : 'error', $result['message']);
+            }
+            if (!$return->refund_status) $return->update(['status'=>$request->status]);
+            if (false && $request->status === 'approved') $return->order->update(['status'=>'cancelled']);
+            return back()->with('success', 'Request decision saved.');
+        }
+
         $return->update([
             'status'      => $request->status,
             'admin_notes' => $request->admin_notes,
@@ -635,6 +657,22 @@ class AdminOrderController extends Controller
             'admin_notes' => 'nullable|string|max:1000',
         ]);
 
+        if ($cancellation->order?->payment_method === 'paystack') {
+            $service = app(\App\Services\PaystackRefundService::class);
+            $service->validateAmount($request->all());
+            if ($request->status === 'rejected' && $cancellation->refund_status) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['status'=>'A requested refund cannot be rejected or undone here.']);
+            }
+            $cancellation->update(['admin_notes'=>$request->admin_notes]);
+            if ($request->status === 'refunded') {
+                $result = $service->initiate($cancellation->order, $cancellation);
+                return back()->with($result['success'] ? 'success' : 'error', $result['message']);
+            }
+            if (!$cancellation->refund_status) $cancellation->update(['status'=>$request->status]);
+            if (true && $request->status === 'approved') $cancellation->order->update(['status'=>'cancelled']);
+            return back()->with('success', 'Request decision saved.');
+        }
+
         $cancellation->update([
             'status'      => $request->status,
             'admin_notes' => $request->admin_notes,
@@ -710,7 +748,7 @@ class AdminOrderController extends Controller
         $method = strtolower($order->payment_method ?? '');
 
         if ($method === 'paystack') {
-            return $this->refundOrderViaPaystack($order);
+            throw new \LogicException('Paystack refunds must use PaystackRefundService with the request record.');
         }
 
         if ($method === 'stripe') {
@@ -724,46 +762,6 @@ class AdminOrderController extends Controller
             'refund_status' => null,
             'message'       => 'unsupported payment method: ' . ($order->payment_method ?? 'none'),
         ];
-    }
-
-    private function refundOrderViaPaystack(Order $order): array
-    {
-        if (empty($order->reference)) {
-            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => 'No payment reference on this order.'];
-        }
-
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.paystack.secret'),
-                'Content-Type'  => 'application/json',
-            ])->post('https://api.paystack.co/refund', [
-                'transaction'   => $order->reference,
-                'amount'        => (int) ($order->total * 100), // NGN -> kobo
-                'currency'      => 'NGN',
-                'customer_note' => 'Refund for order #' . $order->order_number,
-                'merchant_note' => 'Refund issued by admin',
-            ]);
-
-            $data = $response->json();
-
-            if ($response->successful() && ($data['status'] ?? false)) {
-                Log::info('Paystack refund issued for order #' . $order->id, ['refund_id' => $data['data']['id'] ?? null]);
-                return [
-                    'handled'       => true,
-                    'success'       => true,
-                    'refund_id'     => $data['data']['id']     ?? null,
-                    'refund_status' => $data['data']['status'] ?? 'pending',
-                    'message'       => '',
-                ];
-            }
-
-            Log::error('Paystack refund failed for order #' . $order->id, ['response' => $data]);
-            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $data['message'] ?? 'Refund request was declined.'];
-
-        } catch (\Exception $e) {
-            Log::error('Paystack refund exception for order #' . $order->id . ': ' . $e->getMessage());
-            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $e->getMessage()];
-        }
     }
 
     /**

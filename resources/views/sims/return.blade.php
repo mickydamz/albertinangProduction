@@ -429,6 +429,13 @@
     </div>
 
     @if($existingReturn)
+        @if($existingReturn->refund_status)
+            <div class="alert alert-info" role="status">
+                Refund: {{ in_array($existingReturn->refund_status, ['pending','requesting','processing']) ? 'Processing — awaiting Paystack confirmation' : ucfirst(str_replace('-', ' ', $existingReturn->refund_status)) }}.
+                @if(in_array($existingReturn->refund_status, ['unknown','failed','needs-attention'])) Our team needs to review this refund. @endif
+            </div>
+        @endif
+
 
         {{-- ── Existing return status ── --}}
         <div class="return-status-card">

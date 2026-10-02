@@ -24,6 +24,7 @@
         </div>
 
         <div class="content-body">
+            @include('admin.partials.workspace')
             <section id="dashboard-analytics">
 
                 {{-- ── Stat cards ── --}}
@@ -36,7 +37,7 @@
                                 </div>
                                 <div class="stat-card__info">
                                     <div class="stat-card__label">Total Orders</div>
-                                    <div class="stat-card__num">{{ number_format($totalTransactions) }}</div>
+                                    <div class="stat-card__num">{{ number_format($totalOrders) }}</div>
                                 </div>
                             </div>
                         </div>
@@ -74,7 +75,7 @@
                     <div class="col-xl-8 col-12 mb-3">
                         @include('admin.partials._chart-card', [
                             'chartId'   => 'revenueChart',
-                            'title'     => 'Revenue — Last 12 Months',
+                            'title'     => 'Order value — Last 12 Months',
                             'icon'      => 'fa-arrow-trend-up',
                             'colorClass'=> 'success',
                             'badgeId'   => 'revenueBadge',
@@ -105,7 +106,7 @@
                     <div class="col-xl-4 col-12 mb-3">
                         @include('admin.partials._chart-card', [
                             'chartId'   => 'transactionChart',
-                            'title'     => 'Orders Per Month',
+                            'title'     => 'Orders & transactions per month',
                             'icon'      => 'fa-bag-shopping',
                             'colorClass'=> 'danger',
                             'badgeId'   => 'transactionBadge',
@@ -382,7 +383,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (err) {
             if (loader) loader.style.display = 'none';
-            if (empty)  empty.style.display  = 'flex';
+            if (empty) { empty.style.display = 'flex'; const message = empty.querySelector('p'); if (message) message.textContent = 'Could not load this chart. Refresh the page to try again.'; }
             const badge = document.getElementById(badgeId);
             if (badge) { badge.textContent = 'Error'; badge.className = 'badge bg-light-danger text-danger'; }
             console.error('[Dashboard]', canvasId, err.message);
