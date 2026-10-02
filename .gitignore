@@ -18,6 +18,9 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+
+# Stray archives — the repo should never track .zip bundles
+*.zip
 /Albertina_Project_Work_Summary.html
 /TEST_COVERAGE.md
 /docs/invoice-work-notes.md
