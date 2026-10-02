@@ -270,7 +270,7 @@ class PaystackOrderFulfillmentTest extends TestCase
     }
 
     /** @test */
-    public function it_creates_the_order_but_skips_a_coupon_already_at_its_limit()
+    public function it_retains_payment_for_reconciliation_when_coupon_is_exhausted()
     {
         $user   = User::factory()->create();
         $coupon = $this->makeCoupon(['max_uses' => 3, 'used_count' => 3]); // already exhausted
@@ -284,9 +284,9 @@ class PaystackOrderFulfillmentTest extends TestCase
 
         $result = $this->service->fulfil($ref, $user->id);
 
-        // Payment already succeeded, so the customer still gets their order...
-        $this->assertTrue($result['success']);
-        $this->assertDatabaseHas('orders', ['reference' => $ref]);
+        $this->assertFalse($result['success']);
+        $this->assertDatabaseMissing('orders', ['reference' => $ref]);
+        $this->assertDatabaseHas('paystack_transactions', ['reference' => $ref, 'status' => 'success']);
         // ...but the exhausted coupon must not be over-redeemed past its cap.
         $this->assertEquals(3, $coupon->fresh()->used_count);
         $this->assertEquals(0, CouponUsage::where('coupon_id', $coupon->id)->count());

@@ -63,7 +63,8 @@ class PaymentController extends Controller
                     'reference' => $pending->reference,
                     'user_id'   => (string) ($pending->user_id ?? Auth::id() ?? ''),
                 ],
-            ]);
+            ], ['idempotency_key' => 'checkout-' . $pending->reference]);
+            $pending->update(['gateway' => 'stripe', 'payment_intent_id' => $paymentIntent->id, 'gateway_amount' => $amountCents]);
 
             return response()->json([
                 'clientSecret' => $paymentIntent->client_secret,

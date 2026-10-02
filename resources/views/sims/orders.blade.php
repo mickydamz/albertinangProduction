@@ -623,6 +623,56 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                                         @endif
                                     </div>
 
+                                    @if($order->fulfillment_method === 'delivery')
+                                    <div class="op-card__strip-cell">
+                                        <div class="op-strip-label">Home delivery</div>
+                                        @if($order->shipping_address)
+                                            <div class="op-strip-val" style="font-size:12.5px;font-family:var(--font-body);font-weight:600;">{{ $order->shipping_address }}</div>
+                                        @endif
+                                        <div class="op-strip-sub">{{ $order->delivery_location_name }}, {{ $order->delivery_state_name }}</div>
+                                        <div class="op-strip-sub">Delivery fee: ₦{{ number_format($order->shipping_cost, 2) }}</div>
+                                    </div>
+                                    @else
+                                        @php $collectionPoint = $pickupHeadline ?: 'your selected collection point'; @endphp
+                                        @if(in_array($order->status, ['pending', 'paid', 'processing'], true))
+                                            <div class="op-card__strip-cell">
+                                                <div class="op-strip-label">Collection</div>
+                                                <div class="op-strip-sub">We're preparing your order — we'll let you know when it's ready to collect at {{ $collectionPoint }}.</div>
+                                            </div>
+                                        @elseif($order->status === 'ready_for_pickup')
+                                            <div class="op-card__strip-cell">
+                                                <div class="op-strip-label">Ready for collection</div>
+                                                <div class="op-strip-sub">Bring your order number and photo ID to {{ $collectionPoint }} to collect your order.</div>
+                                            </div>
+                                        @elseif($order->status === 'completed')
+                                            <div class="op-card__strip-cell">
+                                                <div class="op-strip-label">Collection</div>
+                                                <div class="op-strip-sub">Collected from {{ $collectionPoint }}. Thank you!</div>
+                                            </div>
+                                        @endif
+                                        {{-- cancelled / refunded / refund states: nothing to collect, so no instruction --}}
+                                    @endif
+                                    @if($order->refund_requested_at || $order->refund_id || $order->refundAttempts->isNotEmpty())
+                                    <section aria-label="Refund progress" class="op-card__strip-cell">
+                                        @php
+                                            // Label reflects the order's actual (active) refund state, not a
+                                            // generic word — the order status is the authoritative source.
+                                            $refundLabel = [
+                                                'refunded'           => 'Completed',
+                                                'partially_refunded' => 'Partially refunded',
+                                                'refund_pending'     => 'Pending',
+                                                'refund_failed'      => 'Failed',
+                                            ][$order->status] ?? ucwords(str_replace('_', ' ', $order->status));
+                                        @endphp
+                                        <div class="op-strip-label">Refund progress</div>
+                                        @forelse($order->refundAttempts as $attempt)
+                                            <div class="op-strip-val" style="font-size:12.5px;font-family:var(--font-body);font-weight:600;">₦{{ number_format($attempt->amount, 2) }} — {{ $refundLabel }}</div>
+                                            @if($attempt->failure_reason)<div class="op-strip-sub">{{ $attempt->failure_reason }}</div>@endif
+                                        @empty
+                                            <div class="op-strip-val" style="font-size:12.5px;font-family:var(--font-body);font-weight:600;">{{ $refundLabel }}</div>
+                                        @endforelse
+                                    </section>
+                                    @endif
                                     {{-- Items --}}
                                     <div class="op-card__items">
                                         @foreach($order->items as $item)
@@ -694,15 +744,34 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                                     @if($order->return)
                                         @php
                                             $rs = strtolower($order->return->status);
+                                            // Base the wording on the order's real refund state, not just the
+                                            // request record — approving a return triggers the refund, so an
+                                            // 'approved' record can actually mean the refund failed or is pending.
+                                            $refundDone   = $order->status === 'refunded';
+                                            $refundFailed = $order->status === 'refund_failed';
+                                            $refundBusy   = in_array($order->status, ['refund_pending', 'partially_refunded'], true);
                                             $rnMap = [
-                                                'pending'  => ['fa-clock',          'Return requested',  'We\'re reviewing your request.'],
-                                                'approved' => ['fa-check-circle',   'Return approved',   'Please follow the return instructions sent to you.'],
-                                                'rejected' => ['fa-times-circle',   'Return rejected',   $order->return->admin_notes ?: 'Contact support for details.'],
-                                                'refunded' => ['fa-rotate-left',    'Return refunded',   'Your refund has been processed.'],
+                                                'pending'  => ['fa-clock', 'Return requested', 'We\'re reviewing your request.'],
+                                                'approved' => $refundFailed
+                                                    ? ['fa-exclamation-triangle', 'Return approved', 'We couldn\'t process the refund automatically — our team will sort it out.']
+                                                    : ($refundBusy
+                                                        ? ['fa-rotate-left', 'Refund processing', 'Your return is approved and the gateway is confirming your refund.']
+                                                        : ['fa-check-circle', 'Return approved', 'Please follow the return instructions sent to you.']),
+                                                'rejected' => ['fa-times-circle', 'Return rejected', $order->return->admin_notes ?: 'Contact support for details.'],
+                                                'refunded' => $refundDone
+                                                    ? ['fa-rotate-left', 'Return refunded', 'Your refund has been processed.']
+                                                    : ($refundFailed
+                                                        ? ['fa-exclamation-triangle', 'Refund failed', 'We could not confirm the refund — our team will sort it out.']
+                                                        : ['fa-rotate-left', 'Refund processing', 'The gateway is confirming your refund.']),
                                             ];
                                             $rn = $rnMap[$rs] ?? ['fa-info-circle', 'Return '.$rs, ''];
+                                            // Colour follows the true state: red if the refund failed, amber while
+                                            // it is still confirming, otherwise the request's own status colour.
+                                            $rnClass = $refundFailed ? 'rejected'
+                                                     : (($refundBusy && in_array($rs, ['approved','refunded'], true)) ? 'pending'
+                                                     : $rs);
                                         @endphp
-                                        <div class="op-request-note {{ $rs }}">
+                                        <div class="op-request-note {{ $rnClass }}">
                                             <i class="fas {{ $rn[0] }}"></i>
                                             <div>
                                                 <span class="rn-title">{{ $rn[1] }}</span>
@@ -715,12 +784,38 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
 
                                     {{-- Cancellation request status note --}}
                                     @if($order->cancellation)
-                                        @php $cs = strtolower($order->cancellation->status); @endphp
-                                        <div class="op-request-note {{ in_array($cs,['approved','refunded']) ? $cs : 'pending' }}">
+                                        @php
+                                            $cs = strtolower($order->cancellation->status);
+                                            // A cancellation marked "refunded" only means the refund was initiated.
+                                            // Reflect the order's real refund state so we never claim a refund is
+                                            // done while the gateway is still confirming it (mirrors the return note).
+                                            $refundDone     = $order->status === 'refunded';
+                                            $refundFailed   = $order->status === 'refund_failed';
+                                            $cnMap = [
+                                                'pending'  => ['Cancellation requested', 'We\'re reviewing your request.'],
+                                                'approved' => $refundFailed
+                                                    ? ['Refund failed', 'We couldn\'t process the refund automatically — our team will sort it out.']
+                                                    : ['Cancellation approved', 'Your cancellation has been approved.'],
+                                                'rejected' => ['Cancellation rejected',  $order->cancellation->admin_notes ?: 'Contact support for details.'],
+                                                'refunded' => [
+                                                    $refundDone ? 'Cancellation refunded' : ($refundFailed ? 'Refund failed' : 'Refund processing'),
+                                                    $refundDone ? 'Your refund has been processed.' : ($refundFailed ? 'We could not confirm the refund — our team will sort it out.' : 'The gateway is confirming your refund.'),
+                                                ],
+                                            ];
+                                            $cn = $cnMap[$cs] ?? ['Cancellation '.$cs, ''];
+                                            // Colour follows the TRUE state: amber while processing, not green.
+                                            $cnClass = $refundFailed ? 'rejected'
+                                                     : (($cs === 'refunded' && !$refundDone) ? 'pending'
+                                                     : (in_array($cs, ['approved','refunded'], true) ? $cs : 'pending'));
+                                        @endphp
+                                        <div class="op-request-note {{ $cnClass }}">
                                             <i class="fas fa-ban"></i>
                                             <div>
-                                                <span class="rn-title">Cancellation {{ $cs }}</span>
+                                                <span class="rn-title">{{ $cn[0] }}</span>
                                                 <span class="rn-sub"> — requested {{ $order->cancellation->created_at->format('d M Y') }}</span>
+                                                @if($cn[1])
+                                                    <span class="rn-sub">{{ $cn[1] }}</span>
+                                                @endif
                                             </div>
                                         </div>
                                     @endif

@@ -35,7 +35,13 @@ class OrderController extends Controller
      */
     public function saveCheckout(Request $request)
     {
+        return \Illuminate\Support\Facades\DB::transaction(fn () => $this->buildCheckout($request), 3);
+    }
+
+    private function buildCheckout(Request $request)
+    {
         $validated = $request->validate([
+            'request_key' => 'nullable|uuid',
             'customer_email'                   => 'nullable|email|max:255',
             'items'                            => 'required|array|min:1',
             'items.*.product_id'               => 'required|integer|exists:products,id',
@@ -50,10 +56,18 @@ class OrderController extends Controller
             'fulfillment.shipping_address'     => 'nullable|string|max:500',
         ]);
 
+        if (!empty($validated['request_key'])) {
+            $existing = PendingCheckout::where('request_key', $validated['request_key'])->first();
+            if ($existing) {
+                abort_unless((int) $existing->user_id === (int) Auth::id(), 403);
+                return response()->json(['saved' => true, 'reference' => $existing->reference, 'total_ngn' => $existing->total_ngn, 'recovery_url' => route('checkout.recovery', $existing->reference)]);
+            }
+        }
+
         // 1. Load active products in one query. Inactive/unlisted products are rejected.
         $productIds = array_column($validated['items'], 'product_id');
         $products   = Product::active()->with(['category', 'Subcategory'])
-            ->whereIn('id', $productIds)->get()->keyBy('id');
+            ->whereIn('id', $productIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
 
         // 2. Compute item snapshots using integer kobo arithmetic to avoid float drift.
         $computedItems = [];
@@ -141,13 +155,14 @@ class OrderController extends Controller
         }
 
         // 3. Coupon server-side validation and discount calculation.
+        $coupon = null;
         $couponData  = null;
         $couponError = null;
         $couponCode  = $validated['coupon_code'] ?? null;
         $subtotalNgn = $subtotalKobo / 100;
 
         if ($couponCode) {
-            $coupon = Coupon::active()->where('code', $couponCode)->first();
+            $coupon = Coupon::active()->where('code', strtoupper(trim($couponCode)))->lockForUpdate()->first();
             if ($coupon) {
                 $couponValidationError = $coupon->validate($subtotalNgn, Auth::id() ?? 0);
                 if ($couponValidationError === null) {
@@ -217,11 +232,18 @@ class OrderController extends Controller
         $couponDiscountKobo = (int) round((float) ($couponData['discount_ngn'] ?? 0) * 100);
         $totalKobo          = max(0, $subtotalKobo - $couponDiscountKobo + $deliveryFeeKobo);
 
+        if ($couponError) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['coupon_code' => $couponError]);
+        }
+        app(\App\Services\CheckoutAvailability::class)->check($computedItems, $coupon, (int) Auth::id());
+
         // 6. Reference generated here — the browser never chooses it.
         $reference = 'ps_' . \Illuminate\Support\Str::ulid();
 
         PendingCheckout::create([
             'reference'      => $reference,
+            'expires_at'     => now()->addMinutes(30),
+            'request_key' => $validated['request_key'] ?? null,
             'user_id'        => Auth::id(),
             'customer_email' => $validated['customer_email'] ?? Auth::user()?->email,
             'total_ngn'      => $totalKobo / 100,
@@ -245,6 +267,8 @@ class OrderController extends Controller
 
         return response()->json([
             'saved'        => true,
+            'recovery_url' => route('checkout.recovery', $reference),
+            'costs' => ['items' => array_sum(array_map(fn ($i) => $i['basePriceNgn'] * $i['quantity'], $computedItems)), 'installation' => array_sum(array_map(fn ($i) => $i['installation_extra_ngn'] * $i['quantity'], $computedItems)), 'discount' => $couponDiscountKobo / 100, 'shipping' => $deliveryFeeKobo / 100, 'total' => $totalKobo / 100],
             'reference'    => $reference,
             'total_ngn'    => $totalKobo / 100,
             'coupon'       => $couponData
@@ -385,6 +409,10 @@ class OrderController extends Controller
             'evidence' => 'nullable|image|max:4096',
         ]);
 
+        if (!$order->isEligibleForReturn() || $order->return()->exists()) {
+            return back()->with('error', 'This order is not eligible for another return request.');
+        }
+
         $path = null;
         if ($request->hasFile('evidence')) {
             $path = $request->file('evidence')->store('returns', 'public');
@@ -454,6 +482,9 @@ class OrderController extends Controller
                 'refund_id'             => $outcome === 'refund_failed' ? null : ($refundResult['refund_id'] ?? null),
                 'refund_status'         => $refundResult['refund_status'] ?? null,
                 'refund_amount'         => $order->refund_amount,
+                // Stamp when the refund was initiated on any non-failed outcome, so the
+                // cancellation's refunded_at stays consistent with its 'refunded' status.
+                // (The order's own refunded_at still only fires on a settled refund.)
                 'refunded_at'           => $outcome === 'refund_failed' ? null : now(),
                 'refund_failure_reason' => $outcome === 'refund_failed' ? ($refundResult['message'] ?? 'Refund failed.') : null,
             ]);
@@ -495,47 +526,17 @@ class OrderController extends Controller
      */
     private function processPaystackRefund(Order $order): array
     {
-        if (empty($order->reference)) {
-            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => 'No payment reference on this order.'];
+        if (!in_array($order->payment_method, ['paystack', 'stripe'], true)) {
+            return ['handled' => false, 'success' => false, 'refund_id' => null, 'refund_status' => 'failed', 'message' => 'Please process manually.'];
         }
-
-        try {
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . config('services.paystack.secret'),
-                'Content-Type'  => 'application/json',
-            ])->post('https://api.paystack.co/refund', [
-                'transaction'   => $order->reference,
-                'amount'        => (int) ($order->total * 100),
-                'currency'      => 'NGN',
-                'customer_note' => 'Refund for cancelled order #' . $order->order_number,
-                'merchant_note' => 'Auto-refund on cancellation',
-            ]);
-
-            $data = $response->json();
-
-            if ($response->successful() && ($data['status'] ?? false)) {
-                \Log::info('Paystack refund initiated for order #' . $order->id, [
-                    'refund_id' => $data['data']['id'] ?? null,
-                ]);
-
-                return [
-                    'handled'       => true,
-                    'success'       => true,
-                    'refund_id'     => $data['data']['id']     ?? null,
-                    'refund_status' => $data['data']['status'] ?? 'pending',
-                    'message'       => '',
-                ];
-            }
-
-            \Log::error('Paystack refund failed for order #' . $order->id, ['response' => $data]);
-
-            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $data['message'] ?? 'Refund failed.'];
-
-        } catch (\Exception $e) {
-            \Log::error('Paystack refund exception for order #' . $order->id . ': ' . $e->getMessage());
-
-            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $e->getMessage()];
-        }
+        $attempt = app(\App\Services\RefundService::class)->request($order, (float) $order->total, 'order-full-' . $order->id);
+        $order->refresh();
+        return [
+            'handled' => true, 'success' => $attempt->status !== 'failed',
+            'refund_id' => $attempt->gateway_id,
+            'refund_status' => $attempt->gateway_status ?? ($attempt->status === 'failed' ? 'failed' : 'pending'),
+            'message' => $attempt->failure_reason ?? '',
+        ];
     }
 
     /**
@@ -545,51 +546,17 @@ class OrderController extends Controller
      */
     private function processStripeRefund(Order $order): array
     {
-        try {
-            $paymentIntentId = $order->payment_id;
-
-            if (empty($paymentIntentId) || !str_starts_with($paymentIntentId, 'pi_')) {
-                \Log::error('Stripe refund skipped for order #' . $order->id . ': invalid or missing PaymentIntent ID.', [
-                    'payment_id' => $paymentIntentId,
-                ]);
-
-                return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => 'No valid Stripe PaymentIntent found on this order.'];
-            }
-
-            $refund = $this->createStripeRefund($paymentIntentId, $order);
-
-            if (in_array($refund->status, ['succeeded', 'pending'], true)) {
-                \Log::info('Stripe refund initiated for order #' . $order->id, [
-                    'refund_id' => $refund->id,
-                    'status'    => $refund->status,
-                ]);
-
-                return [
-                    'handled'       => true,
-                    'success'       => true,
-                    'refund_id'     => $refund->id,
-                    'refund_status' => $refund->status,
-                    'message'       => '',
-                ];
-            }
-
-            \Log::error('Stripe refund did not succeed for order #' . $order->id, [
-                'refund_id' => $refund->id ?? null,
-                'status'    => $refund->status ?? null,
-            ]);
-
-            return ['handled' => true, 'success' => false, 'refund_id' => $refund->id ?? null, 'refund_status' => $refund->status ?? null, 'message' => 'Refund status: ' . ($refund->status ?? 'unknown')];
-
-        } catch (ApiErrorException $e) {
-            \Log::error('Stripe refund API error for order #' . $order->id . ': ' . $e->getMessage());
-
-            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $e->getMessage()];
-
-        } catch (\Exception $e) {
-            \Log::error('Stripe refund exception for order #' . $order->id . ': ' . $e->getMessage());
-
-            return ['handled' => true, 'success' => false, 'refund_id' => null, 'refund_status' => null, 'message' => $e->getMessage()];
+        if (!in_array($order->payment_method, ['paystack', 'stripe'], true)) {
+            return ['handled' => false, 'success' => false, 'refund_id' => null, 'refund_status' => 'failed', 'message' => 'Please process manually.'];
         }
+        $attempt = app(\App\Services\RefundService::class)->request($order, (float) $order->total, 'order-full-' . $order->id);
+        $order->refresh();
+        return [
+            'handled' => true, 'success' => $attempt->status !== 'failed',
+            'refund_id' => $attempt->gateway_id,
+            'refund_status' => $attempt->gateway_status ?? ($attempt->status === 'failed' ? 'failed' : 'pending'),
+            'message' => $attempt->failure_reason ?? '',
+        ];
     }
 
     /**

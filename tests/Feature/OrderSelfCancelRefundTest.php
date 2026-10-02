@@ -62,22 +62,10 @@ class OrderSelfCancelRefundTest extends TestCase
      */
     private function fakeStripeController(?object $stubRefund, bool $throw = false): void
     {
-        $fake = new class extends OrderController {
-            public ?object $stubRefund = null;
-            public bool $throw = false;
-
-            protected function createStripeRefund(string $paymentIntentId, Order $order)
-            {
-                if ($this->throw) {
-                    throw new \RuntimeException('Simulated Stripe SDK failure');
-                }
-                return $this->stubRefund;
-            }
-        };
-        $fake->stubRefund = $stubRefund;
-        $fake->throw      = $throw;
-
-        $this->app->instance(OrderController::class, $fake);
+        Http::fake(['api.stripe.com/v1/refunds' => function () use ($stubRefund, $throw) {
+            if ($throw) throw new \Illuminate\Http\Client\ConnectionException('Simulated gateway timeout');
+            return Http::response($stubRefund ? (array) $stubRefund : ['error' => 'Rejected'], $stubRefund ? 200 : 400);
+        }]);
     }
 
     // ── Paystack ────────────────────────────────────────────────────────────
@@ -105,7 +93,7 @@ class OrderSelfCancelRefundTest extends TestCase
         $this->assertSame('refund_pending', $order->status);
         $this->assertSame('555001', (string) $order->refund_id);
         $this->assertSame(50000.0, (float) $order->refund_amount);
-        $this->assertNotNull($order->refunded_at);
+        $this->assertNull($order->refunded_at);
         $this->assertNull($order->refund_failure_reason);
         $this->assertNotNull($cancellation);
         $this->assertSame('refunded', $cancellation->status);
@@ -188,8 +176,11 @@ class OrderSelfCancelRefundTest extends TestCase
     }
 
     /** @test */
-    public function stripe_self_cancel_falls_back_to_approved_when_sdk_throws()
+    public function stripe_self_cancel_holds_as_pending_when_gateway_times_out()
     {
+        // A timeout is NOT a failure: the refund may have been accepted at Stripe,
+        // so we must never mark it failed (that risks a double refund). The attempt
+        // is parked as 'unknown' for reconciliation and the order stays refund_pending.
         $this->fakeStripeController(null, throw: true);
 
         [$user, $order] = $this->makeUserAndOrder(['payment_method' => 'stripe', 'payment_id' => 'pi_live_11']);
@@ -199,9 +190,15 @@ class OrderSelfCancelRefundTest extends TestCase
         $order->refresh();
         $cancellation = $order->cancellation()->first();
 
-        $this->assertSame('refund_failed', $order->status);
-        $this->assertSame('approved', $cancellation->status);
+        $this->assertSame('refund_pending', $order->status);
+        $this->assertNull($order->refunded_at);
+        // No gateway id was returned, so there is nothing to show as a completed refund.
         $this->assertNull($cancellation->refund_id);
+        // The attempt is retained as 'unknown' so it surfaces on the recovery queue.
+        $this->assertDatabaseHas('refund_attempts', [
+            'order_id' => $order->id,
+            'status'   => 'unknown',
+        ]);
     }
 
     /** @test */

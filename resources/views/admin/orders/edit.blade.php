@@ -278,3 +278,19 @@
     .fs-6 { font-size: 1rem !important; }
 </style>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.querySelector('form');
+    if (!form) return;
+    const label = document.createElement('label');
+    label.textContent = 'Delivery tracking reference';
+    label.htmlFor = 'tracking_reference';
+    const input = document.createElement('input');
+    input.id = 'tracking_reference'; input.name = 'tracking_reference'; input.className = 'form-control';
+    input.value = @json($order->tracking_reference ?? '');
+    form.append(label, input);
+});
+</script>
+@endpush
