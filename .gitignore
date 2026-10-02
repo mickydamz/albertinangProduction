@@ -21,6 +21,13 @@ yarn-error.log
 
 # Stray archives — the repo should never track .zip bundles
 *.zip
+
+# Generated artifacts & local scratch — never version these
+/test-results
+/browser-diagnostic.cjs
+/commerce_edits.py
+/commerce_followup.py
+/commerce_integrate.py
 /Albertina_Project_Work_Summary.html
 /TEST_COVERAGE.md
 /docs/invoice-work-notes.md
