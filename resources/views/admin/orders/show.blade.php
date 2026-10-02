@@ -466,7 +466,14 @@
 
                     <hr>
 
-                    <form method="POST" action="{{ route('admin.returns.review', $order->return) }}">
+                    <form method="POST" action="{{ route('admin.returns.review', $order->return) }}"
+                          data-refund-guard
+                          data-refund-statuses="approved,refunded"
+                          data-gateway="{{ $order->payment_method }}"
+                          data-amount="{{ $order->total }}"
+                          data-currency="₦"
+                          data-email="{{ $order->user->email ?? $order->customer_email ?? 'the customer' }}"
+                          data-already-refunded="{{ !empty($order->return->refund_id) || $order->status === 'refunded' ? '1' : '0' }}">
                         @csrf
                         @method('PATCH')
                         <div class="row g-1 align-items-end">
@@ -491,6 +498,7 @@
                             </div>
                         </div>
                     </form>
+                    @include('admin.partials.refund-confirm')
                 </div>
             </div>
             @else
@@ -548,7 +556,14 @@
 
                     <hr>
 
-                    <form method="POST" action="{{ route('admin.cancellations.review', $order->cancellation) }}">
+                    <form method="POST" action="{{ route('admin.cancellations.review', $order->cancellation) }}"
+                          data-refund-guard
+                          data-refund-statuses="refunded"
+                          data-gateway="{{ $order->payment_method }}"
+                          data-amount="{{ $order->total }}"
+                          data-currency="₦"
+                          data-email="{{ $order->user->email ?? $order->customer_email ?? 'the customer' }}"
+                          data-already-refunded="{{ !empty($order->cancellation->refund_id) || $order->status === 'refunded' ? '1' : '0' }}">
                         @csrf
                         @method('PATCH')
                         <div class="row g-1 align-items-end">
@@ -573,6 +588,7 @@
                             </div>
                         </div>
                     </form>
+                    @include('admin.partials.refund-confirm')
                 </div>
             </div>
             @else

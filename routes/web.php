@@ -96,157 +96,22 @@ use Matthewbdaly\LaravelCities\Models\City;
 Route::get('/',     [UserDashboardController::class, 'index'])->name('dashboard');
 Route::get('/shop', [UserDashboardController::class, 'index'])->name('shop');
 
-
-Route::get('/fix-pdf-now', function () {
-    
-    echo "<h2>🔧 Applying DomPDF Fix</h2>";
-    echo "<pre style='background:#f4f4f4; padding:20px; font-family:monospace;'>";
-    
-    // Clear everything first
-    \Artisan::call('optimize:clear');
-    echo "✓ All caches cleared\n\n";
-    
-    // Check if class exists
-    if (!class_exists('Barryvdh\DomPDF\PDF')) {
-        echo "✗ DomPDF class not found. Run: composer dump-autoload\n";
-        echo "</pre>";
-        return;
-    }
-    
-    echo "✓ DomPDF class found\n\n";
-    
-    // FORCE manual binding
-    app()->singleton('dompdf.wrapper', function ($app) {
-        return new \Barryvdh\DomPDF\PDF(
-            $app['config'],
-            $app['files'],
-            $app['view']
-        );
-    });
-    
-    // Also bind as alias for Facade
-    if (!app()->bound('dompdf')) {
-        app()->alias('dompdf.wrapper', 'dompdf');
-    }
-    
-    echo "✓ Manual binding applied\n\n";
-    
-    // Test the binding
-    echo "Testing binding...\n";
-    try {
-        $pdf = app('dompdf.wrapper');
-        echo "✓ Binding test: SUCCESS\n\n";
-    } catch (\Exception $e) {
-        echo "✗ Binding test failed: " . $e->getMessage() . "\n\n";
-        
-        // Try alternative binding
-        echo "Trying alternative binding...\n";
-        app()->bind('dompdf.wrapper', 'Barryvdh\DomPDF\PDF');
-        try {
-            $pdf = app('dompdf.wrapper');
-            echo "✓ Alternative binding: SUCCESS\n\n";
-        } catch (\Exception $e2) {
-            echo "✗ Alternative binding also failed\n\n";
-            echo "</pre>";
-            return;
-        }
-    }
-    
-    // Test actual PDF generation
-    echo "Testing PDF generation...\n";
-    try {
-        $pdf = app('dompdf.wrapper');
-        $pdf->loadHTML('<h1>Test PDF</h1><p>Generated at: ' . now() . '</p>');
-        $output = $pdf->output();
-        
-        // Save test PDF
-        $path = storage_path('app/public/test-invoice.pdf');
-        file_put_contents($path, $output);
-        
-        echo "✓ Test PDF created: storage/app/public/test-invoice.pdf\n\n";
-    } catch (\Exception $e) {
-        echo "✗ PDF generation failed: " . $e->getMessage() . "\n\n";
-    }
-    
-    // Create permanent fix file
-    echo "Creating permanent fix...\n";
-    
-    $providerPath = app_path('Providers/AppServiceProvider.php');
-    $providerContent = file_get_contents($providerPath);
-    
-    // Check if fix already exists
-    if (strpos($providerContent, 'dompdf.wrapper') !== false) {
-        echo "⚠ Fix already in AppServiceProvider\n\n";
-    } else {
-        // Add the binding to AppServiceProvider
-        $search = 'public function register()';
-        $replace = 'public function register()
-    {
-        // DomPDF manual binding fix
-        $this->app->singleton(\'dompdf.wrapper\', function ($app) {
-            return new \Barryvdh\DomPDF\PDF(
-                $app[\'config\'],
-                $app[\'files\'],
-                $app[\'view\']
-            );
-        });';
-        
-        if (strpos($providerContent, $search) !== false) {
-            // Replace empty register method
-            $newContent = str_replace(
-                'public function register()
-    {
-        //
-    }',
-                $replace . '
-    }',
-                $providerContent
-            );
-            
-            // Also handle case where register has other content
-            if ($newContent === $providerContent) {
-                $newContent = str_replace(
-                    'public function register()
-    {',
-                    $replace,
-                    $providerContent
-                );
-            }
-            
-            file_put_contents($providerPath, $newContent);
-            echo "✓ Permanent fix added to AppServiceProvider\n\n";
-        } else {
-            echo "⚠ Could not auto-add fix. Add manually (see below)\n\n";
-        }
-    }
-    
-    // Now test with your actual controller code
-    echo "Testing with Facade...\n";
-    try {
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML('<h1>Facade Test</h1>');
-        echo "✓ Facade working!\n\n";
-    } catch (\Exception $e) {
-        echo "✗ Facade failed: " . $e->getMessage() . "\n\n";
-    }
-    
-    echo "<strong>✅ Fix applied!</strong>\n\n";
-    echo "Now test your invoice PDF download.\n";
-    echo "If it still fails, add this manually to AppServiceProvider.php:\n\n";
-    echo htmlspecialchars('
-use Barryvdh\DomPDF\PDF;
-
-public function register()
-{
-    $this->app->singleton(\'dompdf.wrapper\', function ($app) {
-        return new PDF($app[\'config\'], $app[\'files\'], $app[\'view\']);
-    });
-}');
-    
-    echo "\n\n";
-    echo '<a href="' . url('/') . '" style="padding:10px 20px; background:#4CAF50; color:white; text-decoration:none;">← Go to Site & Test PDF</a>';
-    
-    echo "</pre>";
+Route::post('/webhooks/stripe', [\App\Http\Controllers\StripeWebhookController::class, 'handle'])->name('webhooks.stripe');
+Route::middleware(['auth', 'throttle:30,1'])->group(function () {
+    Route::get('/checkout/recovery/{checkout:reference}', [\App\Http\Controllers\CheckoutRecoveryController::class, 'show'])->name('checkout.recovery');
+    Route::post('/checkout/recovery/{checkout:reference}', [\App\Http\Controllers\CheckoutRecoveryController::class, 'recover'])->name('checkout.recover');
 });
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::post('/admin/payment-recovery/{checkout:reference}', [\App\Http\Controllers\CheckoutRecoveryController::class, 'adminRecover'])->name('admin.payment-recover');
+    Route::post('/admin/orders/{order}/refund', [\App\Http\Controllers\CheckoutRecoveryController::class, 'refund'])->name('admin.orders.refund');
+    Route::post('/admin/refunds/{refund}/reconcile', [\App\Http\Controllers\CheckoutRecoveryController::class, 'reconcileRefund'])->name('admin.refunds.reconcile');
+    Route::get('/admin/payment-recovery', function () {
+        $checkouts = \App\Models\PendingCheckout::whereNull('fulfilled_at')->whereNotNull('payment_confirmed_at')->latest()->paginate(20);
+        $refunds = \App\Models\RefundAttempt::whereIn('status', ['unknown', 'processing', 'failed'])->latest()->take(50)->get();
+        return view('admin.payment-recovery', compact('checkouts', 'refunds'));
+    })->name('admin.payment-recovery');
+});
+
 
 Route::get('/about',         fn () => view('sims/about'))->name('about');
 Route::get('/terms',         fn () => view('sims/terms'))->name('terms');
@@ -683,13 +548,6 @@ Route::post('/webhooks/paystack', [PaystackWebhookController::class, 'handle'])
     ->name('webhooks.paystack')
     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
-// Setup helper (symlinks storage). Admin-only — it runs an Artisan command and
-// must never be reachable unauthenticated.
-Route::get('/foo', function () {
-    Artisan::call('storage:link');
-    return response()->json(['message' => 'storage linked']);
-})->middleware(['auth', 'role:admin']);
-
 Route::get('/cities', function (Request $request) {
     $countryCode = $request->query('country');
     return City::where('country_code', $countryCode)->get();
@@ -723,62 +581,6 @@ Route::patch('subcategories/{Subcategory}/toggle-active', [AdminCategoryControll
     ->name('admin.subcategories.toggleActive');
 
 
-Route::get('/admin/sync-brand-managers', function () {
-    $linkedFixed   = 0;  // products with brand_id that gained a manager
-    $legacyLinked  = 0;  // legacy string products linked to a Brand row
-    $legacyFixed   = 0;  // legacy products that gained a manager via their brand string
-
-    // ── Pass 1: products already linked by brand_id but missing a manager ──
-    \App\Models\Product::whereNotNull('brand_id')
-        ->whereNull('manager_id')
-        ->chunkById(200, function ($products) use (&$linkedFixed) {
-            foreach ($products as $product) {
-                $managerId = \App\Models\Brand::whereKey($product->brand_id)->value('manager_id');
-                if ($managerId) {
-                    \Illuminate\Support\Facades\DB::table('products')
-                        ->where('id', $product->id)
-                        ->update(['manager_id' => $managerId]);
-                    $linkedFixed++;
-                }
-            }
-        });
-
-    // ── Pass 2: legacy string-only products (no brand_id) ──────────────────
-    // Match their brand string to a Brand row; link brand_id, and pull the
-    // manager if the Brand has one.
-    \App\Models\Product::whereNull('brand_id')
-        ->whereNotNull('brand')
-        ->where('brand', '!=', '')
-        ->chunkById(200, function ($products) use (&$legacyLinked, &$legacyFixed) {
-            foreach ($products as $product) {
-                $brand = \App\Models\Brand::whereRaw('TRIM(name) = ?', [trim($product->brand)])->first();
-                if (!$brand) {
-                    continue; // no Brand row for this string yet — nothing to pull from
-                }
-
-                $payload = ['brand_id' => $brand->id];
-                $legacyLinked++;
-
-                if (!is_null($brand->manager_id)) {
-                    $payload['manager_id'] = $brand->manager_id;
-                    $legacyFixed++;
-                }
-
-                \Illuminate\Support\Facades\DB::table('products')
-                    ->where('id', $product->id)
-                    ->update($payload);
-            }
-        });
-
-    return response()->json([
-        'message'                     => 'Reconciliation complete.',
-        'linked_products_fixed'       => $linkedFixed,
-        'legacy_products_linked'      => $legacyLinked,
-        'legacy_products_got_manager' => $legacyFixed,
-    ]);
-})->middleware(['auth', 'role:admin']);
-
-
 Route::middleware(['auth', 'manager'])->prefix('manager')->name('manager.')->group(function () {
     Route::get('/dashboard', fn () => redirect()->route('manager.products.index'))->name('dashboard');
     Route::resource('products', ManagerProductController::class)->only(['index', 'edit', 'update']);
@@ -801,6 +603,15 @@ Route::get('/storage/{path}', function ($path) {
     abort_unless(file_exists($file), 404);
     return response()->file($file);
 })->where('path', '.*');
+
+// Readiness probe for schema drift. Returns 503 when migrations are pending so a
+// load balancer / uptime check catches a deploy that shipped code without running
+// its migrations (which would 500 the payment path). Reuses migrations:check as
+// the single source of truth. No schema details are exposed.
+Route::get('/health/migrations', function () {
+    $pending = \Illuminate\Support\Facades\Artisan::call('migrations:check') !== 0;
+    return response()->json(['status' => $pending ? 'pending_migrations' : 'ok'], $pending ? 503 : 200);
+})->name('health.migrations');
 
 Route::get('/states', function () {
     return \App\Models\State::where('is_active', true)->orderBy('name')->get(['id', 'name']);

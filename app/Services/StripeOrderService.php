@@ -28,6 +28,14 @@ class StripeOrderService
      */
     public function fulfil(string $reference, string $paymentIntentId, ?int $userId): array
     {
+        if ($userId !== null) {
+            $owner = PendingCheckout::where('reference', $reference)->value('user_id');
+            $existingOwner = Order::where('reference', $reference)->value('user_id');
+            if (($owner !== null && (int) $owner !== $userId) || ($existingOwner !== null && (int) $existingOwner !== $userId)) {
+                return $this->result(false, null, null, false, 'fraud', 'Checkout session not found.');
+            }
+        }
+
         // 1. The trusted snapshot must exist and be unfulfilled.
         $pending = PendingCheckout::where('reference', $reference)
             ->whereNull('fulfilled_at')
@@ -84,18 +92,20 @@ class StripeOrderService
 
         // The PaymentIntent must belong to THIS checkout — prevents replaying a
         // valid intent from a different (cheaper) session against this reference.
-        if ($metaRef !== null && $metaRef !== $reference) {
+        if ($metaRef !== $reference) {
             Log::warning("Stripe metadata reference mismatch: intent ref={$metaRef}, expected={$reference}");
             return $this->result(false, null, null, false, 'fraud', 'Payment does not match this order.');
         }
 
         // 3. Amount check — recompute the expected USD cents from the NGN snapshot
         //    using the same server-side rate the intent was created with.
-        $expectedCents = $this->expectedUsdCents((float) $pending->total_ngn);
+        $expectedCents = $pending->gateway_amount ?? $this->expectedUsdCents((float) $pending->total_ngn);
         if ($amount < $expectedCents - 1) { // 1-cent tolerance for rounding
             Log::warning("Stripe underpayment ref={$reference}: expected>={$expectedCents} cents, got={$amount} cents");
             return $this->result(false, null, null, false, 'fraud', 'Amount underpaid.');
         }
+
+        $pending->update(['payment_confirmed_at' => now(), 'recovery_error' => null]);
 
         // 4. Create the order from the snapshot in a single transaction.
         $items          = $pending->items;
@@ -105,11 +115,17 @@ class StripeOrderService
         $resolvedUserId = $pending->user_id        ?? $userId;
         $totalUsd       = $amount / 100;
 
+        $created = false;
         try {
             $order = DB::transaction(function () use (
                 $reference, $paymentIntentId, $resolvedUserId, $pending, $fulfillment,
-                $items, $couponData, $custEmail, $totalUsd
+                $items, $couponData, $custEmail, $totalUsd, &$created
             ) {
+                $pending = PendingCheckout::whereKey($pending->id)->lockForUpdate()->firstOrFail();
+                if ($pending->fulfilled_at) {
+                    return Order::where('reference', $reference)->firstOrFail();
+                }
+                $created = true;
                 $order = Order::create([
                     'user_id'                => $resolvedUserId,
                     'status'                 => 'paid',
@@ -158,9 +174,10 @@ class StripeOrderService
                 if (!empty($couponData['id'])) {
                     $coupon = Coupon::lockForUpdate()->find($couponData['id']);
                     if ($coupon) {
-                        if ($coupon->max_uses !== null && $coupon->used_count >= $coupon->max_uses) {
-                            Log::warning("Coupon {$coupon->code} limit exhausted at Stripe fulfilment (ref={$reference}); skipping increment.");
-                        } else {
+                        if ($coupon->validate((float) $pending->total_ngn + ($couponData['discount_ngn'] ?? 0), (int) $resolvedUserId)) {
+                            throw new \RuntimeException('Coupon eligibility changed. Payment requires reconciliation.');
+                        }
+                        {
                             $coupon->increment('used_count');
                             CouponUsage::create([
                                 'coupon_id' => $coupon->id,
@@ -181,7 +198,7 @@ class StripeOrderService
 
             if (!$mysqlDuplicate && !$postgresDuplicate) {
                 Log::error("Stripe order creation DB error for ref={$reference}: " . $e->getMessage());
-                return $this->result(false, null, null, false, 'transient', $e->getMessage());
+                return $this->result(false, null, null, false, 'transient', 'Payment confirmation is delayed. Keep your reference and try recovery again.');
             }
 
             $existing = Order::where('reference', $reference)->first();
@@ -194,17 +211,11 @@ class StripeOrderService
             return $this->result(false, null, null, false, 'transient', 'Unique constraint hit but order not found.');
         } catch (\Exception $e) {
             Log::error("Stripe order creation failed for ref={$reference}: " . $e->getMessage());
-            return $this->result(false, null, null, false, 'transient', $e->getMessage());
+            return $this->result(false, null, null, false, 'transient', 'Payment confirmation is delayed. Keep your reference and try recovery again.');
         }
 
-        $recipient = $order->user?->email ?? $custEmail;
-        if ($recipient) {
-            try {
-                Mail::to($recipient)->send(new OrderConfirmation($order));
-            } catch (\Exception $e) {
-                Log::error('Stripe order confirmation email failed for order #' . $order->order_number . ': ' . $e->getMessage());
-            }
-        }
+        if (!$created) return $this->result(true, $order->id, $order->order_number, true, null, 'Order already exists.');
+        app(OrderNotificationService::class)->send($order, OrderConfirmation::class, 'confirmation');
 
         return $this->result(true, $order->id, $order->order_number, false, null, 'Order created.');
     }

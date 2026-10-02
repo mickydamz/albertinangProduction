@@ -77,7 +77,7 @@ class OrderCancellationRefundTest extends TestCase
     // ── Paystack ────────────────────────────────────────────────────────────
 
     /** @test */
-    public function paystack_refund_succeeds_and_marks_order_and_cancellation_refunded()
+    public function queued_paystack_refund_keeps_order_pending_without_a_completion_email()
     {
         Http::fake([
             'api.paystack.co/refund' => Http::response([
@@ -103,7 +103,7 @@ class OrderCancellationRefundTest extends TestCase
         $this->assertSame('refunded', $cancellation->status);
         $this->assertSame('987654', (string) $cancellation->refund_id);
         $this->assertSame('pending', $cancellation->refund_status);
-        $this->assertNotNull($cancellation->refunded_at);
+        $this->assertNull($cancellation->refunded_at);
 
         // The right request was sent: correct endpoint, transaction ref, and
         // amount converted from naira to kobo.
@@ -114,7 +114,7 @@ class OrderCancellationRefundTest extends TestCase
                 && $request['currency'] === 'NGN';
         });
 
-        Mail::assertQueued(OrderRefunded::class);
+        Mail::assertNotQueued(OrderRefunded::class);
     }
 
     /** @test */
@@ -154,7 +154,7 @@ class OrderCancellationRefundTest extends TestCase
     {
         Http::fake();
 
-        $order        = $this->makeOrder(['payment_method' => 'paystack']);
+        $order        = $this->makeOrder(['payment_method' => 'paystack', 'status' => 'refunded', 'refund_status' => 'processed']);
         $cancellation = $this->makeCancellation($order, ['refund_id' => 'existing_ref_123']);
 
         $this->review($cancellation, 'refunded');
@@ -165,6 +165,26 @@ class OrderCancellationRefundTest extends TestCase
         $order->refresh();
         $this->assertSame('refunded', $order->status);
         $this->assertSame('existing_ref_123', $cancellation->fresh()->refund_id);
+    }
+
+    /** @test */
+    public function repeated_cancellation_review_preserves_unsettled_refund_outcomes()
+    {
+        Http::fake();
+
+        foreach (['refund_pending', 'refund_failed', 'cancelled'] as $status) {
+            $order = $this->makeOrder(['status' => $status]);
+            $cancellation = $this->makeCancellation($order, ['refund_id' => 'existing_ref_123']);
+
+            $this->review($cancellation, 'refunded')->assertRedirect();
+
+            $this->assertSame($status, $order->fresh()->status);
+            $this->assertSame('approved', $cancellation->fresh()->status);
+            $this->assertSame('existing_ref_123', $cancellation->fresh()->refund_id);
+        }
+
+        Http::assertNothingSent();
+        Mail::assertNotQueued(OrderRefunded::class);
     }
 
     // ── Stripe ──────────────────────────────────────────────────────────────
