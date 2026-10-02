@@ -18,6 +18,6 @@ class UserTransactionController extends Controller
      // Optionally, you can return data as JSON for dynamic front-end fetching
      public function fetchTransactions()
      {
-         return Transaction::select(['created_at', 'total_amount'])->get();
+         return Transaction::where('user_id', auth()->id())->select(['created_at', 'total_amount'])->get();
      }
 }

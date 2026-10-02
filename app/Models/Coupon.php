@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Coupon extends Model
 {
+    use \App\Traits\Auditable;
+
     protected $fillable = [
         'code',
         'discount_type',

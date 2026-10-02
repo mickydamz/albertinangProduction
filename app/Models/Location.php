@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Location extends Model
 {
+    use \App\Traits\Auditable;
+
     use HasFactory;
 
     protected $fillable = [

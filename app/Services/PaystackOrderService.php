@@ -40,6 +40,14 @@ class PaystackOrderService
             ->whereNull('fulfilled_at')
             ->first();
 
+        if ($userId !== null) {
+            $owner = PendingCheckout::where('reference', $reference)->value('user_id');
+            $existingOwner = Order::where('reference', $reference)->value('user_id');
+            if (($owner !== null && (int) $owner !== $userId) || ($existingOwner !== null && (int) $existingOwner !== $userId)) {
+                return $this->result(false, null, null, false, 'fraud', 'Checkout session not found.');
+            }
+        }
+
         // 1. Verify with Paystack
         try {
             $response = Http::withToken(config('services.paystack.secret'))
@@ -49,7 +57,7 @@ class PaystackOrderService
             $data = $response->json();
         } catch (\Exception $e) {
             Log::error("Paystack verify exception for {$reference}: " . $e->getMessage());
-            return $this->result(false, null, null, false, 'transient', $e->getMessage());
+            return $this->result(false, null, null, false, 'transient', 'Payment confirmation is delayed. Keep your reference and try recovery again.');
         }
 
         // 5xx from Paystack = their API is down, not a failed payment — treat as transient
@@ -133,13 +141,21 @@ class PaystackOrderService
         $custEmail      = $pending->customer_email ?? ($paystackData['customer']['email'] ?? null);
         $resolvedUserId = $pending->user_id        ?? $userId;
 
+        $pending->update(['payment_confirmed_at' => now(), 'recovery_error' => null]);
+
         // 6. Create order in a single transaction that also marks the checkout
         //    fulfilled and links the transaction record — all or nothing.
+        $created = false;
         try {
             $order = DB::transaction(function () use (
                 $reference, $resolvedUserId, $totalNgn, $fulfillment,
-                $items, $couponData, $custEmail, $pending
+                $items, $couponData, $custEmail, $pending, &$created
             ) {
+                $pending = PendingCheckout::whereKey($pending->id)->lockForUpdate()->firstOrFail();
+                if ($pending->fulfilled_at) {
+                    return Order::where('reference', $reference)->firstOrFail();
+                }
+                $created = true;
                 $order = Order::create([
                     'user_id'                => $resolvedUserId,
                     'status'                 => 'paid',
@@ -193,9 +209,10 @@ class PaystackOrderService
                     if ($coupon) {
                         // Re-check limit after acquiring the row lock — prevents concurrent
                         // over-redemption where two transactions both pass the pre-save check.
-                        if ($coupon->max_uses !== null && $coupon->used_count >= $coupon->max_uses) {
-                            Log::warning("Coupon {$coupon->code} limit exhausted at fulfilment (ref={$reference}); skipping increment.");
-                        } else {
+                        if ($coupon->validate((float) $pending->total_ngn + ($couponData['discount_ngn'] ?? 0), (int) $resolvedUserId)) {
+                            throw new \RuntimeException('Coupon eligibility changed. Payment requires reconciliation.');
+                        }
+                        {
                             $coupon->increment('used_count');
                             CouponUsage::create([
                                 'coupon_id' => $coupon->id,
@@ -225,7 +242,7 @@ class PaystackOrderService
 
             if (!$mysqlDuplicate && !$postgresDuplicate) {
                 Log::error("Order creation DB error for ref={$reference}: " . $e->getMessage());
-                return $this->result(false, null, null, false, 'transient', $e->getMessage());
+                return $this->result(false, null, null, false, 'transient', 'Payment confirmation is delayed. Keep your reference and try recovery again.');
             }
 
             // Re-fetch outside the aborted transaction — on PostgreSQL the connection
@@ -240,19 +257,13 @@ class PaystackOrderService
             return $this->result(false, null, null, false, 'transient', 'Unique constraint hit but order not found.');
         } catch (\Exception $e) {
             Log::error("Order creation failed for ref={$reference}: " . $e->getMessage());
-            return $this->result(false, null, null, false, 'transient', $e->getMessage());
+            return $this->result(false, null, null, false, 'transient', 'Payment confirmation is delayed. Keep your reference and try recovery again.');
         }
 
         // 7. Send confirmation email after the transaction commits.
         //    Only reached on first creation — every duplicate path returns before step 6.
-        $recipient = $order->user?->email ?? $custEmail;
-        if ($recipient) {
-            try {
-                Mail::to($recipient)->send(new OrderConfirmation($order));
-            } catch (\Exception $e) {
-                Log::error('Order confirmation email failed for order #' . $order->order_number . ': ' . $e->getMessage());
-            }
-        }
+        if (!$created) return $this->result(true, $order->id, $order->order_number, true, null, 'Order already exists.');
+        app(OrderNotificationService::class)->send($order, OrderConfirmation::class, 'confirmation');
 
         return $this->result(true, $order->id, $order->order_number, false, null, 'Order created.');
     }

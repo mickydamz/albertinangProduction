@@ -25,6 +25,7 @@ return [
     'public' => env('PAYSTACK_PUBLIC_KEY'),
 ],
 'stripe' => [
+    'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
     'secret' => env('STRIPE_SECRET_KEY'),
     'public' => env('STRIPE_PUBLISHABLE_KEY'),
     // NGN -> USD rate used to compute the Stripe charge amount. Kept server-side

@@ -20,7 +20,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::get('/transactions', [UserTransactionController::class, 'fetchTransactions']);
+Route::get('/transactions', [UserTransactionController::class, 'fetchTransactions'])->middleware('auth:sanctum');
 
 // ── Geo (public, cached server-side) ──────────────────────────────────────────
 Route::get('/geo/countries',             [GeoController::class, 'countries']);

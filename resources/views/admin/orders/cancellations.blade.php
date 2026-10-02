@@ -134,7 +134,14 @@
                                                     <h5 class="modal-title">Review Cancellation — Order #{{ $cancellation->order->order_number ?? $cancellation->order_id }}</h5>
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                 </div>
-                                                <form method="POST" action="{{ route('admin.cancellations.review', $cancellation) }}">
+                                                <form method="POST" action="{{ route('admin.cancellations.review', $cancellation) }}"
+                                                      data-refund-guard
+                                                      data-refund-statuses="refunded"
+                                                      data-gateway="{{ $cancellation->order->payment_method }}"
+                                                      data-amount="{{ $cancellation->order->total }}"
+                                                      data-currency="₦"
+                                                      data-email="{{ $cancellation->user->email ?? $cancellation->order->customer_email ?? 'the customer' }}"
+                                                      data-already-refunded="{{ !empty($cancellation->refund_id) || ($cancellation->order->status ?? '') === 'refunded' ? '1' : '0' }}">
                                                     @csrf @method('PATCH')
                                                     <div class="modal-body">
                                                         <div class="mb-3">
@@ -186,6 +193,8 @@
         </div>
     </div>
 </div>
+
+@include('admin.partials.refund-confirm')
 
 <style>
   /* Responsive table — stack rows into cards on mobile (matches Products) */

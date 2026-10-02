@@ -15,6 +15,7 @@ class Order extends Model
 use Auditable;  
 
     protected $fillable = [
+        'delivered_at', 'tracking_reference', 'refund_requested_at',
         'user_id',
         'status',
         'shipping_cost',
@@ -48,6 +49,7 @@ use Auditable;
     ];
 
     protected $casts = [
+        'delivered_at' => 'datetime', 'refund_requested_at' => 'datetime',
         'total'               => 'decimal:2',
         'total_usd'           => 'decimal:2',
         'coupon_discount_ngn' => 'decimal:2',
@@ -97,7 +99,7 @@ use Auditable;
                 'refund_id'             => $result['refund_id']     ?? null,
                 'refund_status'         => $result['refund_status'] ?? null,
                 'refund_amount'         => $amount,
-                'refunded_at'           => now(),
+                'refunded_at'           => $status === 'refunded' ? now() : null,
                 'refund_failure_reason' => null,
             ]);
 
@@ -169,6 +171,11 @@ use Auditable;
 }
     // ── Relationships ─────────────────────────────────────────────────────────
 
+    public function refundAttempts(): HasMany
+    {
+        return $this->hasMany(RefundAttempt::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
@@ -216,6 +223,9 @@ use Auditable;
             $product = Product::lockForUpdate()->find($item->product_id);
             if (!$product) {
                 continue;
+            }
+            if ($product->stock < $item->quantity) {
+                throw new \RuntimeException('Insufficient stock. Payment requires reconciliation.');
             }
             $product->decrement('stock', $item->quantity);
 
@@ -269,7 +279,10 @@ use Auditable;
             }
             $product = Product::lockForUpdate()->find($item->product_id);
             if ($product) {
-                $product->decrement('stock', $item->quantity);
+                if ($product->stock < $item->quantity) {
+                throw new \RuntimeException('Insufficient stock. Payment requires reconciliation.');
+            }
+            $product->decrement('stock', $item->quantity);
             }
         }
 
@@ -295,6 +308,6 @@ use Auditable;
   public function isEligibleForReturn(): bool
 {
     return in_array($this->status, ['shipped', 'delivered', 'completed'])
-        && $this->created_at->diffInDays(now()) <= 14;
+        && ($this->delivered_at ?? $this->created_at)->greaterThanOrEqualTo(now()->subDays(14));
 }
 }
