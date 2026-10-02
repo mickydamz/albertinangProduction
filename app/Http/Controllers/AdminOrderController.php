@@ -41,7 +41,8 @@ class AdminOrderController extends Controller
 
     public function index(Request $request)
     {
-        $search        = $request->get('search', '');
+        // Strip a leading "#" so "#ALB-ENU-582460" matches the stored order number.
+        $search        = ltrim(trim((string) $request->get('search', '')), '# ');
         $filterStatus  = $request->get('status', '');
         $filterPayment = $request->get('payment', '');
         $sortBy        = $request->get('sort', 'created_at');
@@ -84,7 +85,13 @@ class AdminOrderController extends Controller
     {
         $order->load(['user', 'items']);
 
-        $statuses = ['pending', 'paid', 'processing', 'ready_for_pickup', 'shipped', 'delivered', 'completed', 'cancelled', 'refund_pending', 'refund_failed', 'refunded'];
+        // Refund statuses are set by the refund actions (returns / cancellations /
+        // refund form), not hand-picked here. Keep the order's own status visible if
+        // it already is a refund state so the dropdown still shows where it stands.
+        $statuses = ['pending', 'paid', 'processing', 'ready_for_pickup', 'shipped', 'delivered', 'completed', 'cancelled'];
+        if (!in_array($order->status, $statuses, true)) {
+            $statuses[] = $order->status;
+        }
 
         // Pickup points the admin can reassign this order to.
         $pickupPoints = PickupPoint::with('location')
@@ -102,6 +109,10 @@ class AdminOrderController extends Controller
             'pickup_point_id' => 'nullable|integer|exists:pickup_points,id',
         ]);
 
+        // Admins have full manual control over order status — any status may be set
+        // from any status (the 'in:' rule above still blocks unknown values). Note:
+        // this means a status can be set to 'refunded' WITHOUT a gateway refund being
+        // sent; use the Returns/Cancellations/refund actions to actually move money.
         $oldStatus = $order->status;
         $newStatus = $request->status;
 
@@ -124,6 +135,9 @@ class AdminOrderController extends Controller
             }
         }
 
+        if (in_array($newStatus, ['delivered', 'completed'], true) && !$order->delivered_at) {
+            $payload['delivered_at'] = now();
+        }
         $order->update($payload);
 
         // Only send email when status actually changes
@@ -133,13 +147,13 @@ class AdminOrderController extends Controller
             if ($recipient) {
                 try {
                     match ($newStatus) {
-                        'processing'       => Mail::to($recipient)->send(new OrderProcessing($order)),
-                        'shipped'          => Mail::to($recipient)->send(new OrderShipped($order)),
-                        'ready_for_pickup' => Mail::to($recipient)->send(new OrderReadyForPickup($order)),
-                        'delivered'        => Mail::to($recipient)->send(new OrderDelivered($order)),
-                        'completed'        => Mail::to($recipient)->send(new OrderCompleted($order)),
-                        'cancelled'        => Mail::to($recipient)->send(new OrderCancelled($order)),
-                        'refunded'         => Mail::to($recipient)->send(new OrderRefunded($order)),
+                        'processing'       => app(\App\Services\OrderNotificationService::class)->send($order, OrderProcessing::class, 'OrderProcessing-' . $order->status),
+                        'shipped'          => app(\App\Services\OrderNotificationService::class)->send($order, OrderShipped::class, 'OrderShipped-' . $order->status),
+                        'ready_for_pickup' => app(\App\Services\OrderNotificationService::class)->send($order, OrderReadyForPickup::class, 'OrderReadyForPickup-' . $order->status),
+                        'delivered'        => app(\App\Services\OrderNotificationService::class)->send($order, OrderDelivered::class, 'OrderDelivered-' . $order->status),
+                        'completed'        => app(\App\Services\OrderNotificationService::class)->send($order, OrderCompleted::class, 'OrderCompleted-' . $order->status),
+                        'cancelled'        => app(\App\Services\OrderNotificationService::class)->send($order, OrderCancelled::class, 'OrderCancelled-' . $order->status),
+                        'refunded'         => app(\App\Services\OrderNotificationService::class)->send($order, OrderRefunded::class, 'refund-completed'),
                         default            => null,
                     };
                 } catch (\Exception $e) {
@@ -149,7 +163,7 @@ class AdminOrderController extends Controller
                 // Review-request email — sent right after the completion email, only on completion.
                 if ($newStatus === 'completed') {
                     try {
-                        Mail::to($recipient)->send(new OrderReviewRequest($order));
+                        app(\App\Services\OrderNotificationService::class)->send($order, OrderReviewRequest::class, 'OrderReviewRequest-' . $order->status);
                     } catch (\Exception $e) {
                         Log::error('Failed to send review-request email for order #' . $order->order_number . ': ' . $e->getMessage());
                     }
@@ -272,7 +286,7 @@ class AdminOrderController extends Controller
         $recipient = $user?->email ?? $request->customer_email;
         if ($recipient) {
             try {
-                Mail::to($recipient)->send(new OrderConfirmation($order));
+                app(\App\Services\OrderNotificationService::class)->send($order, OrderConfirmation::class, 'OrderConfirmation-' . $order->status);
             } catch (\Exception $e) {
                 Log::error('Admin-created order confirmation email failed: ' . $e->getMessage());
             }
@@ -363,7 +377,7 @@ class AdminOrderController extends Controller
     // ── Returns index ─────────────────────────────────────────────────────────
     public function returnsIndex(Request $request)
     {
-        $search = trim((string) $request->query('search', ''));
+        $search = ltrim(trim((string) $request->query('search', '')), '# ');
 
         $returns = OrderReturn::with(['order', 'user'])
             ->when($search !== '', function ($q) use ($search) {
@@ -478,7 +492,8 @@ class AdminOrderController extends Controller
     // ── Order search (for the standalone return/cancellation forms) ─────────────
     public function searchOrders(Request $request)
     {
-        $q = trim($request->get('q', ''));
+        // Strip a leading "#" so "#ALB-ENU-582460" matches the stored order number.
+        $q = ltrim(trim((string) $request->get('q', '')), '# ');
 
         $orders = Order::with('user')
             ->when($q !== '', function ($query) use ($q) {
@@ -522,10 +537,12 @@ class AdminOrderController extends Controller
         if (in_array($request->status, ['approved', 'refunded']) && $order) {
 
             if (!empty($return->refund_id)) {
-                // Already refunded earlier — keep statuses aligned, don't double-refund.
-                $order->update(['status' => 'refunded']);
-                $return->update(['status' => 'refunded']);
-                $refundMessage = ' (refund was already issued)';
+                // A reference proves the request exists, not that it settled.
+                // Preserve the order's recorded gateway outcome on repeated reviews.
+                $return->update(['status' => $order->status === 'refunded' ? 'refunded' : 'approved']);
+                $refundMessage = $order->status === 'refunded'
+                    ? ' (refund was already completed)'
+                    : ' A refund request already exists; its recorded outcome is unchanged.';
             } else {
                 $result  = $this->refundOrder($order);
                 $outcome = $order->applyRefundOutcome($result, (float) $order->total);
@@ -537,7 +554,7 @@ class AdminOrderController extends Controller
                     'refund_id'             => $outcome === 'refund_failed' ? null : ($result['refund_id'] ?? null),
                     'refund_status'         => $result['refund_status'] ?? null,
                     'refund_amount'         => $order->refund_amount,
-                    'refunded_at'           => $outcome === 'refund_failed' ? null : now(),
+                    'refunded_at'           => $outcome === 'refunded' ? now() : null,
                     'refund_failure_reason' => $outcome === 'refund_failed' ? ($result['message'] ?? 'Refund failed.') : null,
                 ]);
 
@@ -550,8 +567,8 @@ class AdminOrderController extends Controller
 
                     try {
                         $recipient = $order->user?->email ?? $order->customer_email;
-                        if ($recipient) {
-                            Mail::to($recipient)->send(new OrderRefunded($order));
+                        if ($recipient && $outcome === 'refunded') {
+                            app(\App\Services\OrderNotificationService::class)->send($order, OrderRefunded::class, 'refund-completed');
                         }
                     } catch (\Exception $e) {
                         Log::error('Refund email failed for order #' . $order->order_number . ': ' . $e->getMessage());
@@ -566,7 +583,7 @@ class AdminOrderController extends Controller
     // ── Cancellations index ───────────────────────────────────────────────────
     public function cancellationsIndex(Request $request)
     {
-        $search = trim((string) $request->query('search', ''));
+        $search = ltrim(trim((string) $request->query('search', '')), '# ');
 
         $cancellations = OrderCancellation::with(['order', 'user'])
             ->when($search !== '', function ($q) use ($search) {
@@ -649,10 +666,12 @@ class AdminOrderController extends Controller
         if ($order) {
             if ($request->status === 'refunded') {
                 if (!empty($cancellation->refund_id)) {
-                    // Already refunded earlier — don't double-refund.
-                    $order->update(['status' => 'refunded']);
-                    $refundOutcome = 'refunded';
-                    $refundMessage = ' (refund was already issued)';
+                    // Do not turn a pending/failed refund into a completed one.
+                    $refundOutcome = $order->status;
+                    $cancellation->update(['status' => $refundOutcome === 'refunded' ? 'refunded' : 'approved']);
+                    $refundMessage = $refundOutcome === 'refunded'
+                        ? ' (refund was already completed)'
+                        : ' A refund request already exists; its recorded outcome is unchanged.';
                 } else {
                     $result        = $this->refundOrder($order);
                     $refundOutcome = $order->applyRefundOutcome($result, (float) $order->total);
@@ -664,7 +683,7 @@ class AdminOrderController extends Controller
                         'refund_id'             => $refundOutcome === 'refund_failed' ? null : ($result['refund_id'] ?? null),
                         'refund_status'         => $result['refund_status'] ?? null,
                         'refund_amount'         => $order->refund_amount,
-                        'refunded_at'           => $refundOutcome === 'refund_failed' ? null : now(),
+                        'refunded_at'           => $refundOutcome === 'refunded' ? now() : null,
                         'refund_failure_reason' => $refundOutcome === 'refund_failed' ? ($result['message'] ?? 'Refund failed.') : null,
                     ]);
 
@@ -692,12 +711,12 @@ class AdminOrderController extends Controller
             if ($recipient) {
                 try {
                     match (true) {
-                        $request->status === 'refunded' && $refundOutcome !== 'refund_failed'
-                            => Mail::to($recipient)->send(new OrderRefunded($order)),
+                        $request->status === 'refunded' && $refundOutcome === 'refunded'
+                            => app(\App\Services\OrderNotificationService::class)->send($order, OrderRefunded::class, 'refund-completed'),
                         $request->status === 'approved'
-                            => Mail::to($recipient)->send(new OrderCancelled($order)),
+                            => app(\App\Services\OrderNotificationService::class)->send($order, OrderCancelled::class, 'OrderCancelled-' . $order->status),
                         $request->status === 'rejected'
-                            => Mail::to($recipient)->send(new OrderCancellationRejected($order)),
+                            => app(\App\Services\OrderNotificationService::class)->send($order, OrderCancellationRejected::class, 'OrderCancellationRejected-' . $order->status),
                         default => null,
                     };
                 } catch (\Exception $e) {
@@ -725,22 +744,16 @@ class AdminOrderController extends Controller
      */
     private function refundOrder(Order $order): array
     {
-        $method = strtolower($order->payment_method ?? '');
-
-        if ($method === 'paystack') {
-            return $this->refundOrderViaPaystack($order);
+        if (!in_array($order->payment_method, ['paystack', 'stripe'], true)) {
+            return ['handled' => false, 'success' => false, 'refund_id' => null, 'refund_status' => 'failed', 'message' => 'Please process manually.'];
         }
-
-        if ($method === 'stripe') {
-            return $this->refundOrderViaStripe($order);
-        }
-
+        $attempt = app(\App\Services\RefundService::class)->request($order, (float) $order->total, 'order-full-' . $order->id);
+        $order->refresh();
         return [
-            'handled'       => false,
-            'success'       => false,
-            'refund_id'     => null,
-            'refund_status' => null,
-            'message'       => 'unsupported payment method: ' . ($order->payment_method ?? 'none'),
+            'handled' => true, 'success' => $attempt->status !== 'failed',
+            'refund_id' => $attempt->gateway_id,
+            'refund_status' => $attempt->gateway_status ?? ($attempt->status === 'failed' ? 'failed' : 'pending'),
+            'message' => $attempt->failure_reason ?? '',
         ];
     }
 

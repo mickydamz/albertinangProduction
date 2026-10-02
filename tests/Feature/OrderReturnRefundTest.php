@@ -92,10 +92,10 @@ class OrderReturnRefundTest extends TestCase
         $this->assertSame('refund_pending', $order->status);
         $this->assertSame('424242', (string) $order->refund_id);
         $this->assertSame(50000.0, (float) $order->refund_amount);
-        $this->assertNotNull($order->refunded_at);
+        $this->assertNull($order->refunded_at);
         $this->assertSame('refunded', $return->status);
         $this->assertSame('424242', (string) $return->refund_id);
-        Mail::assertQueued(OrderRefunded::class);
+        Mail::assertNotQueued(OrderRefunded::class);
     }
 
     /** @test */
@@ -147,7 +147,7 @@ class OrderReturnRefundTest extends TestCase
     {
         Http::fake();
 
-        $order  = $this->makeOrder();
+        $order  = $this->makeOrder(['status' => 'refunded', 'refund_status' => 'processed']);
         $return = $this->makeReturn($order, ['refund_id' => 'existing_ref_999']);
 
         $this->review($return, 'refunded');
@@ -155,5 +155,25 @@ class OrderReturnRefundTest extends TestCase
         Http::assertNothingSent();
         $this->assertSame('refunded', $order->fresh()->status);
         $this->assertSame('existing_ref_999', $return->fresh()->refund_id);
+    }
+
+    /** @test */
+    public function repeated_return_review_preserves_unsettled_refund_outcomes()
+    {
+        Http::fake();
+
+        foreach (['refund_pending', 'refund_failed', 'delivered'] as $status) {
+            $order = $this->makeOrder(['status' => $status]);
+            $return = $this->makeReturn($order, ['refund_id' => 'existing_ref_999']);
+
+            $this->review($return, 'refunded')->assertRedirect();
+
+            $this->assertSame($status, $order->fresh()->status);
+            $this->assertSame('approved', $return->fresh()->status);
+            $this->assertSame('existing_ref_999', $return->fresh()->refund_id);
+        }
+
+        Http::assertNothingSent();
+        Mail::assertNotQueued(OrderRefunded::class);
     }
 }

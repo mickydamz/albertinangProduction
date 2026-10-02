@@ -445,6 +445,8 @@
                             <span>Total</span>
                             <span id="summaryTotal">&#8358;0</span>
                         </div>
+                        <p id="truckChargeExplanation" role="status" style="font-size:13px">A truck charge applies if any item requires a truck, total weight exceeds the weight limit, or order value reaches the value limit. Collection has no delivery charge.</p>
+                        <p id="paymentRecovery" role="status"></p>
 
                         {{-- Coupon --}}
                         <div class="coupon-wrap">
@@ -453,7 +455,7 @@
                                 <input type="text" id="couponInput" placeholder="Enter code" maxlength="64" autocomplete="off">
                                 <button class="coupon-apply-btn" id="couponBtn">Apply</button>
                             </div>
-                            <div class="coupon-msg" id="couponMsg"></div>
+                            <div class="coupon-msg" id="couponMsg" role="status" aria-live="polite"></div>
                         </div>
 
                         <button class="checkout-btn-summary" id="proceedToPaymentBtn" disabled>

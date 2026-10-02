@@ -98,13 +98,11 @@ class StockManagementTest extends TestCase
     }
 
     /** @test */
-    public function deduction_allows_oversell_into_negative_stock()
+    public function deduction_rejects_insufficient_stock()
     {
         $product = $this->makeProduct(1);
-
-        $this->paidOrderFor($product, 2);   // bought 2 of the last 1
-
-        $this->assertSame(-1, (int) $product->fresh()->stock);  // flagged oversold, order still created
+        $this->expectException(\RuntimeException::class);
+        $this->paidOrderFor($product, 2);
     }
 
     // ── Restoration on release ──────────────────────────────────────────────────

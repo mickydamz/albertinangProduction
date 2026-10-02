@@ -40,6 +40,21 @@ class AdminAccessControlTest extends TestCase
     }
 
     /** @test */
+    public function a_guest_cannot_run_pdf_maintenance()
+    {
+        $this->get('/fix-pdf-now')->assertNotFound();
+        $this->get('/foo')->assertNotFound();
+        $this->get('/admin/sync-brand-managers')->assertNotFound();
+    }
+
+    /** @test */
+    public function a_non_admin_cannot_run_pdf_maintenance()
+    {
+        $this->actingAs(User::factory()->create())
+            ->get('/fix-pdf-now')->assertNotFound();
+    }
+
+    /** @test */
     public function a_non_admin_cannot_perform_admin_writes()
     {
         // The guard runs before the controller, so a POST is blocked outright.

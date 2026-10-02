@@ -36,7 +36,6 @@ class OrderStatusEmailTest extends TestCase
         'delivered'        => OrderDelivered::class,
         'completed'        => OrderCompleted::class,
         'cancelled'        => OrderCancelled::class,
-        'refunded'         => OrderRefunded::class,
     ];
 
     protected function setUp(): void
@@ -75,7 +74,9 @@ class OrderStatusEmailTest extends TestCase
     {
         foreach (self::STATUS_MAIL as $status => $mailable) {
             $customer = User::factory()->create();
-            $order    = $this->orderFor($customer, 'paid');
+            $previous = ['processing' => 'paid', 'shipped' => 'processing', 'ready_for_pickup' => 'processing', 'delivered' => 'shipped', 'completed' => 'delivered', 'cancelled' => 'paid'];
+            $order = $this->orderFor($customer, $previous[$status]);
+            $order->update(['fulfillment_method' => $status === 'ready_for_pickup' ? 'pickup' : 'delivery']);
 
             $this->setStatus($this->admin(), $order, $status)->assertRedirect();
 
@@ -110,7 +111,8 @@ class OrderStatusEmailTest extends TestCase
     public function a_review_request_is_only_sent_on_completion()
     {
         $customer = User::factory()->create();
-        $order    = $this->orderFor($customer, 'paid');
+        $order = $this->orderFor($customer, 'processing');
+        $order->update(['fulfillment_method' => 'delivery']);
 
         $this->setStatus($this->admin(), $order, 'shipped')->assertRedirect();
 
@@ -135,7 +137,8 @@ class OrderStatusEmailTest extends TestCase
         // Guest order: no user_id, only a customer_email on the order.
         $order = Order::create([
             'user_id'        => null,
-            'status'         => 'paid',
+            'status'         => 'processing',
+            'fulfillment_method' => 'delivery',
             'total'          => 50000,
             'customer_email' => 'guest@example.com',
         ]);

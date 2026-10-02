@@ -47,4 +47,25 @@ class Handler extends ExceptionHandler
             //
         });
     }
+
+    public function render($request, Throwable $e)
+    {
+        // Map framework exceptions (ModelNotFoundException → 404, TokenMismatch → 419,
+        // etc.) to their proper HTTP status *before* the catch-all below decides.
+        // Without this, a missing model surfaces as a generic 500.
+        $e = $this->prepareException($e);
+
+        if (!$e instanceof \Illuminate\Validation\ValidationException
+            && !$e instanceof \Illuminate\Auth\AuthenticationException
+            && !$e instanceof \Illuminate\Auth\Access\AuthorizationException
+            && (!$e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface || $e->getStatusCode() >= 500)) {
+            $reference = (string) \Illuminate\Support\Str::uuid();
+            \Log::error('Request failed', ['reference' => $reference, 'exception' => $e]);
+            $message = 'We could not complete this request. Please try again or contact support with reference ' . $reference;
+            return $request->expectsJson()
+                ? response()->json(['message' => $message, 'reference' => $reference], 500)
+                : response()->view('errors.safe', compact('message'), 500);
+        }
+        return parent::render($request, $e);
+    }
 }
