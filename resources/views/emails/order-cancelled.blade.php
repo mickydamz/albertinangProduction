@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'Order Cancelled – Albertina Nigeria')
+@section('title', 'Order Cancelled – AlbertinaNG')
 
 {{-- Override header gradient for the dark/neutral cancellation tone --}}
 @push('styles')
@@ -118,7 +118,7 @@
     </div>
 
     <p style="font-size:13px; color:#7a9a60; line-height:1.7; text-align:center;">
-        We're sorry for any inconvenience. <strong style="color:#2d5610;">Albertina Nigeria</strong><br>
+        We're sorry for any inconvenience. <strong style="color:#2d5610;">AlbertinaNG</strong><br>
         is always here to make things right.
     </p>
 

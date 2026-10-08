@@ -9,7 +9,7 @@
             <div class="col-12 mb-2">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h2 class="content-header-title mb-0">Tags Management</h2>
+                        <h2 class="content-header-title mb-0">Search keywords</h2>
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Home</a></li>
                             <li class="breadcrumb-item active">Tags</li>
@@ -21,7 +21,7 @@
                 </div>
             </div>
         </div>
-        <div class="content-body">
+        <div class="content-body"><div class="alert alert-info">Tags help customers find products through search. Use Specifications for facts such as screen size, resolution, capacity and refresh rate; do not duplicate those facts as tags.</div>
             <section id="product-list">
                 <div class="row">
                     <div class="col-12">

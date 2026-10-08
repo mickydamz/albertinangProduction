@@ -741,6 +741,15 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                                         </div>
                                     @endif
 
+                                    @if($order->return)
+                                        <section class="op-card__strip-cell" aria-label="Return progress">
+                                            <div class="op-strip-label">Return</div>
+                                            <div class="op-strip-val">{{ $order->return->stageLabel() }}</div>
+                                            @if($order->return->stage() === 'approved')
+                                                <div class="op-strip-sub">{{ $order->return->return_instructions ?: 'Contact support for return instructions.' }}</div>
+                                            @endif
+                                        </section>
+                                    @endif
                                     {{-- Return request status note --}}
                                     @if($order->return)
                                         @php
@@ -766,6 +775,11 @@ body { font-family: var(--font-body); color: var(--ink); background: #f5f7f4; }
                                                         : ['fa-rotate-left', 'Refund processing', 'The gateway is confirming your refund.']),
                                             ];
                                             $rn = $rnMap[$rs] ?? ['fa-info-circle', 'Return '.$rs, ''];
+                                            if (in_array($order->return->stage(), ['received', 'inspected'], true) && !$refundProgress) {
+                                                $rn = ['fa-check-circle', $order->return->stageLabel(), $order->return->stage() === 'received'
+                                                    ? 'We have received your goods and will inspect them before requesting a refund.'
+                                                    : 'Your goods have been inspected. A refund has not yet been requested.'];
+                                            }
                                             // Colour follows the true state: red if the refund failed, amber while
                                             // it is still confirming, otherwise the request's own status colour.
                                             $rnClass = $refundFailed ? 'rejected'

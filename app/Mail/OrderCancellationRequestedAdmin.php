@@ -26,6 +26,6 @@ class OrderCancellationRequestedAdmin extends Mailable
 
     public function content(): Content
     {
-        return new Content(markdown: 'emails.orders.cancellation-admin');
+        return new Content(view: 'emails.orders.cancellation-admin');
     }
 }

@@ -814,8 +814,8 @@ ul { list-style: none; }
                     if ($c !== '') $activeChips[] = ['type' => 'categories', 'value' => $c, 'label' => $c];
                 }
                 foreach ((array) request('availability', []) as $a) {
-                    if ($a !== '' && $a === 'in-stock') {
-                        $activeChips[] = ['type' => 'availability', 'value' => $a, 'label' => 'In Stock'];
+                    if (in_array($a, ['in-stock', 'pre-order'])) {
+                        $activeChips[] = ['type' => 'availability', 'value' => $a, 'label' => $a === 'pre-order' ? 'Pre-order' : 'In stock'];
                     }
                 }
                 foreach ((array) request('options', []) as $k => $vals) {
@@ -857,7 +857,8 @@ ul { list-style: none; }
                         <div class="sort-wrap">
                             <label for="sort-by">Sort:</label>
                             <select id="sort-by" class="sort-select" aria-label="Sort products">
-                                <option value="popularity" @selected(request('sort_by','popularity') === 'popularity')>Popularity</option>
+                                @if($searchTerm)<option value="relevance" @selected(!request()->filled('sort_by') || request('sort_by') === 'relevance')>Best match</option>@endif
+                                <option value="popularity" @selected(request('sort_by', $searchTerm ? 'relevance' : 'popularity') === 'popularity')>Popularity</option>
                                 <option value="price-asc"  @selected(request('sort_by') === 'price-asc')>Price ↑</option>
                                 <option value="price-desc" @selected(request('sort_by') === 'price-desc')>Price ↓</option>
                                 <option value="newest"     @selected(request('sort_by') === 'newest')>Newest</option>
@@ -1314,4 +1315,5 @@ ul { list-style: none; }
 
 })();
 </script>
+@include('products.partials.filter-tools')
 @endpush

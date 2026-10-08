@@ -1,10 +1,10 @@
 @extends('emails.layout')
 
-@section('title') {!! strip_tags($title ?? 'Notification') !!} — Albertina Nigeria @endsection
+@section('title') {!! strip_tags($title ?? 'Notification') !!} — AlbertinaNG @endsection
 
 @section('header_title') {!! $title ?? 'Notification' !!} @endsection
 
-@section('header_sub', 'An important message from Albertina Nigeria.')
+@section('header_sub', 'An important message from AlbertinaNG.')
 
 @section('body')
 
@@ -21,7 +21,7 @@
     </div>
 
     <p style="font-size:13px; color:#7a9a60; line-height:1.7; text-align:center;">
-        Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.
+        Thank you for choosing <strong style="color:#2d5610;">AlbertinaNG</strong>.
     </p>
 
 @endsection

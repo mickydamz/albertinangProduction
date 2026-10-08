@@ -40,7 +40,7 @@ class AdminNavigationDirectoryTest extends TestCase
     {
         $this->withoutMiddleware(ThrottleRequests::class);
         $admin = User::factory()->create(['role' => 'admin']);
-        foreach (['revenue', 'user', 'supplier', 'transaction', 'product', 'order-status'] as $chart) {
+        foreach (['revenue', 'user', 'transaction', 'product', 'order-status'] as $chart) {
             $this->actingAs($admin)->getJson('/admin/data/'.$chart.'-analytics')
                 ->assertOk()->assertJsonStructure(['labels', 'datasets']);
         }

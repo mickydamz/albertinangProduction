@@ -25,7 +25,7 @@ class RedirectBasedOnRole
                 case 'admin':
                     return redirect('/admin');
                 case 'supplier':
-                    return redirect('/supplier/dashboard');
+                    return redirect()->route('dashboard');
                 case 'user':
                     return redirect('/');
                 default:

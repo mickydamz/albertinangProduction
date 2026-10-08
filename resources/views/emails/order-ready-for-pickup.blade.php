@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'Ready for Pickup – Albertina Nigeria')
+@section('title', 'Ready for Pickup – AlbertinaNG')
 
 {{-- Status pill colours for the meta bar (amber) --}}
 @php
@@ -187,7 +187,7 @@
     </div>
 
     <p style="font-size:13px; color:#7a9a60; line-height:1.7; text-align:center;">
-        Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+        Thank you for choosing <strong style="color:#2d5610;">AlbertinaNG</strong>.<br>
         We look forward to seeing you soon!
     </p>
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', ($appStoreName ?? 'Albertina Nigeria') . ' – Premium Electronics')</title>
+    <title>@yield('title', ($appStoreName ?? 'AlbertinaNG') . ' – Premium Electronics')</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
 
     <style>
         /* =====================================================
-           ALBERTINA NIGERIA — DESIGN SYSTEM v2
+           AlbertinaNG — DESIGN SYSTEM v2
            Green-first · Plus Jakarta Sans + DM Sans
         ===================================================== */
         :root {
@@ -2005,7 +2005,7 @@
         </div>
 
         <div class="footer__bottom">
-            <span>© {{ date('Y') }} {{ $appStoreName ?? 'Albertina Nigeria' }} Limited. All rights reserved.</span>
+            <span>© {{ date('Y') }} {{ $appStoreName ?? 'AlbertinaNG' }}. All rights reserved.</span>
             <span>
                 @if($storeAddress)
                     {{ $storeAddress }}
@@ -2025,7 +2025,7 @@
 {{-- ── SCRIPTS ── --}}
 <script>
 /* ════════════════════════════════════════════════════════════════
-   ALBERTINA NIGERIA — Global JS v2
+   AlbertinaNG — Global JS v2
    Currency loaded from Laravel API (/currencies)
    with 5-minute sessionStorage cache.
    Currency switcher rendered in header (desktop) + mobile drawer.

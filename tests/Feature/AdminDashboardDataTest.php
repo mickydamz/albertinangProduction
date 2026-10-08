@@ -30,7 +30,6 @@ class AdminDashboardDataTest extends TestCase
 
         $endpoints = [
             '/admin/data/user-analytics',
-            '/admin/data/supplier-analytics',
             '/admin/data/transaction-analytics',
             '/admin/data/product-analytics',
             '/admin/data/revenue-analytics',

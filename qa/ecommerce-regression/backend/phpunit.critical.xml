@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit bootstrap="vendor/autoload.php" colors="true">
+ <testsuites><testsuite name="Critical commerce regression">
+  <file>tests/Regression/CriticalPaymentRegressionTest.php</file>
+  <file>tests/Regression/CriticalOwnershipRegressionTest.php</file>
+  <file>tests/Regression/CriticalRefundRegressionTest.php</file>
+ <file>tests/Regression/FulfilmentBoundaryTest.php</file>
+ <file>tests/Regression/CriticalRefundSettlementTest.php</file></testsuite></testsuites>
+ <php>
+  <env name="APP_KEY" value="base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=" force="true"/>
+  <env name="DATABASE_URL" value="" force="true"/>
+  <env name="APP_ENV" value="testing" force="true"/>
+  <env name="APP_URL" value="http://localhost" force="true"/>
+  <env name="DB_CONNECTION" value="sqlite" force="true"/>
+  <env name="DB_DATABASE" value=":memory:" force="true"/>
+  <env name="MAIL_MAILER" value="array" force="true"/>
+  <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+  <env name="SESSION_DRIVER" value="array" force="true"/>
+  <env name="CACHE_DRIVER" value="array" force="true"/>
+  <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+ </php>
+</phpunit>

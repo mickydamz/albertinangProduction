@@ -1,4 +1,4 @@
-﻿@extends('layouts.adminlayout')
+@extends('layouts.adminlayout')
 
 @section('content')
 {{-- Feather icons are typically loaded via a JS script in Vuexy, but including the CSS for general compatibility --}}
@@ -435,3 +435,4 @@
         background-color: #0056b3;
     }
 </style>
+@endpush

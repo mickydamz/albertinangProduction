@@ -1,6 +1,8 @@
 ﻿@extends('layouts.adminlayout')
 
 @section('content')
+@include('admin.orders.request-tabs')
+
 <div class="app-content content">
     <div class="content-wrapper container-xxl p-0">
 
@@ -22,6 +24,15 @@
         </div>
 
         <div class="content-body">
+
+            @if($errors->any())
+                <div class="alert alert-danger" role="alert">
+                    <strong>The return action was not saved.</strong>
+                    <ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+                    Reopen Review, complete the required information and save again.
+                </div>
+            @endif
+            @if(session('error'))<div class="alert alert-danger" role="alert">{{ session('error') }}</div>@endif
 
             @if(session('success'))
                 <div class="alert alert-success alert-dismissible fade show">
@@ -123,8 +134,9 @@
                                             @endphp
                                             <span class="badge bg-{{ $colors[$return->status] ?? 'secondary' }}">
                                                 {{ ucfirst($return->status) }}
+                                                <div class="small">{{ $return->stageLabel() }}</div>
                                                 @if($return->refund_status)
-                                                    <div class="small">Refund: {{ ucfirst(str_replace('-', ' ', $return->refund_status)) }}</div>
+                                                    <div class="small">{{ \App\Support\RefundProgress::forStatus($return->refund_status)['label'] }}</div>
                                                 @endif
                                             </span>
                                         </td>
@@ -156,18 +168,23 @@
                                                         </div>
                                                         <div class="mb-3">
                                                             <label class="form-label fw-bold small">Decision <span class="text-danger">*</span></label>
-                                                            <select name="status" class="form-select" required>
+                                                            @if($return->order?->payment_method === 'paystack')
+                                                            @include('admin.orders.return-actions', ['return' => $return])
+                                                            @else
+<select name="status" class="form-select" required>
                                                                 <option value="">— Select —</option>
                                                                 <option value="approved" @selected($return->status === 'approved')>Approve</option>
                                                                 <option value="rejected" @selected($return->status === 'rejected')>Reject</option>
                                                                 <option value="refunded" @selected($return->status === 'refunded')>Refund (issue refund to customer)</option>
-                                                            </select>
+                                                            </select>@endif
                                                         </div>
+                                                        @if($return->order?->payment_method !== 'paystack')
                                                         <div class="mb-3">
                                                             <label class="form-label fw-bold small">Admin Note <span class="text-muted fw-normal">(optional)</span></label>
                                                             <textarea name="admin_notes" class="form-control" rows="3"
                                                                       placeholder="Add a note for the customer…">{{ $return->admin_notes }}</textarea>
                                                         </div>
+                                                        @endif
                                                     </div>
                                                     <div class="modal-footer">
                                                         <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-1"></i> Cancel</button>

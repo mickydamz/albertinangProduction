@@ -392,7 +392,6 @@ Route::middleware('auth')->group(function () {
 
     // ── Chat ──────────────────────────────────────────────────────────────────
     Route::get('/chat',              [ChatController::class, 'index'])->name('chat.index');
-    Route::get('/chat/{supplierId}', [ChatController::class, 'show'])->name('chat.show');
     Route::post('/chat/send',        [ChatController::class, 'sendMessage'])->name('chat.send');
 
     // ── Support Tickets ───────────────────────────────────────────────────────
@@ -406,25 +405,15 @@ Route::middleware('auth')->group(function () {
 
     // ── Reviews ───────────────────────────────────────────────────────────────
     Route::post('/products/{productId}/reviews',   [ReviewController::class, 'store'])->name('reviews.store');
-    Route::post('/suppliers/{supplierId}/reviews', [ReviewController::class, 'store']);
     Route::put('/reviews/{reviewId}',              [ReviewController::class, 'update'])->name('reviews.update');
 
     // ── Suppliers (browsing) ──────────────────────────────────────────────────
-    Route::get('/suppliers',                        [SupplierController::class, 'index'])->name('suppliers.list');
-    Route::get('/supplier/{supplier}',              [SupplierProfileController::class, 'show'])->name('supplier.profile');
-    Route::get('/supplier/{supplierId}/storefront', [SupplierProductController::class, 'showStorefront'])->name('supplier.products.storefront');
-    Route::get('/supplier/products/{product}',      [SupplierProductController::class, 'show'])->name('supplier.products.show');
 
     // ── Distributors ──────────────────────────────────────────────────────────
-    Route::get('/supplier/distributors',      [DistributorController::class, 'index'])->name('distributors.index');
     Route::get('/distributors/{distributor}', [DistributorController::class, 'show'])->name('distributors.show');
 
     // ── Affiliate ─────────────────────────────────────────────────────────────
-    Route::prefix('affiliate')->name('affiliate.')->group(function () {
-        Route::get('/dashboard',              [AffiliateController::class, 'dashboard'])->name('dashboard');
-        Route::get('/generate-referral-link', [AffiliateController::class, 'generateReferralLink'])->name('generateReferralLink');
-        Route::get('/earnings',               [AffiliateController::class, 'earnings'])->name('earnings');
-    });
+
 
 });
 
@@ -433,17 +422,7 @@ Route::middleware('auth')->group(function () {
 // SUPPLIER ROUTES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-Route::middleware(['auth', 'role:supplier'])->prefix('supplier')->name('supplier.')->group(function () {
 
-    Route::get('/dashboard', [SupplierDashboardController::class, 'index'])->name('dashboard');
-    Route::resource('products', SupplierProductController::class);
-    Route::get('/transactions', [SupplierTransactionController::class, 'index'])->name('transactions.index');
-
-    Route::get('/twofactor',                      [TwoFactorSettingsController::class, 'show']);
-    Route::get('/page-account-settings-account',  fn () => view('user/profile'));
-    Route::get('/page-account-settings-security', fn () => view('html/ltr/horizontal-menu-template/page-account-settings-security'));
-
-});
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -467,7 +446,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/dashboard', [AdminDashboardController::class, 'index']);
 
     Route::get('/data/user-analytics',        [AdminDashboardController::class, 'getUserAnalytics']);
-    Route::get('/data/supplier-analytics',    [AdminDashboardController::class, 'getSupplierAnalytics']);
     Route::get('/data/transaction-analytics', [AdminDashboardController::class, 'getTransactionAnalytics']);
     Route::get('/data/product-analytics',     [AdminDashboardController::class, 'getProductAnalytics']);
     Route::get('/data/revenue-analytics',     [AdminDashboardController::class, 'getRevenueAnalytics']);
@@ -505,8 +483,6 @@ Route::get('contact', [AdminContactController::class, 'index'])->name('contact.i
 Route::put('contact', [AdminContactController::class, 'update'])->name('contact.update');
 
     // ── Suppliers ─────────────────────────────────────────────────────────────
-    Route::resource('suppliers', AdminSupplierController::class);
-    Route::post('suppliers/{supplier}/verify', [AdminSupplierController::class, 'verify'])->name('suppliers.verify');
 
     // ── Products ──────────────────────────────────────────────────────────────
     Route::resource('products', AdminProductController::class);
@@ -547,6 +523,8 @@ Route::put('contact', [AdminContactController::class, 'update'])->name('contact.
     Route::get('returns/create',                       [AdminOrderController::class, 'createReturn'])->name('returns.create');
     Route::post('returns',                             [AdminOrderController::class, 'storeReturnFromForm'])->name('returns.store');
     Route::post('orders/{order}/returns',              [AdminOrderController::class, 'storeReturn'])->name('orders.returns.store');
+    Route::get('refunds', [\App\Http\Controllers\AdminRefundController::class, 'index'])->name('refunds.index');
+    Route::post('refunds/{order}/check', [\App\Http\Controllers\AdminRefundController::class, 'check'])->name('refunds.check');
     Route::patch('returns/{return}/review',            [AdminOrderController::class, 'reviewReturn'])->name('returns.review');
     Route::get('cancellations',                        [AdminOrderController::class, 'cancellationsIndex'])->name('cancellations.index');
     Route::get('cancellations/create',                 [AdminOrderController::class, 'createCancellation'])->name('cancellations.create');
@@ -604,13 +582,6 @@ Route::put('contact', [AdminContactController::class, 'update'])->name('contact.
     Route::post('tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('tickets.reply');
 
     // ── Affiliates ────────────────────────────────────────────────────────────
-    Route::get('affiliates',               [AdminAffiliateController::class, 'index'])->name('affiliates.index');
-    Route::get('affiliates/create',        [AdminAffiliateController::class, 'create'])->name('affiliates.create');
-    Route::get('affiliates/{id}',          [AdminAffiliateController::class, 'show'])->name('affiliates.show');
-    Route::get('affiliates/{id}/edit',     [AdminAffiliateController::class, 'edit'])->name('affiliates.edit');
-    Route::put('affiliates/{id}',          [AdminAffiliateController::class, 'update'])->name('affiliates.update');
-    Route::put('affiliates/{id}/status',   [AdminAffiliateController::class, 'updateAffiliateStatus'])->name('affiliates.updateStatus');
-    Route::get('affiliates/{id}/earnings', [AdminAffiliateController::class, 'earnings'])->name('affiliates.earnings');
 
     // ── Currencies ────────────────────────────────────────────────────────────
     Route::resource('currencies', CurrencyController::class)->except(['show']);

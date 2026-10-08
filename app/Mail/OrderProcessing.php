@@ -19,7 +19,7 @@ class OrderProcessing extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Order ' . $this->order->order_number . ' is Being Processed – Albertina Nigeria',
+            subject: 'Your Order ' . $this->order->order_number . ' is Being Processed – AlbertinaNG',
         );
     }
 

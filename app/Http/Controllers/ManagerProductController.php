@@ -243,6 +243,12 @@ class ManagerProductController extends Controller
         // 404 if the product doesn't belong to this manager
         $product = $this->findOwned($product->id);
 
+        if (!$product->is_active && \App\Models\Subcategory::where('category_id', $product->category_id)->exists()
+            && !\App\Models\Subcategory::where('category_id', $product->category_id)->where('id', $product->subcategory_id)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'subcategory_id' => 'An administrator must assign a valid product type before this product can be published.',
+            ]);
+        }
         $product->is_active = ! $product->is_active;
         $product->save();
 

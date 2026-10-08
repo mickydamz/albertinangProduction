@@ -72,11 +72,9 @@ class LoginController extends Controller
         // Redirect to the page the user was trying to reach, or fall back to the role's dashboard
         if ($user->role === 'admin') {
             return redirect()->intended(route('admin.dashboard'));
-        } elseif ($user->role === 'supplier') {
-            return redirect()->intended(route('supplier.dashboard'));
-        } elseif ($user->role === 'affiliate') {
-            return redirect()->intended(route('affiliate.dashboard'));
-        } elseif ($user->role === 'manager') {
+        } elseif ($user->role === 'supplier' || $user->role === 'affiliate') {
+                return redirect()->route('dashboard');
+            } elseif ($user->role === 'manager') {
             return redirect()->intended(route('manager.dashboard'));
         }
 

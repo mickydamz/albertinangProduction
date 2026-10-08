@@ -23,17 +23,6 @@ class ProductController extends Controller
 
     public function index(Request $request)
     {
-        $brandsParam = array_filter((array) $request->input('brands', []));
-        if (!empty($brandsParam)) {
-            $brandName = reset($brandsParam);
-            $brand = Brand::where('name', $brandName)
-                ->orWhere('slug', \Str::slug($brandName))
-                ->first();
-            if ($brand) {
-                return redirect()->route('brand.show', $brand->slug ?: \Str::slug($brand->name));
-            }
-        }
-
         // Delegate to the search engine with no query — shows all products
         // with the full faceted sidebar and simslayout design.
         return $this->searchProducts($request);
@@ -280,7 +269,7 @@ class ProductController extends Controller
 
         // Baseline (unfiltered) counts — used to rank which values are worth
         // offering as filters.
-        $baseline = $this->baselineCustomCounts($scoped);
+        $baseline = $this->typeScopedBaseline($scoped, $request);
 
         // ── Build the displayable custom-attribute option lists ───────────────
         // RULE: per attribute, keep only the highest-count values and drop the
@@ -295,8 +284,9 @@ class ProductController extends Controller
 
             // Only rank values shared by 2+ products — single-product values
             // can't help a shopper narrow anything (e.g. "1.02 Litres (1)").
-            $baseForKey = $baseline[$key] ?? $valueCounts;
-            $rankable   = array_filter($baseForKey, fn ($c) => $c >= 2);
+            $baseForKey = $baseline[$key] ?? [];
+            if (empty($baseForKey) && empty($selectedForKey)) continue;
+            $rankable   = array_filter($baseForKey, fn ($c) => $this->isMandatoryFacet($key) ? $c >= 1 : $c >= 2);
             $values     = $this->topValuesByCount($rankable, $selectedForKey, $limit);
 
             // Always show a value the user already selected, even if it
@@ -309,7 +299,7 @@ class ProductController extends Controller
             }
 
             if (empty($values)) continue;
-            if (count($values) < 2 && empty($selectedForKey)) continue;
+            if (count($values) < 2 && empty($selectedForKey) && !$this->isMandatoryFacet($key)) continue;
             $customOptionsForFilter[$key] = $values;
         }
 
@@ -472,7 +462,7 @@ class ProductController extends Controller
         $facets = $this->facetCounts($scoped, $request);
 
         // Baseline (unfiltered) counts to rank which values are worth showing.
-        $baseline = $this->baselineCustomCounts($scoped);
+        $baseline = $this->typeScopedBaseline($scoped, $request);
 
         // Build custom attribute filter options.
         // RULE: per attribute, keep only the top $topN values by baseline count;
@@ -487,8 +477,8 @@ class ProductController extends Controller
 
             // Require count >= 2 (shared by 2+ products) and value length <= 50.
             $rankable = array_filter(
-                $baseline[$key] ?? $valueCounts,
-                fn ($c, $v) => $c >= 2 && strlen((string) $v) <= 50,
+                $baseline[$key] ?? [],
+                fn ($c, $v) => $c >= ($this->isMandatoryFacet($key) ? 1 : 2) && strlen((string) $v) <= 50,
                 ARRAY_FILTER_USE_BOTH
             );
             $values = $this->topValuesByCount($rankable, $selectedForKey, $limit);
@@ -502,7 +492,7 @@ class ProductController extends Controller
             }
 
             if (empty($values)) continue;
-            if (count($values) < 2 && empty($selectedForKey)) continue;
+            if (count($values) < 2 && empty($selectedForKey) && !$this->isMandatoryFacet($key)) continue;
             $customOptionsForFilter[$key] = $values;
         }
 
@@ -521,7 +511,7 @@ class ProductController extends Controller
         // ── Apply filters + sort + paginate ───────────────────────────────────
         // On search: keep relevance order unless wildcard (then honour sort_by).
         $sortBy    = $request->input('sort_by', 'popularity');
-        $applySort = $isWildcard ? $sortBy : 'relevance';
+        $applySort = $request->filled('sort_by') ? $sortBy : ($isWildcard ? 'popularity' : 'relevance');
         $filtered  = $this->applyFiltersInPhp($scoped, $request, $applySort);
 
         $products = $this->paginateCollection($filtered, $request);
@@ -574,7 +564,7 @@ class ProductController extends Controller
         $this->primeMandatoryFacets($scoped, null, null);
 
         $facets   = $this->facetCounts($scoped, $request);
-        $baseline = $this->baselineCustomCounts($scoped);
+        $baseline = $this->typeScopedBaseline($scoped, $request);
 
         $topN = 5;
         $customOptionsForFilter = [];
@@ -583,8 +573,8 @@ class ProductController extends Controller
             $limit = $this->isMandatoryFacet($key) ? 50 : $topN;
 
             $rankable = array_filter(
-                $baseline[$key] ?? $valueCounts,
-                fn ($c, $v) => $c >= 2 && strlen((string) $v) <= 50,
+                $baseline[$key] ?? [],
+                fn ($c, $v) => $c >= ($this->isMandatoryFacet($key) ? 1 : 2) && strlen((string) $v) <= 50,
                 ARRAY_FILTER_USE_BOTH
             );
             $values = $this->topValuesByCount($rankable, $selectedForKey, $limit);
@@ -597,7 +587,7 @@ class ProductController extends Controller
             }
 
             if (empty($values)) continue;
-            if (count($values) < 2 && empty($selectedForKey)) continue;
+            if (count($values) < 2 && empty($selectedForKey) && !$this->isMandatoryFacet($key)) continue;
             $customOptionsForFilter[$key] = $values;
         }
 
@@ -686,7 +676,7 @@ class ProductController extends Controller
     private function buildScopedCollection($query)
     {
         return $query
-            ->with(['images', 'tags', 'category', 'Subcategory', 'sizes'])
+            ->with(['images', 'tags', 'category', 'Subcategory', 'sizes', 'colors'])
             ->withReviewStats()
             ->get();
     }
@@ -736,6 +726,10 @@ class ProductController extends Controller
      * To disable mandatory facets on the search page, set '__default__' => [].
      */
     private array $facetGroupsByCategory = [
+        'Sound and Vision' => [
+            'product_type' => ['product type'],
+            'screen_size' => ['screen size', 'display size', 'diagonal', 'panel size'],
+        ],
         'Televisions' => [
             'screen_size' => ['screen size', 'display size', 'size', 'inch', 'diagonal', 'panel size'],
             'resolution'  => ['resolution', 'display resolution', 'picture resolution'],
@@ -808,6 +802,9 @@ class ProductController extends Controller
      * fallback since they're usually already stored in title-case form.
      */
     private array $facetLabels = [
+        'colour' => 'Colour', 'usb_ports' => 'USB Ports', 'hdmi_ports' => 'HDMI Ports',
+        'refresh_rate' => 'Refresh Rate',
+        'product_type'  => 'Product type',
         'screen_size'   => 'Screen Size',
         'resolution'    => 'Resolution',
         'capacity_btu'  => 'Capacity (BTU)',
@@ -851,7 +848,7 @@ class ProductController extends Controller
      */
     private function isExcludedAttribute(string $key): bool
     {
-        return in_array(strtolower(trim($key)), $this->excludedAttributeKeys, true);
+        return in_array(str_replace('_', ' ', strtolower(trim($key))), $this->excludedAttributeKeys, true);
     }
 
     /**
@@ -868,8 +865,42 @@ class ProductController extends Controller
      * collection. Must be called once per request BEFORE facetCounts() /
      * baselineCustomCounts() / any matching. Idempotent.
      */
+    private function typeScopedBaseline($products, Request $request): array
+    {
+        $types = (array) $request->input('options.product_type', []);
+        $relevant = empty($types) ? $products : $products->filter(fn ($p) =>
+            !empty(array_intersect((array) ($p->custom_attributes['product_type'] ?? []), $types)));
+        $counts = $this->baselineCustomCounts($relevant);
+        $all = $this->baselineCustomCounts($products);
+        $counts['product_type'] = $all['product_type'] ?? [];
+        return $counts;
+    }
+
     private function primeBucketLabels($products): void
     {
+        // Project legacy keys and values consistently without writing to the catalogue.
+        $request = request();
+        $request->merge(['options' => \App\Support\ProductFilterNormalizer::attributes((array) $request->input('options', []))]);
+        foreach ($products as $product) {
+            $attributes = \App\Support\ProductFilterNormalizer::attributes((array) $product->custom_attributes);
+            // Product type is controlled by catalogue organisation, never a free-text spec.
+            $type = $product->Subcategory?->name;
+            if (!$type && strcasecmp($product->category?->name ?? '', 'Sound and Vision') === 0) {
+                $name = $product->name;
+                $type = preg_match('/\btelevision|\btv\b/i', $name) ? 'Televisions'
+                    : (preg_match('/sound\s*bar/i', $name) ? 'Sound Bar'
+                    : (preg_match('/speaker/i', $name) ? 'Wireless Speaker'
+                    : (preg_match('/hi[ -]?fi|home\s*theat|xboom/i', $name) ? 'Home Theaters' : 'Other audio')));
+            }
+            $type ??= $product->category?->name;
+            unset($attributes['product_type']);
+            if ($type) $attributes['product_type'] = [$type];
+            foreach ($product->colors as $color) {
+                $attributes['colour'][] = \App\Support\ProductFilterNormalizer::value('colour', $color->name);
+            }
+            if (isset($attributes['colour'])) $attributes['colour'] = array_values(array_unique($attributes['colour']));
+            $product->setAttribute('custom_attributes', $attributes);
+        }
         // Tally raw value frequencies per attribute (no collapsing yet).
         $rawCounts = []; // key => [rawValue => count]
         foreach ($products as $p) {
@@ -911,6 +942,8 @@ class ProductController extends Controller
      */
     private function canonical(string $key, string $value): string
     {
+        $key = \App\Support\ProductFilterNormalizer::key($key);
+        $value = \App\Support\ProductFilterNormalizer::value($key, $value);
         $needle = strtolower(trim($value));
         foreach ($this->facetAliases[$key] ?? [] as $canonical => $aliases) {
             foreach ($aliases as $alias) {
@@ -922,29 +955,13 @@ class ProductController extends Controller
         return $value;
     }
 
-    /**
-     * Derive an automatic grouping key from a free-text value so near-
-     * duplicates collapse into one bucket.
-     *
-     * The catalogue stores values like:
-     *   "QLED (Quantum Dot LED)", "QLED (Quantum Dot LED) / VA",
-     *   "QLED (Quantum Dot LED) / VA Panel"
-     * which are really one option — QLED — with trailing qualifiers.
-     *
-     * Strategy: take the leading portion of the string, before the first
-     * qualifier delimiter ( "(", "/", ",", "-", ":" ), then lowercase and
-     * squeeze whitespace. All three QLED strings above reduce to "qled".
-     * Values with no delimiter (e.g. "60Hz") just normalise to themselves.
-     *
-     * This is intentionally blunt — it groups by the head term, which works
-     * well for "TYPE (detail)" style values. It is NOT applied to attributes
-     * where the qualifier is the meaningful part; if you hit such a case,
-     * exclude that key in buildBucketLabels().
+    /** Exact case/whitespace grouping only; semantic equivalents use ProductFilterNormalizer.
+     * Qualifiers, port standards, OS versions and ranges must not be discarded here.
      */
     private function bucketKey(string $value): string
     {
-        // Cut at the first qualifier delimiter.
-        $head = preg_split('/[\(\/,:\-]/', $value, 2)[0] ?? $value;
+        // Keep the full value; known equivalent values were normalised earlier.
+        $head = $value; // Preserve qualifiers: versions, ranges and standards can differ.
         // Lowercase + collapse internal whitespace for stable grouping.
         $head = strtolower(trim(preg_replace('/\s+/', ' ', $head)));
         return $head !== '' ? $head : strtolower(trim($value));
@@ -1050,7 +1067,7 @@ class ProductController extends Controller
      */
     private function scoreKeyMatch(string $rawKey, array $keywords): int
     {
-        $key   = strtolower(trim($rawKey));
+        $key   = str_replace('_', ' ', strtolower(trim($rawKey)));
         $score = 0;
         foreach ($keywords as $kw) {
             $kw = strtolower(trim($kw));
@@ -1080,6 +1097,10 @@ class ProductController extends Controller
     private function primeMandatoryFacets($products, ?string $categoryName, ?string $subcategoryName): void
     {
         $group = $this->resolveMandatoryGroup($categoryName, $subcategoryName);
+        foreach ((array) request('options.product_type', []) as $type) {
+            $group = array_replace($group, $this->resolveMandatoryGroup(null, (string) $type));
+        }
+        $group = ['product_type' => ['product type']] + $group;
         $this->mandatoryFacetKeys  = array_keys($group);
         $this->mandatoryFacetIndex = [];
         $this->absorbedAttributeKeys = [];
@@ -1113,7 +1134,7 @@ class ProductController extends Controller
                     if ($val === '') continue;
                     // resolveLabel uses the raw key's bucket map; this keeps the
                     // synthetic option labels consistent with the spec display.
-                    $label = $this->resolveLabel((string) $rawKey, $val);
+                    $label = \App\Support\ProductFilterNormalizer::value($bestKey, $this->resolveLabel((string) $rawKey, $val));
                     $this->mandatoryFacetIndex[$p->id][$bestKey][] = $label;
                 }
             }
@@ -1210,7 +1231,7 @@ class ProductController extends Controller
                     if (!$this->matchesFilters($p, $request, 'options.' . $key)) {
                         continue;
                     }
-                    foreach ((array) $value as $val) {
+                    foreach (array_unique(array_map(fn($v) => $this->resolveLabel($key, (string)$v), (array)$value)) as $val) {
                         $val = (string) $val;
                         if ($val === '') continue;
                         $label = $this->resolveLabel($key, $val);   // collapse + alias
@@ -1265,7 +1286,7 @@ class ProductController extends Controller
                 foreach ($p->custom_attributes as $key => $value) {
                     if ($this->isExcludedAttribute($key)) continue;
                     if ($this->isAbsorbedAttribute($key)) continue;
-                    foreach ((array) $value as $val) {
+                    foreach (array_unique(array_map(fn($v) => $this->resolveLabel($key, (string)$v), (array)$value)) as $val) {
                         $val = (string) $val;
                         if ($val === '') continue;
                         $label = $this->resolveLabel($key, $val);

@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', 'Blog — Albertina Nigeria')
+@section('title', 'Blog — AlbertinaNG')
 
 @section('content')
 <div class="main-wrap">

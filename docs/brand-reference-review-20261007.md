@@ -1,0 +1,133 @@
+# Brand reference review — no changes applied
+
+Proposed display name: **AlbertinaNG**.
+
+125 matching source lines across 67 application/source files. These include Albertina Nigeria, Albertina Nigeria Limited and shared names that append Limited. Generated caches are excluded. Staging store settings currently contain Albertina Nigeria. Database-managed About/Contact copy and sender configuration need checking during implementation.
+
+## Exact source locations
+
+- `resources/views/sims/contact.blade.php:3` — @section('title', 'Contact Us – Albertina Nigeria')
+- `resources/views/sims/contact.blade.php:8` — $cHeroTitle    = Setting::get('contact_hero_title',    'Contact Albertina Nigeria');
+- `resources/views/sims/partials/invoice-header.blade.php:11` — $hdrStoreName    = $storeName    ?? ($appStoreName ?? 'Albertina Nigeria');
+- `resources/views/sims/terms.blade.php:4` — @section('title', 'Terms & Conditions — Albertina Nigeria')
+- `resources/views/sims/terms.blade.php:31` — Please read these terms carefully before using Albertina Nigeria's website or services. By accessing our platform, you agree to be bound by the terms below.
+- `resources/views/sims/terms.blade.php:78` — <p class="terms-p">By accessing or using the Albertina Nigeria website or any of our services, you confirm that you are at least 18 years old and have read, understood, and agreed to be bound by these Terms and Conditions, together with our Privacy Policy.</p>
+- `resources/views/sims/terms.blade.php:116` — <p class="terms-p">All orders placed on Albertina Nigeria are subject to acceptance and availability. We reserve the right to refuse or cancel any order at our discretion, including where pricing errors have occurred.</p>
+- `resources/views/sims/terms.blade.php:121` — <li><span class="terms-bullet"></span><span>Albertina Nigeria is not liable for additional bank charges incurred during payment.</span></li>
+- `resources/views/sims/terms.blade.php:145` — <p class="terms-p">All content on this platform — including text, images, logos, graphics, and software — is the property of Albertina Nigeria Limited or its content suppliers and is protected by applicable intellectual property laws.</p>
+- `resources/views/sims/terms.blade.php:163` — <p class="terms-p">To the maximum extent permitted by law, Albertina Nigeria Limited shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or in connection with your use of our platform or services.</p>
+- `resources/views/sims/store_locator.blade.php:3` — @section('title', 'Store Locator — Albertina Nigeria')
+- `resources/views/sims/store_locator.blade.php:44` — <p class="sloc-section__p">Albertina Nigeria Limited is proud to serve you at our conveniently located showrooms across Nigeria. Each store offers a wide selection of Samsung, LG, Thermocool, and solar products, backed by our expert staff and excellent customer service.</p>
+- `resources/views/sims/store_locator.blade.php:136` — title="Albertina Nigeria — Enugu Showroom">
+- `resources/views/sims/store_locator.blade.php:142` — Map shows the Enugu HQ. Use Google Maps to search "Albertina Nigeria Lagos" or "Albertina Nigeria Awka" for other branches.
+- `resources/views/sims/store-locations.blade.php:3` — @section('title', 'Store Locations — ' . ($appStoreName ?? 'Albertina Nigeria'))
+- `resources/views/sims/privacy.blade.php:3` — @section('title', 'Privacy Policy – Albertina Nigeria')
+- `resources/views/sims/about.blade.php:3` — @section('title', 'About Us — Albertina Nigeria')
+- `resources/views/sims/about.blade.php:9` — $aWhoP1     = Setting::get('about_who_p1',        'Albertina Nigeria Limited is a leading electronics and appliances retailer, proudly serving Nigeria since our establishment in 1991. With showrooms in Enugu, Lagos, and Awka, we specialise in offering a wide range of high-quality products, including Samsung, LG, Thermocool, and innovative solar solutions. Our mission is to provide reliable, affordable, and cutting-edge electronics for both residential and commercial needs, ensuring customer satisfaction at every step.');
+- `resources/views/sims/about.blade.php:11` — $aStoryP1   = Setting::get('about_story_p1',      "Founded in 1991, Albertina Nigeria Limited has grown from a single store in Enugu to a trusted name across Nigeria, with additional locations at 26 Lawanson Road, Surulere, Lagos, and along the Enugu-Onitsha Expressway in Awka. Our journey is driven by a commitment to quality, innovation, and customer-centric service.");
+- `resources/views/sims/about.blade.php:40` — <h1 style="font-family:var(--font-head);font-size:2.4rem;font-weight:800;margin-bottom:14px;line-height:1.15;">About Albertina Nigeria Limited</h1>
+- `resources/views/sims/about.blade.php:161` — <p style="font-size:14px;color:var(--ink3);max-width:480px;margin:0 auto 28px;line-height:1.7;">Have questions or need assistance? Our team at Albertina Nigeria Limited is here to help. Reach out today.</p>
+- `resources/views/sims/faq.blade.php:3` — @section('title', 'FAQ – Albertina Nigeria')
+- `resources/views/sims/faq.blade.php:359` — <p>Find answers to common questions about shopping with Albertina Nigeria. We're here to make your experience as smooth as possible.</p>
+- `resources/views/sims/blog.blade.php:3` — @section('title', 'Blog — Albertina Nigeria')
+- `resources/views/partials/notify.blade.php:2` — {{-- ║  Progress-bar Notification System — Albertina Nigeria               ║ --}}
+- `resources/views/user/dashboard.blade.php:3` — @section('title', 'Albertina Nigeria – Premium Electronics & Home Appliances')
+- `resources/views/category.blade.php:3` — @section('title', $categoryName . ' – Albertina Nigeria')
+- `app/Mail/ContactMessageReceived.php:30` — subject: 'New Contact Message – Albertina Nigeria',
+- `app/Mail/OrderShipped.php:22` — subject: 'Your Order ' . $this->order->order_number . ' Has Shipped! – Albertina Nigeria',
+- `resources/views/layouts/authlayout.blade.php:7` — <meta name="description" content="Albertina Nigeria – Premium Electronics">
+- `resources/views/layouts/authlayout.blade.php:8` — <meta name="keywords" content="Albertina Nigeria">
+- `resources/views/layouts/authlayout.blade.php:10` — <title>@yield('title', 'Albertina Nigeria')</title>
+- `resources/views/layouts/authlayout.blade.php:22` — ALBERTINA NIGERIA — AUTH LAYOUT DESIGN SYSTEM
+- `resources/views/layouts/authlayout.blade.php:345` — <span>Welcome to Albertina Nigeria</span>
+- `resources/views/layouts/authlayout.blade.php:356` — <a href="/" aria-label="Albertina Nigeria Home">
+- `resources/views/layouts/authlayout.blade.php:358` — <img src="{{ asset('storage/' . $appStoreLogo) }}" alt="{{ $appStoreName ?? 'Albertina Nigeria' }}" style="height:44px; width:auto; object-fit:contain; display:block;">
+- `resources/views/layouts/authlayout.blade.php:360` — <img src="{{ asset('image.png') }}" alt="{{ $appStoreName ?? 'Albertina Nigeria' }}" style="height:44px; width:auto; object-fit:contain; display:block;">
+- `resources/views/layouts/authlayout.blade.php:383` — <img src="{{ asset('storage/' . $appStoreLogo) }}" alt="{{ $appStoreName ?? 'Albertina Nigeria' }}" style="height:54px; width:auto; object-fit:contain; display:inline-block;">
+- `resources/views/layouts/authlayout.blade.php:385` — <img src="{{ asset('image.png') }}" alt="{{ $appStoreName ?? 'Albertina Nigeria' }}" style="height:54px; width:auto; object-fit:contain; display:inline-block;">
+- `resources/views/layouts/authlayout.blade.php:398` — © {{ date('Y') }} Albertina Nigeria Limited &nbsp;·&nbsp;
+- `app/Mail/OrderDelivered.php:22` — subject: 'Your Order ' . $this->order->order_number . ' Has Been Delivered! – Albertina Nigeria',
+- `app/Mail/OrderCompleted.php:22` — subject: 'Your Order ' . $this->order->order_number . ' Is Complete – Albertina Nigeria',
+- `app/Mail/ContactAutoReply.php:29` — subject: 'We received your message – Albertina Nigeria',
+- `app/Mail/OrderProcessing.php:22` — subject: 'Your Order ' . $this->order->order_number . ' is Being Processed – Albertina Nigeria',
+- `app/Mail/OrderReviewRequest.php:22` — subject: 'How was your order? Leave a review – Albertina Nigeria',
+- `database/migrations/2025_01_14_000003_create_settings_table.php:24` — 'store_name'       => 'Albertina Nigeria',
+- `app/Mail/OrderCancelled.php:22` — subject: 'Your Order ' . $this->order->order_number . ' Has Been Cancelled – Albertina Nigeria',
+- `app/Mail/OrderRefunded.php:27` — subject: $this->progress()['label'] . ' for Order ' . $this->order->order_number . ' – Albertina Nigeria',
+- `resources/views/admin/invoice-settings/index.blade.php:40` — 'storeName'  => $appStoreName ?? 'Albertina Nigeria',
+- `resources/views/admin/invoice-settings/index.blade.php:292` — name:  INV_INIT.storeName  || 'Albertina Nigeria',
+- `app/Mail/OrderConfirmation.php:24` — subject: 'Order Confirmed ' . $this->order->order_number . ' – Albertina Nigeria',
+- `app/Mail/OrderReadyForPickup.php:22` — subject: 'Your Order ' . $this->order->order_number . ' Is Ready for Pickup! – Albertina Nigeria',
+- `app/Mail/TicketReplied.php:26` — subject: 'Re: ' . $this->ticket->subject . ' – Albertina Nigeria',
+- `resources/views/layouts/simslayout.blade.php:7` — <title>@yield('title', ($appStoreName ?? 'Albertina Nigeria') . ' – Premium Electronics')</title>
+- `resources/views/layouts/simslayout.blade.php:24` — ALBERTINA NIGERIA — DESIGN SYSTEM v2
+- `resources/views/layouts/simslayout.blade.php:2008` — <span>© {{ date('Y') }} {{ $appStoreName ?? 'Albertina Nigeria' }} Limited. All rights reserved.</span>
+- `resources/views/layouts/simslayout.blade.php:2028` — ALBERTINA NIGERIA — Global JS v2
+- `app/Mail/OrderCancellationRejected.php:22` — subject: 'Update on Your Cancellation Request for Order ' . $this->order->order_number . ' – Albertina Nigeria',
+- `resources/views/auth/login.blade.php:3` — @section('title', 'Sign In — Albertina Nigeria')
+- `resources/views/auth/verify.blade.php:3` — @section('title', 'Verify Your Email — Albertina Nigeria')
+- `resources/views/auth/passwords/reset.blade.php:3` — @section('title', 'Reset Password — Albertina Nigeria')
+- `resources/views/auth/passwords/email.blade.php:3` — @section('title', 'Forgot Password — Albertina Nigeria')
+- `resources/views/auth/passwords/confirm.blade.php:3` — @section('title', 'Confirm Password — Albertina Nigeria')
+- `resources/views/auth/register.blade.php:3` — @section('title', 'Create Account — Albertina Nigeria')
+- `resources/views/auth/two-factor.blade.php:3` — @section('title', 'Two-Factor Verification — Albertina Nigeria')
+- `resources/views/products/show.blade.php:3` — @section('title', $product->name . ' - Albertina Nigeria')
+- `resources/views/products/index.blade.php:3` — @section('title', 'All Products – Albertina Nigeria')
+- `resources/views/products/brand.blade.php:3` — @section('title', $brand->name . ' Products – Albertina Nigeria')
+- `resources/views/admin/contact/index.blade.php:42` — value="{{ $settings['contact_hero_title'] ?? 'Contact Albertina Nigeria' }}"
+- `resources/views/admin/contact/index.blade.php:43` — placeholder="Contact Albertina Nigeria">
+- `resources/views/emails/order_ready_for_pickup.blade.php:3` — @section('title', 'Ready for Pickup — Albertina Nigeria')
+- `resources/views/emails/order_ready_for_pickup.blade.php:85` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+- `resources/views/emails/order-completed.blade.php:3` — @section('title', 'Order Complete — Albertina Nigeria')
+- `resources/views/emails/order-completed.blade.php:6` — @section('header_sub', 'Thank you for shopping with Albertina Nigeria.')
+- `resources/views/emails/order-completed.blade.php:69` — <strong>Albertina Nigeria</strong>
+- `resources/views/emails/two-factor-code.blade.php:3` — @section('title', 'Verification Code — Albertina Nigeria')
+- `resources/views/emails/two-factor-code.blade.php:44` — <strong style="color:#2d5610;">Albertina Nigeria</strong>
+- `resources/views/emails/contact-admin.blade.php:3` — @section('title', 'New Contact Message — Albertina Nigeria')
+- `resources/views/emails/contact-admin.blade.php:52` — <a href="mailto:{{ $email }}?subject=Re: Your enquiry – Albertina Nigeria"
+- `resources/views/emails/order-delivered.blade.php:3` — @section('title', 'Order Delivered – Albertina Nigeria')
+- `resources/views/emails/order-delivered.blade.php:16` — Thank you for shopping with Albertina Nigeria.
+- `resources/views/emails/order-delivered.blade.php:112` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+- `resources/views/admin/settings/index.blade.php:60` — value="{{ old('store_name', $settings['store_name'] ?? 'Albertina Nigeria') }}"
+- `resources/views/admin/settings/index.blade.php:61` — required maxlength="100" placeholder="e.g. Albertina Nigeria">
+- `resources/views/emails/order-shipped.blade.php:3` — @section('title', 'Order Shipped – Albertina Nigeria')
+- `resources/views/emails/order-shipped.blade.php:122` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+- `resources/views/emails/orders/cancellation-user.blade.php:2` — @section('title', 'Order Cancelled — Albertina Nigeria')
+- `resources/views/emails/orders/cancellation-admin.blade.php:3` — @section('title', 'New Cancellation Request — Albertina Nigeria')
+- `resources/views/emails/order-cancelled.blade.php:3` — @section('title', 'Order Cancelled – Albertina Nigeria')
+- `resources/views/emails/order-cancelled.blade.php:121` — We're sorry for any inconvenience. <strong style="color:#2d5610;">Albertina Nigeria</strong><br>
+- `resources/views/emails/verify-email.blade.php:3` — @section('title', 'Verify Your Email — Albertina Nigeria')
+- `resources/views/emails/verify-email.blade.php:12` — Thanks for signing up with Albertina Nigeria. Please confirm your email address by clicking the button below.
+- `resources/views/emails/verify-email.blade.php:41` — <strong>Albertina Nigeria</strong>
+- `resources/views/emails/transaction.blade.php:3` — @section('title', 'Transaction Confirmation — Albertina Nigeria')
+- `resources/views/emails/transaction.blade.php:75` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.
+- `resources/views/emails/ticket-replied.blade.php:2` — @section('title', 'New Reply on Your Ticket — Albertina Nigeria')
+- `resources/views/emails/ticket-replied.blade.php:58` — <strong>Albertina Nigeria Support Team</strong>
+- `resources/views/emails/contact-notification.blade.php:3` — @section('title', 'New Contact Message — Albertina Nigeria')
+- `resources/views/emails/contact-notification.blade.php:52` — <a href="mailto:{{ $email }}?subject=Re: Your enquiry – Albertina Nigeria"
+- `resources/views/emails/order-processing.blade.php:3` — @section('title', 'Order Processing – Albertina Nigeria')
+- `resources/views/emails/order-processing.blade.php:152` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+- `resources/views/emails/layout.blade.php:6` — <title>@yield('title', $appStoreName ?? 'Albertina Nigeria')</title>
+- `resources/views/emails/layout.blade.php:121` — $emailStoreName = $appStoreName ?? 'Albertina Nigeria';
+- `resources/views/emails/order-ready-for-pickup.blade.php:3` — @section('title', 'Ready for Pickup – Albertina Nigeria')
+- `resources/views/emails/order-ready-for-pickup.blade.php:190` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+- `resources/views/emails/contact-autoreply.blade.php:3` — @section('title', 'We Got Your Message — Albertina Nigeria')
+- `resources/views/emails/contact-autoreply.blade.php:23` — Thank you for contacting Albertina Nigeria. We've received your message and a member of our team will respond to you as soon as possible — usually within 24 hours on business days.
+- `resources/views/emails/contact-autoreply.blade.php:71` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+- `resources/views/emails/deposit-notification.blade.php:3` — @section('title', 'Deposit Confirmation — Albertina Nigeria')
+- `resources/views/emails/deposit-notification.blade.php:68` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.
+- `resources/views/admin/about/index.blade.php:81` — placeholder="Albertina Nigeria Limited is a leading electronics…">{{ old('about_who_p1', $settings['about_who_p1'] ?? 'Albertina Nigeria Limited is a leading electronics and appliances retailer, proudly serving Nigeria since our establishment in 1991. With showrooms in Enugu, Lagos, and Awka, we specialise in offering a wide range of high-quality products, including Samsung, LG, Thermocool, and innovative solar solutions. Our mission is to provide reliable, affordable, and cutting-edge electronics for both residential and commercial needs, ensuring customer satisfaction at every step.') }}</textarea>
+- `resources/views/admin/about/index.blade.php:102` — placeholder="Founded in 1991, Albertina Nigeria…">{{ old('about_story_p1', $settings['about_story_p1'] ?? 'Founded in 1991, Albertina Nigeria Limited has grown from a single store in Enugu to a trusted name across Nigeria, with additional locations at 26 Lawanson Road, Surulere, Lagos, and along the Enugu-Onitsha Expressway in Awka. Our journey is driven by a commitment to quality, innovation, and customer-centric service.') }}</textarea>
+- `resources/views/emails/admin-email.blade.php:3` — @section('title') {!! strip_tags($title ?? 'Notification') !!} — Albertina Nigeria @endsection
+- `resources/views/emails/admin-email.blade.php:7` — @section('header_sub', 'An important message from Albertina Nigeria.')
+- `resources/views/emails/admin-email.blade.php:24` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.
+- `resources/views/emails/return-stage.blade.php:2` — @section('title', $label.' – Albertina Nigeria')
+- `resources/views/emails/order-refunded.blade.php:5` — @section('title', $refundProgress['label'].' – Albertina Nigeria')
+- `resources/views/emails/bank_account_notification.blade.php:3` — @section('title') {{ $title ?? 'Payment Details' }} — Albertina Nigeria @endsection
+- `resources/views/emails/bank_account_notification.blade.php:49` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.
+- `resources/views/emails/order-confirmation.blade.php:3` — @section('title', 'Order Confirmed – Albertina Nigeria')
+- `resources/views/emails/order-confirmation.blade.php:155` — Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+- `resources/views/emails/order-review-request.blade.php:3` — @section('title', 'Leave a Review — Albertina Nigeria')
+- `resources/views/emails/order-review-request.blade.php:68` — <strong>Albertina Nigeria</strong>
+- `resources/views/emails/reset-password.blade.php:3` — @section('title', 'Reset Password — Albertina Nigeria')
+- `resources/views/emails/reset-password.blade.php:42` — <strong>Albertina Nigeria</strong>

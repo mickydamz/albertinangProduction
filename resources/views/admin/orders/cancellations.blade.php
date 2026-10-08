@@ -1,6 +1,8 @@
 ﻿@extends('layouts.adminlayout')
 
 @section('content')
+@include('admin.orders.request-tabs')
+
 <div class="app-content content">
     <div class="content-wrapper container-xxl p-0">
 
@@ -149,16 +151,20 @@
                                                             <div class="fw-bold text-success">₦{{ number_format($cancellation->order->total ?? 0, 2) }}</div>
                                                         </div>
                                                         <div class="mb-3">
-                                                            <label class="form-label fw-bold small">Decision <span class="text-danger">*</span></label>
-                                                            <select name="status" class="form-select" required>
+                                                            <label class="form-label fw-bold small">Cancellation support</label>
+                                                            @if($cancellation->order?->payment_method === 'paystack')
+                                                            <input type="hidden" name="action" value="note">
+                                                            <p>Cancellation is already accepted. Add a support note; use the Refunds tab to check payment progress.</p>
+                                                            @else
+<select name="status" class="form-select" required>
                                                                 <option value="">— Select —</option>
                                                                 <option value="approved" @selected($cancellation->status === 'approved')>Approve cancellation</option>
                                                                 <option value="rejected" @selected($cancellation->status === 'rejected')>Reject cancellation</option>
                                                                 <option value="refunded" @selected($cancellation->status === 'refunded')>Approve &amp; refund customer</option>
-                                                            </select>
+                                                            </select>@endif
                                                         </div>
                                                         <div class="mb-3">
-                                                            <label class="form-label fw-bold small">Admin Note <span class="text-muted fw-normal">(optional)</span></label>
+                                                            <label class="form-label fw-bold small">Admin Note <span class="text-muted fw-normal">{{ $cancellation->order?->payment_method === 'paystack' ? '(required)' : '(optional)' }}</span></label>
                                                             <textarea name="admin_notes" class="form-control" rows="3"
                                                                       placeholder="e.g. Cancellation approved, refund in 5–10 business days…">{{ $cancellation->admin_notes }}</textarea>
                                                         </div>

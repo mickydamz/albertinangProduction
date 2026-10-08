@@ -1,8 +1,10 @@
 @extends('emails.layout')
 @php
     $refundProgress = $refundProgress ?? \App\Support\RefundProgress::forOrder($order) ?? \App\Support\RefundProgress::forStatus('unknown');
+    $statusLabel = $refundProgress['label'];
+    $statusHeading = 'Refund status';
 @endphp
-@section('title', $refundProgress['label'].' – Albertina Nigeria')
+@section('title', $refundProgress['label'].' – AlbertinaNG')
 @section('header_title', $refundProgress['label'])
 @section('header_sub', $refundProgress['message'])
 @section('body')

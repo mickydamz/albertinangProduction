@@ -75,12 +75,12 @@ class OrderEmailPickupTest extends TestCase
     public function processed_refund_hides_zero_usd_and_uses_processed_wording()
     {
         $order = $this->makePickupOrder(['status' => 'refunded', 'total_usd' => '0.00']);
-        $html = (new \App\Mail\OrderRefunded($order))->render();
+        $html = (new \App\Mail\OrderRefunded($order, 'processed'))->render();
         $this->assertStringNotContainsString('$0.00 USD', $html);
         $this->assertStringNotContainsString('successfully initiated', $html);
-        $this->assertStringContainsString('Paystack has confirmed', $html);
+        $this->assertStringContainsString('Your payment provider has confirmed', $html);
         $order->total_usd = 35.50;
-        $this->assertStringContainsString('$35.50 USD', (new \App\Mail\OrderRefunded($order))->render());
+        $this->assertStringContainsString('₦50,000.00', (new \App\Mail\OrderRefunded($order, 'processed'))->render());
     }
 
     /** @test */

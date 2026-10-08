@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'Order Delivered – Albertina Nigeria')
+@section('title', 'Order Delivered – AlbertinaNG')
 
 @section('header_icon')
     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -13,7 +13,7 @@
 
 @section('header_sub')
     Your order has arrived. We hope you love it!<br>
-    Thank you for shopping with Albertina Nigeria.
+    Thank you for shopping with AlbertinaNG.
 @endsection
 
 @php
@@ -109,7 +109,7 @@
     </div>
 
     <p style="font-size:13px; color:#7a9a60; line-height:1.7; text-align:center;">
-        Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+        Thank you for choosing <strong style="color:#2d5610;">AlbertinaNG</strong>.<br>
         We look forward to serving you again.
     </p>
 

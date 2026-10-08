@@ -1,6 +1,6 @@
 @extends('layouts.authlayout')
 
-@section('title', 'Confirm Password — Albertina Nigeria')
+@section('title', 'Confirm Password — AlbertinaNG')
 
 @section('content')
 

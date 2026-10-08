@@ -1,7 +1,7 @@
 
 @extends('layouts.simslayout')
 
-@section('title', 'Terms & Conditions — Albertina Nigeria')
+@section('title', 'Terms & Conditions — AlbertinaNG')
 
 @section('content')
 <div class="main-wrap">
@@ -28,7 +28,7 @@
             </div>
             <h1 style="font-family:var(--font-head);font-size:2rem;font-weight:800;margin-bottom:10px;line-height:1.2;">Terms &amp; Conditions</h1>
             <p style="font-size:14px;color:rgba(255,255,255,.65);max-width:560px;line-height:1.6;">
-                Please read these terms carefully before using Albertina Nigeria's website or services. By accessing our platform, you agree to be bound by the terms below.
+                Please read these terms carefully before using AlbertinaNG's website or services. By accessing our platform, you agree to be bound by the terms below.
             </p>
             <p style="font-size:12.5px;color:rgba(255,255,255,.4);margin-top:14px;">
                 <i class="fas fa-clock" style="margin-right:5px;"></i> Last updated: January 2025
@@ -75,7 +75,7 @@
                     <span class="terms-icon"><i class="fas fa-check-circle"></i></span>
                     1. Acceptance of Terms
                 </h2>
-                <p class="terms-p">By accessing or using the Albertina Nigeria website or any of our services, you confirm that you are at least 18 years old and have read, understood, and agreed to be bound by these Terms and Conditions, together with our Privacy Policy.</p>
+                <p class="terms-p">By accessing or using the AlbertinaNG website or any of our services, you confirm that you are at least 18 years old and have read, understood, and agreed to be bound by these Terms and Conditions, together with our Privacy Policy.</p>
                 <p class="terms-p">If you do not agree with any part of these terms, please discontinue use of our platform immediately.</p>
             </section>
 
@@ -113,12 +113,12 @@
                     <span class="terms-icon"><i class="fas fa-receipt"></i></span>
                     4. Orders &amp; Payment
                 </h2>
-                <p class="terms-p">All orders placed on Albertina Nigeria are subject to acceptance and availability. We reserve the right to refuse or cancel any order at our discretion, including where pricing errors have occurred.</p>
+                <p class="terms-p">All orders placed on AlbertinaNG are subject to acceptance and availability. We reserve the right to refuse or cancel any order at our discretion, including where pricing errors have occurred.</p>
                 <ul class="terms-ul">
                     <li><span class="terms-bullet"></span><span>Prices are displayed in Nigerian Naira (₦) unless otherwise indicated.</span></li>
                     <li><span class="terms-bullet"></span><span>Full payment is required before an order is processed and dispatched.</span></li>
                     <li><span class="terms-bullet"></span><span>We accept payment via bank transfer, card payments, and other methods listed at checkout.</span></li>
-                    <li><span class="terms-bullet"></span><span>Albertina Nigeria is not liable for additional bank charges incurred during payment.</span></li>
+                    <li><span class="terms-bullet"></span><span>AlbertinaNG is not liable for additional bank charges incurred during payment.</span></li>
                 </ul>
             </section>
 
@@ -142,7 +142,7 @@
                     <span class="terms-icon"><i class="fas fa-copyright"></i></span>
                     6. Intellectual Property
                 </h2>
-                <p class="terms-p">All content on this platform — including text, images, logos, graphics, and software — is the property of Albertina Nigeria Limited or its content suppliers and is protected by applicable intellectual property laws.</p>
+                <p class="terms-p">All content on this platform — including text, images, logos, graphics, and software — is the property of AlbertinaNG or its content suppliers and is protected by applicable intellectual property laws.</p>
                 <p class="terms-p">You may not reproduce, distribute, modify, or create derivative works without our express written permission.</p>
             </section>
 
@@ -160,7 +160,7 @@
                     <span class="terms-icon"><i class="fas fa-scale-balanced"></i></span>
                     8. Limitation of Liability
                 </h2>
-                <p class="terms-p">To the maximum extent permitted by law, Albertina Nigeria Limited shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or in connection with your use of our platform or services.</p>
+                <p class="terms-p">To the maximum extent permitted by law, AlbertinaNG shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or in connection with your use of our platform or services.</p>
                 <p class="terms-p">Our total liability to you for any claim arising under these Terms shall not exceed the total amount paid by you for the relevant order.</p>
             </section>
 

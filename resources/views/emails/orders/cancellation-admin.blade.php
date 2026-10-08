@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'New Cancellation Request — Albertina Nigeria')
+@section('title', 'New Cancellation Request — AlbertinaNG')
 
 @section('header_icon')
     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">

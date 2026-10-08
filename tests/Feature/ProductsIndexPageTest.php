@@ -57,11 +57,11 @@ class ProductsIndexPageTest extends TestCase
     }
 
     /** @test */
-    public function a_known_brand_filter_redirects_to_the_brand_page()
+    public function a_known_brand_filter_renders_combined_product_filters()
     {
         Brand::create(['name' => 'Bosch', 'slug' => 'bosch', 'is_active' => true]);
 
         $this->get('/products?brands[]=Bosch')
-            ->assertRedirect(route('brand.show', 'bosch'));
+            ->assertOk()->assertSee('Bosch');
     }
 }

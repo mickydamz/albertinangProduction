@@ -19,7 +19,7 @@ class OrderReadyForPickup extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Order ' . $this->order->order_number . ' Is Ready for Pickup! – Albertina Nigeria',
+            subject: 'Your Order ' . $this->order->order_number . ' Is Ready for Pickup! – AlbertinaNG',
         );
     }
 

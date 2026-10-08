@@ -135,11 +135,18 @@ class PaystackOrderService
 
         // 6. Create order in a single transaction that also marks the checkout
         //    fulfilled and links the transaction record — all or nothing.
+        $duplicate = false;
         try {
             $order = DB::transaction(function () use (
                 $reference, $resolvedUserId, $totalNgn, $fulfillment,
-                $items, $couponData, $custEmail, $pending
+                $items, $couponData, $custEmail, $pending, &$duplicate
             ) {
+                PendingCheckout::whereKey($pending->id)->lockForUpdate()->firstOrFail();
+                $existing = Order::where('reference', $reference)->first();
+                if ($existing) { $duplicate = true; return $existing; }
+                $allocation = app(CheckoutAllocationService::class);
+                $allocatedCoupon = $allocation->allocate($items, $couponData, $resolvedUserId);
+
                 $order = Order::create([
                     'user_id'                => $resolvedUserId,
                     'status'                 => 'paid',
@@ -184,23 +191,7 @@ class PaystackOrderService
                     ]);
                 }
 
-                if (!empty($couponData['id'])) {
-                    $coupon = Coupon::lockForUpdate()->find($couponData['id']);
-                    if ($coupon) {
-                        // Re-check limit after acquiring the row lock — prevents concurrent
-                        // over-redemption where two transactions both pass the pre-save check.
-                        if ($coupon->max_uses !== null && $coupon->used_count >= $coupon->max_uses) {
-                            Log::warning("Coupon {$coupon->code} limit exhausted at fulfilment (ref={$reference}); skipping increment.");
-                        } else {
-                            $coupon->increment('used_count');
-                            CouponUsage::create([
-                                'coupon_id' => $coupon->id,
-                                'user_id'   => $resolvedUserId,
-                                'order_id'  => $order->id,
-                            ]);
-                        }
-                    }
-                }
+                $allocation->recordUsage($allocatedCoupon, $order, $resolvedUserId);
 
                 // Mark checkout fulfilled and link the Paystack transaction inside
                 // the same transaction so these writes are atomic with order creation.
@@ -211,7 +202,13 @@ class PaystackOrderService
                     ->update(['order_id' => $order->id]);
 
                 return $order;
-            });
+            }, 5);
+        } catch (\DomainException $e) {
+            Log::alert("Paid checkout requires review ref={$reference}: " . $e->getMessage());
+            $transaction = PaystackTransaction::where('reference', $reference)->first();
+            if ($transaction) $transaction->update(['payload'=>array_merge($transaction->payload ?? [], ['fulfilment_error'=>$e->getMessage()])]);
+            $this->notifyAdminOfMissingCheckout($reference, $paystackData, $e->getMessage());
+            return $this->result(false, null, null, false, 'allocation', 'Payment received; coupon availability changed. Do not pay again. Contact support with reference: ' . $reference);
         } catch (\Illuminate\Database\QueryException $e) {
             // Distinguish duplicate-key from every other integrity violation.
             // MySQL error 1062 = "Duplicate entry"; PostgreSQL SQLSTATE 23505 = unique_violation.
@@ -239,6 +236,8 @@ class PaystackOrderService
             return $this->result(false, null, null, false, 'transient', $e->getMessage());
         }
 
+        if ($duplicate) return $this->result(true, $order->id, $order->order_number, true, null, 'Order already exists.');
+
         // 7. Send confirmation email after the transaction commits.
         //    Only reached on first creation — every duplicate path returns before step 6.
         $recipient = $order->user?->email ?? $custEmail;
@@ -253,7 +252,7 @@ class PaystackOrderService
         return $this->result(true, $order->id, $order->order_number, false, null, 'Order created.');
     }
 
-    private function notifyAdminOfMissingCheckout(string $reference, array $paystackData): void
+    private function notifyAdminOfMissingCheckout(string $reference, array $paystackData, string $reason = 'No checkout session found.'): void
     {
         $adminEmail = config('mail.admin_address', config('mail.from.address'));
         if (!$adminEmail) {
@@ -263,7 +262,7 @@ class PaystackOrderService
             $amountNgn    = number_format(($paystackData['amount'] ?? 0) / 100, 2);
             $customerEmail = $paystackData['customer']['email'] ?? 'unknown';
             Mail::raw(
-                "URGENT: Paystack payment received but no checkout session found.\n\n" .
+                "URGENT: Paystack payment received but order allocation requires review.\nReason: {$reason}\n\n" .
                 "Reference: {$reference}\n" .
                 "Amount: ₦{$amountNgn}\n" .
                 "Customer: {$customerEmail}\n\n" .

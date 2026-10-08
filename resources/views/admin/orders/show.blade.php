@@ -1,4 +1,4 @@
-﻿@extends('layouts.adminlayout')
+@extends('layouts.adminlayout')
 
 @section('content')
 <div class="app-content content">
@@ -21,6 +21,9 @@
         </div>
 
         <div class="content-body">
+            @if($errors->any())<div class="alert alert-danger" role="alert"><strong>The action was not saved.</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+            @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
+            @if(session('error'))<div class="alert alert-danger" role="alert">{{ session('error') }}</div>@endif
 
             {{-- ══════════════ Status + Action bar ══════════════ --}}
             @php
@@ -433,7 +436,7 @@
                         ];
                     @endphp
                     <span class="badge bg-{{ $returnColors[$order->return->status] ?? 'secondary' }}">
-                        {{ ucfirst($order->return->status) }}
+                        {{ $order->return->stageLabel() }}
                         @if($order->return->refund_status)
                             <div class="small">Refund: {{ ucfirst(str_replace('-', ' ', $order->return->refund_status)) }}</div>
                         @endif
@@ -469,6 +472,15 @@
 
                     <hr>
 
+                    @if($order->payment_method === 'paystack')
+                    <form method="POST" action="{{ route('admin.returns.review', $order->return) }}">
+                        @csrf @method('PATCH')
+                        @include('admin.orders.return-actions', ['return' => $order->return])
+                        @if(!$order->return->refund_status && $order->return->stage() !== 'rejected')
+                            <button type="submit" class="btn btn-primary">Save return action</button>
+                        @endif
+                    </form>
+                    @else
                     <form method="POST" action="{{ route('admin.returns.review', $order->return) }}">
                         @csrf
                         @method('PATCH')
@@ -494,6 +506,7 @@
                             </div>
                         </div>
                     </form>
+                    @endif
                 </div>
             </div>
             @else
@@ -554,6 +567,16 @@
 
                     <hr>
 
+                    @if($order->payment_method === 'paystack')
+                    <p>The order is cancelled. Track the payment separately in <a href="{{ route('admin.refunds.index') }}">Refunds</a>.</p>
+                    <form method="POST" action="{{ route('admin.cancellations.review', $order->cancellation) }}">
+                        @csrf @method('PATCH')
+                        <input type="hidden" name="action" value="note">
+                        <label class="form-label" for="cancellation-note">Support note</label>
+                        <textarea id="cancellation-note" name="admin_notes" class="form-control mb-2" required maxlength="1000">{{ old('admin_notes', $order->cancellation->admin_notes) }}</textarea>
+                        <button class="btn btn-primary">Save support note</button>
+                    </form>
+                    @else
                     <form method="POST" action="{{ route('admin.cancellations.review', $order->cancellation) }}">
                         @csrf
                         @method('PATCH')
@@ -579,6 +602,7 @@
                             </div>
                         </div>
                     </form>
+                    @endif
                 </div>
             </div>
             @else

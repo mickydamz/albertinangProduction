@@ -24,7 +24,14 @@ public function __construct()
 
     public function index(Request $request)
     {
-        $search         = $request->get('search');
+        $request->validate([
+            'search'=>'nullable|string|max:255','category'=>'nullable|integer|exists:categories,id',
+            'brand'=>'nullable|string|max:255','status'=>'nullable|in:0,1',
+            'inventory'=>'nullable|in:in_stock,low_stock,out_of_stock',
+            'min_price'=>'nullable|numeric|min:0','max_price'=>array_filter(['nullable','numeric','min:0',$request->filled('min_price') ? 'gte:min_price' : null]),
+            'per_page'=>'nullable|in:10,25,50,100',
+        ]);
+        $search         = trim((string) $request->get('search'));
         $filterCategory = $request->get('category');
         $filterStatus   = $request->get('status');
         $filterBrand    = $request->get('brand');
@@ -61,8 +68,13 @@ public function __construct()
             })
             ->when($filterStatus !== null && $filterStatus !== '',
                    fn($q) => $q->where('is_active', (bool) $filterStatus))
-            ->orderBy($sortBy, $sortDir)
-            ->paginate(10)
+            ->when($request->inventory === 'in_stock', fn($q) => $q->where('stock', '>', 0))
+            ->when($request->inventory === 'low_stock', fn($q) => $q->whereBetween('stock', [1, 5]))
+            ->when($request->inventory === 'out_of_stock', fn($q) => $q->where('stock', '<=', 0))
+            ->when($request->filled('min_price'), fn($q) => $q->where('price', '>=', $request->min_price))
+            ->when($request->filled('max_price'), fn($q) => $q->where('price', '<=', $request->max_price))
+            ->orderBy($sortBy, $sortDir)->orderBy('id')
+            ->paginate((int) $request->input('per_page', 25))
             ->withQueryString();
 
         $categories = Category::orderBy('name')->get();
@@ -100,15 +112,16 @@ public function store(Request $request)
         'description'                        => 'nullable|string',
         'brand_id'                           => 'nullable|exists:brands,id',
         'brand'                              => 'nullable|string',
-        'price'                              => 'required|numeric',
-        'subcategory_id'                     => 'nullable|exists:subcategories,id',
+        'price'                              => 'required|numeric|min:0.01',
+        'subcategory_id'                     => [\Illuminate\Validation\Rule::requiredIf(fn () => $request->boolean('is_active') && \App\Models\Subcategory::where('category_id', $request->input('category_id'))->exists()), 'nullable', \Illuminate\Validation\Rule::exists('subcategories', 'id')->where('category_id', $request->input('category_id'))],
         'stock'                              => 'required|integer|min:0',
         'moq'                                => 'nullable|integer|min:1',
         'category_id'                        => 'required|exists:categories,id',
         'is_active'                          => 'boolean',
         'requires_truck'                     => 'nullable|boolean',
         'weight_kg'                          => 'nullable|numeric|min:0|max:99999',
-        'images.*'                           => 'nullable|image|mimes:jpeg,png,jpg,gif|max:100048',
+        'images'                             => 'nullable|array|max:10',
+        'images.*'                           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
         'tags'                               => 'nullable|array',
         'tags.*'                             => 'string|max:255',
         'sizes'                              => 'nullable|array',
@@ -137,6 +150,9 @@ public function store(Request $request)
         'name', 'description', 'price',
         'subcategory_id', 'stock', 'category_id', 'moq'
     );
+
+    // An empty optional MOQ means one unit, never SQL NULL.
+    $data['moq'] = $request->filled('moq') ? (int) $request->input('moq') : 1;
 
     $data['markup_percent'] = ($request->filled('markup_percent') && $request->markup_percent !== '0' && $request->markup_percent != 0)
         ? $request->markup_percent
@@ -275,8 +291,8 @@ public function store(Request $request)
 
     UserDashboardController::clearHomepageCache();
 
-    return redirect()->route('admin.products.index')
-        ->with('success', 'Product created successfully.');
+    return redirect()->route('admin.products.edit', $product)
+        ->with('success', $product->is_active ? 'Product published. Review the listing below.' : 'Product saved unpublished. Review it below, then publish when ready.');
 }
 
     public function show($id)
@@ -341,8 +357,8 @@ public function update(Request $request, Product $product)
         'brand_id'                           => 'nullable|exists:brands,id',
         'brand'                              => 'nullable|string',
         'description'                        => 'nullable|string',
-        'price'                              => 'required|numeric',
-        'subcategory_id'                     => 'nullable|exists:subcategories,id',
+        'price'                              => 'required|numeric|min:0.01',
+        'subcategory_id'                     => [\Illuminate\Validation\Rule::requiredIf(fn () => $request->boolean('is_active') && \App\Models\Subcategory::where('category_id', $request->input('category_id'))->exists()), 'nullable', \Illuminate\Validation\Rule::exists('subcategories', 'id')->where('category_id', $request->input('category_id'))],
         'stock'                              => 'required|integer|min:0',
         'moq'                                => 'nullable|integer|min:1',
         'markup_percent'                     => 'nullable|numeric|min:0|max:1000',
@@ -352,7 +368,8 @@ public function update(Request $request, Product $product)
         'requires_truck'                     => 'nullable|boolean',
         'weight_kg'                          => 'nullable|numeric|min:0|max:99999',
         'removed_images'                     => 'nullable|string',
-        'images.*'                           => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'images'                             => 'nullable|array|max:10',
+        'images.*'                           => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
         'tags'                               => 'nullable|array',
         'tags.*'                             => 'string|max:255',
         'sizes'                              => 'nullable|array',
@@ -379,6 +396,9 @@ public function update(Request $request, Product $product)
         'name', 'description', 'price',
         'subcategory_id', 'stock', 'category_id', 'moq'
     );
+
+    // An empty optional MOQ means one unit, never SQL NULL.
+    $data['moq'] = $request->filled('moq') ? (int) $request->input('moq') : 1;
 
     $data['markup_percent'] = ($request->filled('markup_percent') && $request->markup_percent !== '0' && $request->markup_percent != 0)
         ? $request->markup_percent
@@ -538,6 +558,11 @@ public function update(Request $request, Product $product)
 
     public function destroy(Product $product)
     {
+        if (\App\Models\OrderItem::where('product_id', $product->id)->exists()) {
+            $product->update(['is_active' => false]);
+            UserDashboardController::clearHomepageCache();
+            return redirect()->route('admin.products.index')->with('success', 'Product unpublished. Its previous orders and reviews remain available.');
+        }
         $product->tags()->detach();
         $product->sizes()->detach();
         $product->colors()->detach();
@@ -589,6 +614,12 @@ public function update(Request $request, Product $product)
 
     public function toggleActive(Product $product)
     {
+        if (!$product->is_active && \App\Models\Subcategory::where('category_id', $product->category_id)->exists()
+            && !\App\Models\Subcategory::where('category_id', $product->category_id)->where('id', $product->subcategory_id)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'subcategory_id' => 'Choose a product type (subcategory) in the product editor before publishing.',
+            ]);
+        }
         $product->is_active = !$product->is_active;
         $product->save();
 

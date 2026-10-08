@@ -39,7 +39,7 @@ class OrderController extends Controller
             'customer_email'                   => 'nullable|email|max:255',
             'items'                            => 'required|array|min:1',
             'items.*.product_id'               => 'required|integer|exists:products,id',
-            'items.*.quantity'                 => 'required|integer|min:1|max:100',
+            'items.*.quantity'                 => 'required|integer|min:1',
             'items.*.installation_option'      => 'nullable|string|max:255',
             'coupon_code'                      => 'nullable|string|max:64',
             'fulfillment'                      => 'nullable|array',
@@ -73,6 +73,7 @@ class OrderController extends Controller
 
             $basePriceKobo = (int) round((float) $product->sell_price * 100);
             $qty           = (int) $row['quantity'];
+
 
             // Trickle-down weight: product → subcategory → category → 5 kg default.
             // Mirrors ProductController::truckCheck so the server reaches the same
@@ -391,7 +392,7 @@ class OrderController extends Controller
         ]);
 
         if (!$order->canReturn()) {
-            return back()->with('error', 'Returns are available only after delivery or completed collection.');
+            return back()->with('error', 'Returns are available within 30 days after delivery or completed collection.');
         }
         if ($order->return) {
             return back()->with('error', 'You have already submitted a return request for this order.');
@@ -402,7 +403,7 @@ class OrderController extends Controller
             $path = $request->file('evidence')->store('returns', 'public');
         }
 
-        OrderReturn::create([
+        $returnRequest = OrderReturn::create([
             'order_id'      => $order->id,
             'user_id'       => auth()->id(),
             'reason'        => $validated['reason'],
@@ -410,6 +411,8 @@ class OrderController extends Controller
             'status'        => 'pending',
         ]);
 
+        \Illuminate\Support\Facades\DB::table('order_request_events')->insert(['order_id'=>$order->id,'request_type'=>'return','request_id'=>$returnRequest->id,'actor_id'=>auth()->id(),'action'=>'requested','notes'=>$validated['reason'],'created_at'=>now(),'updated_at'=>now()]);
+        Mail::to($order->user->email)->queue(new \App\Mail\ReturnStageUpdated($returnRequest,'Return requested','We will review your return and provide instructions. Please wait for approval before sending the goods.'));
         return redirect()->route('account.orders')
             ->with('success', 'Return request submitted. We\'ll review it within 2 business days.');
     }
@@ -442,20 +445,24 @@ class OrderController extends Controller
             app(\App\Services\PaystackRefundService::class)->validateAmount($request->all());
         }
 
-        $cancellation = OrderCancellation::create([
-            'order_id' => $order->id,
-            'user_id'  => auth()->id(),
-            'reason'   => $request->reason,
-            'status'   => 'pending',
-        ]);
-
-        $order->update(['status' => 'cancelled']);
+        [$cancellation, $wasUnpaid] = \Illuminate\Support\Facades\DB::transaction(function () use ($order, $request) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if (!$locked->canCancel() || $locked->cancellation()->exists()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['reason'=>'This order has changed or is already cancelled. Refresh your orders.']);
+            }
+            $wasUnpaid = $locked->status === 'pending';
+            $cancellation = OrderCancellation::create(['order_id'=>$locked->id,'user_id'=>auth()->id(),'reason'=>$request->reason,'status'=>'approved']);
+            $locked->update(['status'=>'cancelled']);
+            \Illuminate\Support\Facades\DB::table('order_request_events')->insert(['order_id'=>$locked->id,'request_type'=>'cancellation','request_id'=>$cancellation->id,'actor_id'=>auth()->id(),'action'=>'cancelled','notes'=>$request->reason,'created_at'=>now(),'updated_at'=>now()]);
+            return [$cancellation, $wasUnpaid];
+        });
+        $order->refresh();
 
         $refundResult = null;
 
-        if ($order->payment_method === 'paystack') {
+        if (!$wasUnpaid && $order->payment_method === 'paystack') {
             $refundResult = $this->processPaystackRefund($order, $cancellation);
-        } elseif ($order->payment_method === 'stripe') {
+        } elseif (!$wasUnpaid && $order->payment_method === 'stripe') {
             $refundResult = $this->processStripeRefund($order, $cancellation);
         }
 
@@ -481,7 +488,7 @@ class OrderController extends Controller
         $message = 'Your order has been cancelled.';
         if ($refundResult && $refundResult['success']) {
             $message .= ' Your refund request is being processed. We will notify you when the payment provider confirms completion.';
-        } elseif (in_array($order->payment_method, ['paystack', 'stripe'])) {
+        } elseif (!$wasUnpaid && in_array($order->payment_method, ['paystack', 'stripe'])) {
             $message .= ' We could not process your refund automatically — our team will handle it manually.';
         }
 

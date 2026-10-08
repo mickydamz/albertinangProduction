@@ -12,7 +12,7 @@ class Country extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name']; // Make sure to add fillable properties if you want mass assignment
+    protected $fillable = ['name', 'iso_code'];
 
     public function users()
     {

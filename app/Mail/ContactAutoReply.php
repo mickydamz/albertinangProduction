@@ -26,7 +26,7 @@ class ContactAutoReply extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'We received your message – Albertina Nigeria',
+            subject: 'We received your message – AlbertinaNG',
         );
     }
 

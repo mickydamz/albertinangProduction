@@ -1,11 +1,11 @@
 @extends('layouts.simslayout')
 
-@section('title', 'Contact Us – Albertina Nigeria')
+@section('title', 'Contact Us – AlbertinaNG')
 
 @section('content')
 @php
 use App\Models\Setting;
-$cHeroTitle    = Setting::get('contact_hero_title',    'Contact Albertina Nigeria');
+$cHeroTitle    = Setting::get('contact_hero_title',    'Contact AlbertinaNG');
 $cHeroSub      = Setting::get('contact_hero_subtitle', "We're here to help with all your electronics and appliance needs. Reach out and our team will get back to you promptly.");
 $cEmail        = Setting::get('contact_email',         'Info@Albertinang.com');
 $cPhone1       = Setting::get('contact_phone_1',       '+234 806 406 6170');

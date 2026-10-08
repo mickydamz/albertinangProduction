@@ -7,7 +7,7 @@ async function selectTom(page, selectId, label) {
     // Set value on the native select and dispatch change so Tom Select + our handler react.
     await page.evaluate(({ selectId, label }) => {
         const sel = document.getElementById(selectId);
-        const opt = [...sel.options].find(o => o.textContent.trim() === label);
+        const opt = sel.tomselect ? Object.values(sel.tomselect.options).find(o => o.text.trim() === label) : [...sel.options].find(o => o.textContent.trim() === label);
         if (!opt) throw new Error(`Option "${label}" not found in #${selectId}`);
         // Prefer the Tom Select API when present
         if (sel.tomselect) {
@@ -22,25 +22,26 @@ async function selectTom(page, selectId, label) {
 test.describe('Registration — country/state dropdowns', () => {
 
     test.beforeEach(async ({ page }) => {
+        await page.route('https://ipwho.is/**', route => route.fulfill({json:{country_code:'NG'}}));
         await page.goto('/register');
         // Wait until country options are present and Tom Select has initialised
         await page.waitForFunction(() => {
             const sel = document.getElementById('country_id');
-            return sel && sel.options.length > 10 && sel.tomselect;
+            return sel && sel.tomselect && Object.keys(sel.tomselect.options).length > 10;
         }, { timeout: 15000 });
     });
 
     test('Nigeria is default-selected and its 37 states auto-load', async ({ page }) => {
         // Country defaults to Nigeria
         const countryVal = await page.locator('#country_id').inputValue();
-        const nigeriaOpt = await page.locator('#country_id option', { hasText: 'Nigeria' }).getAttribute('value');
+        const nigeriaOpt = await page.evaluate(() => Object.values(document.getElementById('country_id').tomselect.options).find(o => o.text.trim() === 'Nigeria').value);
         expect(countryVal).toBe(nigeriaOpt);
 
         // States load via fetch — wait for them
         await page.waitForFunction(() =>
-            document.getElementById('state_id').options.length > 10, { timeout: 10000 });
+            Object.keys(document.getElementById('state_id').tomselect.options).length > 10, { timeout: 10000 });
 
-        const stateCount = await page.locator('#state_id option:not([value=""])').count();
+        const stateCount = await page.evaluate(() => Object.values(document.getElementById('state_id').tomselect.options).filter(o => o.value).length);
         console.log('Nigeria states:', stateCount);
         expect(stateCount).toBe(37);
     });
@@ -49,9 +50,9 @@ test.describe('Registration — country/state dropdowns', () => {
         await selectTom(page, 'country_id', 'Algeria');
 
         await page.waitForFunction(() =>
-            document.getElementById('state_id').options.length > 5, { timeout: 10000 });
+            Object.values(document.getElementById('state_id').tomselect.options).some(o => /Adrar/.test(o.text)), { timeout: 10000 });
 
-        const stateCount = await page.locator('#state_id option:not([value=""])').count();
+        const stateCount = await page.evaluate(() => Object.values(document.getElementById('state_id').tomselect.options).filter(o => o.value).length);
         console.log('Algeria states:', stateCount);
         expect(stateCount).toBeGreaterThan(10);
     });
@@ -99,16 +100,20 @@ test.describe('Registration — country/state dropdowns', () => {
     test('full valid form with Algeria + state passes browser validation', async ({ page }) => {
         await selectTom(page, 'country_id', 'Algeria');
         await page.waitForFunction(() =>
-            document.getElementById('state_id').options.length > 5, { timeout: 10000 });
+            Object.values(document.getElementById('state_id').tomselect.options).some(o => /Adrar/.test(o.text)), { timeout: 10000 });
 
         // Pick the first real state via Tom Select
-        const firstStateLabel = await page.locator('#state_id option:not([value=""])').first().textContent();
+        const firstStateLabel = await page.evaluate(() => Object.values(document.getElementById('state_id').tomselect.options).find(o => o.value).text);
         await selectTom(page, 'state_id', firstStateLabel.trim());
 
         await page.fill('#name', 'Playwright User');
         await page.fill('#email', `pw_${Date.now()}@example.com`);
         await page.fill('#password', 'Password123!');
         await page.fill('#password_confirmation', 'Password123!');
+        await page.fill('#shipping_address', '12 Test Street\nFlat 2');
+        await page.fill('#city', 'Adrar');
+        await page.fill('#postal_code', '01000');
+        await expect(page.getByLabel('Street address (optional)')).toHaveValue('12 Test Street\nFlat 2');
         await page.check('#terms_conditions');
 
         const valid = await page.evaluate(() => document.getElementById('reg-form').checkValidity());
@@ -186,4 +191,43 @@ test.describe('Registration — IP-detected country drives the state dropdown', 
         expect(names.some((n) => /Abia|Lagos/.test(n))).toBe(false);
     });
 
+});
+
+test.describe('Registration country request races', () => {
+    test('late states from an earlier country cannot replace the latest selection', async ({page}) => {
+        await page.route('https://ipwho.is/**', route => route.fulfill({json:{country_code:'NG'}}));
+        await page.goto('/register');
+        const usId = await page.evaluate(() => Object.values(document.getElementById('country_id').tomselect.options).find(o=>o.text.trim()==='United States').value);
+        let release;
+        const delayed = new Promise(resolve => release=resolve);
+        let requested;
+        const started = new Promise(resolve => requested=resolve);
+        await page.route(`**/api/countries/${usId}/states`, async route => {
+            const response = await route.fetch();
+            requested(); await delayed; await route.fulfill({response});
+        });
+        await selectTom(page,'country_id','United States');
+        await started;
+        await selectTom(page,'country_id','Algeria');
+        await page.waitForFunction(()=>Object.values(document.getElementById('state_id').tomselect.options).some(o=>/Adrar/.test(o.text)));
+        const responseDone = page.waitForResponse(r=>r.url().endsWith(`/api/countries/${usId}/states`));
+        release(); await responseDone;
+        await expect.poll(()=>page.evaluate(()=>Object.values(document.getElementById('state_id').tomselect.options).some(o=>/Adrar/.test(o.text)))).toBe(true);
+        expect(await page.evaluate(()=>Object.values(document.getElementById('state_id').tomselect.options).some(o=>o.text.trim()==='California'))).toBe(false);
+    });
+
+    test('late geolocation cannot override a manual choice even when restored to Nigeria', async ({page}) => {
+        let release;
+        const delayed = new Promise(resolve=>release=resolve);
+        await page.route('https://ipwho.is/**', async route=>{
+            await delayed; await route.fulfill({json:{country_code:'US'}});
+        });
+        await page.goto('/register');
+        await selectTom(page,'country_id','Algeria');
+        await selectTom(page,'country_id','Nigeria');
+        const geoDone=page.waitForResponse(r=>r.url().startsWith('https://ipwho.is/'));
+        release(); await geoDone;
+        await expect.poll(()=>page.evaluate(()=>document.getElementById('country_id').tomselect.getItem(document.getElementById('country_id').tomselect.getValue())?.textContent.trim())).toBe('Nigeria');
+        await page.waitForFunction(()=>Object.values(document.getElementById('state_id').tomselect.options).some(o=>/Lagos/.test(o.text)));
+    });
 });

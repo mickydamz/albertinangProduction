@@ -510,26 +510,20 @@ class AdminOrderController extends Controller
     // ── Review a return ─────────────────────────────────────────────────────────
     public function reviewReturn(Request $request, OrderReturn $return)
     {
+        if ($return->order?->payment_method === 'paystack') {
+            $input=$request->validate(['action'=>'required|in:approve,reject,receive,inspect,refund,refund_without_return',
+                'admin_notes'=>'nullable|string|max:1000','return_instructions'=>'nullable|string|max:2000']);
+            app(\App\Services\PaystackRefundService::class)->validateAmount($request->all());
+            $result=app(\App\Services\ReturnWorkflowService::class)->transition($return,$input['action'],$input['admin_notes'] ?? null,$input['return_instructions'] ?? null);
+            return back()->with($result['success']?'success':'error',$result['message']);
+        }
+
         $request->validate([
             'status'      => 'required|in:approved,rejected,refunded',
             'admin_notes' => 'nullable|string|max:1000',
         ]);
 
-        if ($return->order?->payment_method === 'paystack') {
-            $service = app(\App\Services\PaystackRefundService::class);
-            $service->validateAmount($request->all());
-            if ($request->status === 'rejected' && $return->refund_status) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['status'=>'A requested refund cannot be rejected or undone here.']);
-            }
-            $return->update(['admin_notes'=>$request->admin_notes]);
-            if (in_array($request->status, ['approved','refunded'], true)) {
-                $result = $service->initiate($return->order, $return);
-                return back()->with($result['success'] ? 'success' : 'error', $result['message']);
-            }
-            if (!$return->refund_status) $return->update(['status'=>$request->status]);
-            if (false && $request->status === 'approved') $return->order->update(['status'=>'cancelled']);
-            return back()->with('success', 'Request decision saved.');
-        }
+
 
         $return->update([
             'status'      => $request->status,
@@ -652,26 +646,20 @@ class AdminOrderController extends Controller
     // ── Review a cancellation ─────────────────────────────────────────────────
     public function reviewCancellation(Request $request, OrderCancellation $cancellation)
     {
+        if ($cancellation->order?->payment_method === 'paystack') {
+            $input=$request->validate(['action'=>'required|in:note','admin_notes'=>'required|string|max:1000']);
+            $cancellation->update(['admin_notes'=>$input['admin_notes']]);
+            \Illuminate\Support\Facades\DB::table('order_request_events')->insert(['order_id'=>$cancellation->order_id,'request_type'=>'cancellation',
+                'request_id'=>$cancellation->id,'actor_id'=>auth()->id(),'action'=>'note','notes'=>$input['admin_notes'],'created_at'=>now(),'updated_at'=>now()]);
+            return back()->with('success','Cancellation note saved. The order remains cancelled; refund progress is tracked separately.');
+        }
+
         $request->validate([
             'status'      => 'required|in:approved,rejected,refunded',
             'admin_notes' => 'nullable|string|max:1000',
         ]);
 
-        if ($cancellation->order?->payment_method === 'paystack') {
-            $service = app(\App\Services\PaystackRefundService::class);
-            $service->validateAmount($request->all());
-            if ($request->status === 'rejected' && $cancellation->refund_status) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['status'=>'A requested refund cannot be rejected or undone here.']);
-            }
-            $cancellation->update(['admin_notes'=>$request->admin_notes]);
-            if ($request->status === 'refunded') {
-                $result = $service->initiate($cancellation->order, $cancellation);
-                return back()->with($result['success'] ? 'success' : 'error', $result['message']);
-            }
-            if (!$cancellation->refund_status) $cancellation->update(['status'=>$request->status]);
-            if (true && $request->status === 'approved') $cancellation->order->update(['status'=>'cancelled']);
-            return back()->with('success', 'Request decision saved.');
-        }
+
 
         $cancellation->update([
             'status'      => $request->status,

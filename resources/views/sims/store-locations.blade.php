@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', 'Store Locations — ' . ($appStoreName ?? 'Albertina Nigeria'))
+@section('title', 'Store Locations — ' . ($appStoreName ?? 'AlbertinaNG'))
 
 @section('content')
 

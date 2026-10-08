@@ -9,21 +9,21 @@ return [
             ['route' => "admin.orders.index", 'label' => "All orders", 'matches' => ["admin.orders.*"], 'icon' => "list-ul", 'description' => "View payments and update delivery or collection progress."],
             ['route' => "admin.cancellations.index", 'label' => "Cancellations", 'matches' => ["admin.cancellations.*"], 'icon' => "ban", 'description' => "Review cancellation requests and refunds before shipment or collection."],
             ['route' => "admin.returns.index", 'label' => "Returns", 'matches' => ["admin.returns.*"], 'icon' => "rotate-left", 'description' => "Handle return requests and refunds after delivery or collection."],
+            ['route' => "admin.refunds.index", 'label' => "Refunds", 'matches' => ["admin.refunds.*"], 'icon' => "money-bill", 'description' => "Monitor Paystack refunds and check delayed payments without issuing duplicates."],
         ],
     ],
     [
-        'id' => "products", 'label' => "Products & suppliers", 'icon' => "box-open",
+        'id' => "products", 'label' => "Products & catalogue", 'icon' => "box-open",
         'description' => "Manage your catalogue and the people supplying it.",
         'items' => [
             ['route' => "admin.products.index", 'label' => "Products", 'matches' => ["admin.products.*"], 'icon' => "box", 'description' => "Add products, manage stock and edit listings."],
             ['route' => "admin.categories.index", 'label' => "Categories", 'matches' => ["admin.categories.*"], 'icon' => "folder-open", 'description' => "Organise the main product categories."],
             ['route' => "admin.subcategories.index", 'label' => "Subcategories", 'matches' => ["admin.subcategories.*"], 'icon' => "folder", 'description' => "Group products within a category."],
             ['route' => "admin.brands.index", 'label' => "Brands", 'matches' => ["admin.brands.index", "admin.brands.create", "admin.brands.edit", "admin.brands.show"], 'icon' => "copyright", 'description' => "Manage product brands and their details."],
-            ['route' => "admin.suppliers.index", 'label' => "Suppliers", 'matches' => ["admin.suppliers.*"], 'icon' => "truck-loading", 'description' => "Manage supplier records."],
             ['route' => "admin.brands.assign", 'label' => "Brand assignments", 'matches' => ["admin.brands.assign"], 'icon' => "handshake", 'description' => "Assign brands to team members."],
-            ['route' => "admin.tags.index", 'label' => "Product tags", 'matches' => ["admin.tags.*"], 'icon' => "hashtag", 'description' => "Label products for discovery."],
+            ['route' => "admin.tags.index", 'label' => "Search keywords", 'matches' => ["admin.tags.*"], 'icon' => "hashtag", 'description' => "Label products for discovery."],
             ['route' => "admin.colors.index", 'label' => "Colours", 'matches' => ["admin.colors.*"], 'icon' => "palette", 'description' => "Manage available product colours."],
-            ['route' => "admin.sizes.index", 'label' => "Sizes", 'matches' => ["admin.sizes.*"], 'icon' => "ruler-combined", 'description' => "Manage available product sizes."],
+            ['route' => "admin.sizes.index", 'label' => "Legacy sizes", 'matches' => ["admin.sizes.*"], 'icon' => "ruler-combined", 'description' => "Historical generic sizes; use category-specific specifications for new products."],
         ],
     ],
     [
@@ -33,7 +33,6 @@ return [
             ['route' => "admin.markup.index", 'label' => "Price markup", 'matches' => ["admin.markup.*"], 'icon' => "percent", 'description' => "Set price margins and markup rules."],
             ['route' => "admin.discount.index", 'label' => "Discounts", 'matches' => ["admin.discount.*"], 'icon' => "scissors", 'description' => "Manage product discounts."],
             ['route' => "admin.coupons.index", 'label' => "Coupon codes", 'matches' => ["admin.coupons.*"], 'icon' => "ticket", 'description' => "Create and manage checkout offers."],
-            ['route' => "admin.affiliates.index", 'label' => "Affiliates", 'matches' => ["admin.affiliates.*"], 'icon' => "share-nodes", 'description' => "Manage your referral partners."],
         ],
     ],
     [

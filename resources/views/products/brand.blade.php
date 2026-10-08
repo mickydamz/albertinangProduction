@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', $brand->name . ' Products – Albertina Nigeria')
+@section('title', $brand->name . ' Products – AlbertinaNG')
 
 @push('styles')
 <style>
@@ -1239,4 +1239,5 @@ ul { list-style: none; }
 
 })();
 </script>
+@include('products.partials.filter-tools')
 @endpush

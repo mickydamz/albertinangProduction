@@ -1,14 +1,14 @@
 @extends('layouts.simslayout')
 
-@section('title', 'About Us — Albertina Nigeria')
+@section('title', 'About Us — AlbertinaNG')
 
 @section('content')
 @php
 use App\Models\Setting;
 $aHeroSub   = Setting::get('about_hero_subtitle', 'Your trusted partner for quality electronics and home appliances in Nigeria — proudly serving customers since 1991.');
-$aWhoP1     = Setting::get('about_who_p1',        'Albertina Nigeria Limited is a leading electronics and appliances retailer, proudly serving Nigeria since our establishment in 1991. With showrooms in Enugu, Lagos, and Awka, we specialise in offering a wide range of high-quality products, including Samsung, LG, Thermocool, and innovative solar solutions. Our mission is to provide reliable, affordable, and cutting-edge electronics for both residential and commercial needs, ensuring customer satisfaction at every step.');
+$aWhoP1     = Setting::get('about_who_p1',        'AlbertinaNG is a leading electronics and appliances retailer, proudly serving Nigeria since our establishment in 1991. With showrooms in Enugu, Lagos, and Awka, we specialise in offering a wide range of high-quality products, including Samsung, LG, Thermocool, and innovative solar solutions. Our mission is to provide reliable, affordable, and cutting-edge electronics for both residential and commercial needs, ensuring customer satisfaction at every step.');
 $aWhoP2     = Setting::get('about_who_p2',        "From our headquarters at 17-18 Zik's Avenue, Uwani, Enugu, we have built a reputation for competitive pricing, knowledgeable staff, and exceptional after-sales service. Whether you're upgrading your home with the latest appliances or seeking energy-efficient solar solutions, Albertina is your go-to destination.");
-$aStoryP1   = Setting::get('about_story_p1',      "Founded in 1991, Albertina Nigeria Limited has grown from a single store in Enugu to a trusted name across Nigeria, with additional locations at 26 Lawanson Road, Surulere, Lagos, and along the Enugu-Onitsha Expressway in Awka. Our journey is driven by a commitment to quality, innovation, and customer-centric service.");
+$aStoryP1   = Setting::get('about_story_p1',      "Founded in 1991, AlbertinaNG has grown from a single store in Enugu to a trusted name across Nigeria, with additional locations at 26 Lawanson Road, Surulere, Lagos, and along the Enugu-Onitsha Expressway in Awka. Our journey is driven by a commitment to quality, innovation, and customer-centric service.");
 $aYears     = Setting::get('about_years',     '30+');
 $aShowrooms = Setting::get('about_showrooms', '3');
 $aFeedback  = Setting::get('about_feedback',  '99%');
@@ -37,7 +37,7 @@ $aEstYear   = Setting::get('about_est_year',  '1991');
                 <i class="fas fa-store" style="font-size:12px;color:var(--g200);"></i>
                 <span style="font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--g200);">Est. 1991</span>
             </div>
-            <h1 style="font-family:var(--font-head);font-size:2.4rem;font-weight:800;margin-bottom:14px;line-height:1.15;">About Albertina Nigeria Limited</h1>
+            <h1 style="font-family:var(--font-head);font-size:2.4rem;font-weight:800;margin-bottom:14px;line-height:1.15;">About AlbertinaNG</h1>
             <p style="font-size:15px;color:rgba(255,255,255,.7);max-width:580px;margin:0 auto;line-height:1.7;">
                 {{ $aHeroSub }}
             </p>
@@ -158,7 +158,7 @@ $aEstYear   = Setting::get('about_est_year',  '1991');
                 <i class="fas fa-headset" style="font-size:20px;color:#fff;"></i>
             </div>
             <h2 style="font-family:var(--font-head);font-size:1.5rem;font-weight:800;color:var(--ink);margin-bottom:10px;">Get in Touch</h2>
-            <p style="font-size:14px;color:var(--ink3);max-width:480px;margin:0 auto 28px;line-height:1.7;">Have questions or need assistance? Our team at Albertina Nigeria Limited is here to help. Reach out today.</p>
+            <p style="font-size:14px;color:var(--ink3);max-width:480px;margin:0 auto 28px;line-height:1.7;">Have questions or need assistance? Our team at AlbertinaNG is here to help. Reach out today.</p>
 
             <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
                 <a href="mailto:Info@Albertinang.com" style="display:inline-flex;align-items:center;gap:8px;background:var(--g500);color:#fff;padding:12px 24px;border-radius:var(--radius);font-size:14px;font-weight:600;font-family:var(--font-head);transition:all .2s;" onmouseover="this.style.background='var(--g600)';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='var(--g500)';this.style.transform='none'">

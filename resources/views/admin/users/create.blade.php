@@ -70,7 +70,6 @@
                                             <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
                                             <option value="manager" {{ old('role') == 'manager' ? 'selected' : '' }}>Manager</option>
                                             <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>User</option>
-                                            <!-- <option value="affiliate" {{ old('role') == 'affiliate' ? 'selected' : '' }}>Affiliate</option> -->
                                         </select>
                                     </div>
 

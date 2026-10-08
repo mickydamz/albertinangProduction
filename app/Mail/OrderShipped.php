@@ -19,7 +19,7 @@ class OrderShipped extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Order ' . $this->order->order_number . ' Has Shipped! – Albertina Nigeria',
+            subject: 'Your Order ' . $this->order->order_number . ' Has Shipped! – AlbertinaNG',
         );
     }
 

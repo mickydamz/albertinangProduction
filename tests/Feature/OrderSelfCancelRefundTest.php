@@ -83,7 +83,7 @@ class OrderSelfCancelRefundTest extends TestCase
     // ── Paystack ────────────────────────────────────────────────────────────
 
     /** @test */
-    public function paystack_self_cancel_auto_refunds_and_marks_order_refunded()
+    public function paystack_self_cancel_requests_refund_without_claiming_settlement()
     {
         Http::fake([
             'api.paystack.co/refund' => Http::response([
@@ -100,11 +100,11 @@ class OrderSelfCancelRefundTest extends TestCase
         $order->refresh();
         $cancellation = $order->cancellation()->first();
 
-        $this->assertSame('refunded', $order->status);
+        $this->assertSame('cancelled', $order->status);
         $this->assertNotNull($cancellation);
-        $this->assertSame('refunded', $cancellation->status);
+        $this->assertSame('approved', $cancellation->status);
         $this->assertSame('555001', (string) $cancellation->refund_id);
-        $this->assertNotNull($cancellation->refunded_at);
+        $this->assertNull($cancellation->refunded_at);
 
         Http::assertSent(function ($request) use ($order) {
             return $request->url() === 'https://api.paystack.co/refund'

@@ -88,7 +88,7 @@ class AdminSizeController extends Controller
     {
         // Validate the incoming request data
         $request->validate([
-            'name' => 'required|string|max:255|unique:sizes,name,' . $Size->id, // Name must be unique, excluding the current Size's ID
+            'name' => 'required|string|max:255|unique:sizes,name,' . $size->id, // Name must be unique, excluding the current Size's ID
         ]);
 
         // Update the Size's name

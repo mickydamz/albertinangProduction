@@ -8,7 +8,7 @@
       $invHeaderNote, $issueDate (string)
 --}}
 @php
-    $hdrStoreName    = $storeName    ?? ($appStoreName ?? 'Albertina Nigeria');
+    $hdrStoreName    = $storeName    ?? ($appStoreName ?? 'AlbertinaNG');
     $hdrStoreAddr    = $storeAddr     ?? ($storeAddress ?? '');
     $hdrStoreContact = $storeContact ?? ($storeEmail ?? '');
     $hdrStorePhone   = $storePhone   ?? null;

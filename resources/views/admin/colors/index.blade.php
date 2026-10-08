@@ -9,7 +9,7 @@
             <div class="col-12 mb-2">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h2 class="content-header-title mb-0">Colors Management</h2>
+                        <h2 class="content-header-title mb-0">Standard colours</h2>
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Home</a></li>
                             <li class="breadcrumb-item active">Colors</li>
@@ -21,7 +21,7 @@
                 </div>
             </div>
         </div>
-        <div class="content-body">
+        <div class="content-body"><div class="alert alert-info">Use short standard colour names, such as Silver, White or Black. Product colour selections and existing colour specifications feed one customer Colour filter. Keep material and finish details in Specifications.</div>
             <section id="product-list">
                 <div class="row">
                     <div class="col-12">

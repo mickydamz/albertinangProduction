@@ -270,7 +270,7 @@ class PaystackOrderFulfillmentTest extends TestCase
     }
 
     /** @test */
-    public function it_creates_the_order_but_skips_a_coupon_already_at_its_limit()
+    public function it_preserves_paid_checkout_for_review_when_coupon_capacity_is_exhausted()
     {
         $user   = User::factory()->create();
         $coupon = $this->makeCoupon(['max_uses' => 3, 'used_count' => 3]); // already exhausted
@@ -284,10 +284,13 @@ class PaystackOrderFulfillmentTest extends TestCase
 
         $result = $this->service->fulfil($ref, $user->id);
 
-        // Payment already succeeded, so the customer still gets their order...
-        $this->assertTrue($result['success']);
-        $this->assertDatabaseHas('orders', ['reference' => $ref]);
-        // ...but the exhausted coupon must not be over-redeemed past its cap.
+        // Keep the paid reference and original amount for review; never silently
+        // accept a second redemption or charge the customer again.
+        $this->assertFalse($result['success']);
+        $this->assertSame('allocation', $result['error_type']);
+        $this->assertStringContainsString('Do not pay again', $result['message']);
+        $this->assertDatabaseMissing('orders', ['reference'=>$ref]);
+        $this->assertDatabaseHas('pending_checkouts', ['reference'=>$ref, 'fulfilled_at'=>null]);
         $this->assertEquals(3, $coupon->fresh()->used_count);
         $this->assertEquals(0, CouponUsage::where('coupon_id', $coupon->id)->count());
     }

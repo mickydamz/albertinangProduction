@@ -34,9 +34,18 @@ async function expectSelectorCurrency(page, code) {
     await expect(page.locator('#currencyMenuList button.active')).toHaveAttribute('data-code', code);
 
     // 3. Open the dropdown and confirm the highlighted row is visible to the user.
-    await page.click('#currencyBtn');
-    await expect(page.locator(`#currencyMenuList button[data-code="${code}"].active`)).toBeVisible();
-    await page.click('#currencyBtn'); // close again
+    while (await page.locator('.pbn:not(.pbn-out) .pbn-close:visible').count()) {
+        await page.locator('.pbn:not(.pbn-out) .pbn-close:visible').first().click();
+        await expect(page.locator('.pbn-out')).toHaveCount(0);
+    }
+    const mobile = !(await page.locator('#currencyBtn').isVisible());
+    const trigger = mobile ? '#mobileCurBtn' : '#currencyBtn';
+    const menu = mobile ? '#mobileCurrencyList' : '#currencyMenuList';
+    if (mobile && await page.locator('#mobileMenuBtn').getAttribute('aria-expanded') !== 'true') await page.click('#mobileMenuBtn');
+    await page.click(trigger);
+    await expect(page.locator(`${menu} button[data-code="${code}"].active`)).toBeVisible();
+    await page.click(trigger); // close again
+    if (mobile) await page.click('#mobileMenuClose');
 
     // 4. Mobile pill code label mirrors it too.
     await expect(page.locator('#mobileCurCode')).toHaveText(code);
@@ -70,13 +79,13 @@ test.describe('Currency auto-detect on load', () => {
 
     test('UK visitor → actual product PRICES convert to GBP (£), not just the selector', async ({ page }) => {
         await stubGeo(page, 'GB');
-        await page.goto('/');
+        await page.goto('/products');
 
         // Selector flips…
         await expect(page.locator('#currencyBtn .currency-btn-label')).toHaveText('GBP', { timeout: 15000 });
 
         // …and the visible price text on product cards must actually be in £.
-        const firstPrice = page.locator('[data-base-price-ngn]').first();
+        const firstPrice = page.locator('.cat-card__price[data-price-ngn], .pcard__price[data-price-ngn]').first();
         await expect(firstPrice).toContainText('£', { timeout: 15000 });
         await expect(firstPrice).not.toContainText('₦');
     });
@@ -88,10 +97,10 @@ test.describe('Currency auto-detect on load', () => {
             return route.continue();
         });
         await stubGeo(page, 'GB');
-        await page.goto('/');
+        await page.goto('/products');
 
         await expect(page.locator('#currencyBtn .currency-btn-label')).toHaveText('GBP', { timeout: 15000 });
-        const firstPrice = page.locator('[data-base-price-ngn]').first();
+        const firstPrice = page.locator('.cat-card__price[data-price-ngn], .pcard__price[data-price-ngn]').first();
         await expect(firstPrice).toContainText('£', { timeout: 15000 });
     });
 
@@ -157,8 +166,10 @@ test.describe('Currency auto-detect on load', () => {
         await expectSelectorCurrency(page, 'GHS');
 
         // User manually picks USD.
-        await page.click('#currencyBtn');
-        await page.click('#currencyMenuList button[data-code="USD"]');
+        const mobile = !(await page.locator('#currencyBtn').isVisible());
+        if (mobile) await page.click('#mobileMenuBtn');
+        await page.click(mobile ? '#mobileCurBtn' : '#currencyBtn');
+        await page.click(`${mobile ? '#mobileCurrencyList' : '#currencyMenuList'} button[data-code="USD"]`);
         await expectSelectorCurrency(page, 'USD');
 
         // Reload still geolocating to Ghana — manual choice must win.
@@ -179,8 +190,10 @@ test.describe('Currency auto-detect on load', () => {
         await page.goto('/');
         await expectSelectorCurrency(page, 'GHS');
 
-        await page.click('#currencyBtn');
-        await page.click('#currencyMenuList button[data-code="USD"]');
+        const mobile = !(await page.locator('#currencyBtn').isVisible());
+        if (mobile) await page.click('#mobileMenuBtn');
+        await page.click(mobile ? '#mobileCurBtn' : '#currencyBtn');
+        await page.click(`${mobile ? '#mobileCurrencyList' : '#currencyMenuList'} button[data-code="USD"]`);
         await expectSelectorCurrency(page, 'USD');
 
         // Now the visitor travels to the UK. The stale manual USD from Ghana must
@@ -190,8 +203,10 @@ test.describe('Currency auto-detect on load', () => {
         await expectSelectorCurrency(page, 'GBP');
 
         // And once in the UK, a fresh manual pick sticks across reloads again.
-        await page.click('#currencyBtn');
-        await page.click('#currencyMenuList button[data-code="EUR"]');
+        const mobileForEuro = !(await page.locator('#currencyBtn').isVisible());
+        if (mobileForEuro) await page.click('#mobileMenuBtn');
+        await page.click(mobileForEuro ? '#mobileCurBtn' : '#currencyBtn');
+        await page.click(`${mobileForEuro ? '#mobileCurrencyList' : '#currencyMenuList'} button[data-code="EUR"]`);
         await expectSelectorCurrency(page, 'EUR');
         await page.reload();
         await expectSelectorCurrency(page, 'EUR');

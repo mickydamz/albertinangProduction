@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'New Contact Message — Albertina Nigeria')
+@section('title', 'New Contact Message — AlbertinaNG')
 
 @section('header_icon')
     <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -49,7 +49,7 @@
         <table cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin:0 auto;">
             <tr>
                 <td align="center" bgcolor="#2d7010" style="border-radius:8px;">
-                    <a href="mailto:{{ $email }}?subject=Re: Your enquiry – Albertina Nigeria"
+                    <a href="mailto:{{ $email }}?subject=Re: Your enquiry – AlbertinaNG"
                        style="display:inline-block; padding:13px 32px; font-size:14px; font-weight:700; color:#ffffff; text-decoration:none; border-radius:8px;">
                         Reply to {{ $name }} →
                     </a>

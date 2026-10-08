@@ -1,9 +1,9 @@
 @extends('emails.layout')
 
-@section('title', 'Order Complete — Albertina Nigeria')
+@section('title', 'Order Complete — AlbertinaNG')
 
 @section('header_title', 'Order Complete')
-@section('header_sub', 'Thank you for shopping with Albertina Nigeria.')
+@section('header_sub', 'Thank you for shopping with AlbertinaNG.')
 
 @php
     $statusLabel  = 'Completed';
@@ -66,7 +66,7 @@
 
     <p class="greeting" style="margin-bottom:0;">
         Regards,<br>
-        <strong>Albertina Nigeria</strong>
+        <strong>AlbertinaNG</strong>
     </p>
 
 @endsection

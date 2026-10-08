@@ -78,7 +78,7 @@
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">Paragraph 1</label>
                                     <textarea name="about_who_p1" rows="4" class="form-control"
-                                              placeholder="Albertina Nigeria Limited is a leading electronics…">{{ old('about_who_p1', $settings['about_who_p1'] ?? 'Albertina Nigeria Limited is a leading electronics and appliances retailer, proudly serving Nigeria since our establishment in 1991. With showrooms in Enugu, Lagos, and Awka, we specialise in offering a wide range of high-quality products, including Samsung, LG, Thermocool, and innovative solar solutions. Our mission is to provide reliable, affordable, and cutting-edge electronics for both residential and commercial needs, ensuring customer satisfaction at every step.') }}</textarea>
+                                              placeholder="AlbertinaNG is a leading electronics…">{{ old('about_who_p1', $settings['about_who_p1'] ?? 'AlbertinaNG is a leading electronics and appliances retailer, proudly serving Nigeria since our establishment in 1991. With showrooms in Enugu, Lagos, and Awka, we specialise in offering a wide range of high-quality products, including Samsung, LG, Thermocool, and innovative solar solutions. Our mission is to provide reliable, affordable, and cutting-edge electronics for both residential and commercial needs, ensuring customer satisfaction at every step.') }}</textarea>
                                 </div>
                                 <div class="mb-0">
                                     <label class="form-label fw-semibold">Paragraph 2</label>
@@ -99,7 +99,7 @@
                                 <div class="mb-0">
                                     <label class="form-label fw-semibold">Story Paragraph</label>
                                     <textarea name="about_story_p1" rows="4" class="form-control"
-                                              placeholder="Founded in 1991, Albertina Nigeria…">{{ old('about_story_p1', $settings['about_story_p1'] ?? 'Founded in 1991, Albertina Nigeria Limited has grown from a single store in Enugu to a trusted name across Nigeria, with additional locations at 26 Lawanson Road, Surulere, Lagos, and along the Enugu-Onitsha Expressway in Awka. Our journey is driven by a commitment to quality, innovation, and customer-centric service.') }}</textarea>
+                                              placeholder="Founded in 1991, AlbertinaNG…">{{ old('about_story_p1', $settings['about_story_p1'] ?? 'Founded in 1991, AlbertinaNG has grown from a single store in Enugu to a trusted name across Nigeria, with additional locations at 26 Lawanson Road, Surulere, Lagos, and along the Enugu-Onitsha Expressway in Awka. Our journey is driven by a commitment to quality, innovation, and customer-centric service.') }}</textarea>
                                 </div>
                             </div>
                         </div>

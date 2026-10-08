@@ -23,14 +23,19 @@ use Auditable;
 
     public function canReturn(): bool
     {
-        if ($this->fulfillment_method === 'delivery') return $this->status === 'delivered';
-        if ($this->fulfillment_method === 'pickup') return $this->status === 'completed';
-        return in_array($this->status, ['delivered', 'completed'], true);
+        $received = $this->fulfillment_method === 'delivery'
+            ? $this->status === 'delivered'
+            : ($this->fulfillment_method === 'pickup'
+                ? $this->status === 'completed'
+                : in_array($this->status, ['delivered', 'completed'], true));
+        // Legacy orders without receipt evidence remain eligible for admin review.
+        return $received && (!$this->received_at || now()->lte($this->received_at->copy()->addDays(30)));
     }
 
     protected $fillable = [
         'user_id',
         'status',
+        'received_at',
         'shipping_cost',
         'total',
         'total_usd',
@@ -61,6 +66,7 @@ use Auditable;
         'coupon_discount_ngn' => 'decimal:2',
         'created_at'          => 'datetime',
         'updated_at'          => 'datetime',
+        'received_at'         => 'datetime',
     ];
 
     // ── Boot ────────────────────────────────────────────────────────────────
@@ -81,6 +87,11 @@ use Auditable;
 
     protected static function booted()
 {
+    static::saving(function ($order) {
+        if (!$order->received_at && $order->isDirty('status') && in_array($order->status, ['delivered', 'completed'], true)) {
+            $order->received_at = now();
+        }
+    });
     static::creating(function ($order) {
         $cityCode = 'ENU';
 

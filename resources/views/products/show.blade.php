@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', $product->name . ' - Albertina Nigeria')
+@section('title', $product->name . ' - AlbertinaNG')
 
 @push('styles')
 <style>
@@ -385,17 +385,17 @@
         <div class="pd-qty-block">
             <span class="pd-qty-label">Quantity</span>
             <div class="pd-qty-row">
-                <button class="pd-qty-btn" id="pd-qtyMinus" @if($product->stock === 0) disabled @endif aria-label="Decrease quantity">&#8722;</button>
+                <button class="pd-qty-btn" id="pd-qtyMinus"  aria-label="Decrease quantity">&#8722;</button>
                 <span class="pd-qty-divider"></span>
                 <span class="pd-qty-val" id="pd-qtyVal">1</span>
                 <span class="pd-qty-divider"></span>
-                <button class="pd-qty-btn" id="pd-qtyPlus" @if($product->stock === 0) disabled @endif aria-label="Increase quantity">&#43;</button>
+                <button class="pd-qty-btn" id="pd-qtyPlus"  aria-label="Increase quantity">&#43;</button>
             </div>
             <div class="pd-actions-row">
-                <button class="pd-btn-atc" id="pd-atcBtn" @if($product->stock === 0) disabled @endif>
+                <button class="pd-btn-atc" id="pd-atcBtn" >
                     <i class="fas fa-shopping-bag"></i> Add to Cart
                 </button>
-                <button class="pd-btn-buy" id="pd-buyBtn" @if($product->stock === 0) disabled @endif>
+                <button class="pd-btn-buy" id="pd-buyBtn" >
                     <i class="fas fa-bolt"></i> Buy Now
                 </button>
             </div>
@@ -1063,16 +1063,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* ── Quantity stepper ── */
-    const maxStock = {{ $product->stock }};
     let qty = 1;
     const qtyVal   = document.getElementById('pd-qtyVal');
     const minusBtn = document.getElementById('pd-qtyMinus');
     const plusBtn  = document.getElementById('pd-qtyPlus');
     function updateQty(n) {
-        qty = Math.min(Math.max(1, n), maxStock || 1);
+        qty = Math.max(1, n);
         qtyVal.textContent = qty;
         minusBtn.disabled = qty <= 1;
-        plusBtn.disabled  = qty >= maxStock;
+        plusBtn.disabled  = false;
     }
     minusBtn?.addEventListener('click', () => updateQty(qty - 1));
     plusBtn?.addEventListener('click',  () => updateQty(qty + 1));

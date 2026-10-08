@@ -16,7 +16,7 @@ class MergeGuestCart
 
         foreach ($sessionCart as $item) {
             $product = Product::find($item['product_id']);
-            if ($product && $product->stock >= $item['quantity']) {
+            if ($product && (int) $item['quantity'] > 0) {
                 Cart::updateOrCreate(
                     [
                         'user_id' => Auth::id(),

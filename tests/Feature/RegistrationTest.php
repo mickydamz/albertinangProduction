@@ -58,6 +58,29 @@ class RegistrationTest extends TestCase
         return Country::whereNotIn('id', City::select('country_id'))->firstOrFail();
     }
 
+    public function test_registration_saves_full_address_to_customer_account(): void
+    {
+        $country=$this->nigeria();
+        $state=City::where('country_id',$country->id)->firstOrFail();
+        $email='address_'.uniqid().'@example.com';
+        $this->postRegister(['email'=>$email,'country_id'=>$country->id,'state_id'=>$state->id,
+            'shipping_address'=>"12 Test Street\nFlat 2",'city'=>'Port Harcourt','postal_code'=>'500001'])
+            ->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('users',['email'=>$email,'shipping_address'=>"12 Test Street\nFlat 2",
+            'city'=>'Port Harcourt','postal_code'=>'500001','state'=>$state->name,'country'=>'Nigeria']);
+    }
+
+    public function test_registration_rejects_oversized_address_and_restores_input(): void
+    {
+        $country=$this->nigeria();
+        $state=City::where('country_id',$country->id)->firstOrFail();
+        $email='invalid_address_'.uniqid().'@example.com';
+        $this->from('/register')->postRegister(['email'=>$email,'country_id'=>$country->id,'state_id'=>$state->id,
+            'shipping_address'=>str_repeat('x',256),'city'=>'Port Harcourt'])
+            ->assertSessionHasErrors('shipping_address')->assertSessionHasInput('city','Port Harcourt');
+        $this->assertDatabaseMissing('users',['email'=>$email]);
+    }
+
     // ── 1. Valid Nigeria + Rivers registers ────────────────────────────────────
 
     /** @test */

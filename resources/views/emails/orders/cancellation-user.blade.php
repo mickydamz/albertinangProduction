@@ -1,5 +1,5 @@
 @extends('emails.layout')
-@section('title', 'Order Cancelled — Albertina Nigeria')
+@section('title', 'Order Cancelled — AlbertinaNG')
 @section('header_title', 'Order Cancelled')
 @section('header_sub', 'Your order has been successfully cancelled.')
 @section('body')

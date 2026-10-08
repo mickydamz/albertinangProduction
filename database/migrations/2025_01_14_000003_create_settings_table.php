@@ -21,7 +21,7 @@ return new class extends Migration
 
         // Seed defaults
         $defaults = [
-            'store_name'       => 'Albertina Nigeria',
+            'store_name'       => 'AlbertinaNG',
             'store_logo'       => null,
             'store_address'    => "17-18 Zik's Avenue, Uwani, Enugu",
             'store_phone'      => '08064066170',

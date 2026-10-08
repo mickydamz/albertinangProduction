@@ -50,11 +50,6 @@ public function increaseQuantity($cartItemId)
     
   
 
-    // Check if there is enough stock
-    $product = $cartItem->product;
-    if ($product->stock < $cartItem->quantity + 1) {
-        return redirect()->route('cart.index')->withErrors(['error' => "Insufficient stock for product: {$product->name}."]);
-    }
 
     // Increase the quantity by 1
     $cartItem->quantity += 1;
@@ -75,14 +70,9 @@ public function decreaseQuantity($cartItemId)
     
   
 
-    // Check if there is enough stock
-    $product = $cartItem->product;
-    if ($product->stock < $cartItem->quantity - 1) {
-        return redirect()->route('cart.index')->withErrors(['error' => "Insufficient stock for product: {$product->name}."]);
-    }
 
     // Increase the quantity by 1
-    $cartItem->quantity -= 1;
+    $cartItem->quantity = max(1, $cartItem->quantity - 1);
     $cartItem->save();
 
     return redirect()->route('cart.index')->with('success', 'Product quantity increased.');
@@ -98,11 +88,6 @@ public function remove($cartItemId)
 
 
 
-    // Check if there is enough stock
-    $product = $cartItem->product;
-    if ($product->stock < $cartItem->quantity + 1) {
-        return redirect()->route('cart.index')->withErrors(['error' => "Insufficient stock for product: {$product->name}."]);
-    }
 
     // Increase the quantity by 1
     $cartItem->delete();
@@ -115,9 +100,6 @@ public function remove($cartItemId)
 
     public function add(Request $request, Product $product)
     {
-        if ($product->stock <= 0) {
-            return redirect()->back()->withErrors(['error' => 'Product is out of stock.']);
-        }
 
         $cartItem = Cart::where('user_id', auth()->id())
             ->where('product_id', $product->id)
@@ -181,11 +163,6 @@ public function remove($cartItemId)
     foreach ($cartItems as $item) {
         $product = $item->product;
 
-        if ($product->stock < $item->quantity) {
-            return redirect()->route('cart.index')->withErrors([
-                'error' => "Insufficient stock for product: {$product->name}. Only {$product->stock} left.",
-            ]);
-        }
 
         // Calculate total
         $totalAmount += $product->price * $item->quantity;
@@ -250,11 +227,9 @@ public function remove($cartItemId)
         'status' => ($request->payment_option === 'full') ? 1 : 0, // Payment complete for full, pending for others
     ]);
 
-    // Reduce stock and attach products to transaction
+    // Attach quantities; availability is confirmed by the admin.
     foreach ($cartItems as $item) {
         $product = $item->product;
-        $product->stock -= $item->quantity;
-        $product->save();
 
         $transaction->products()->attach($product->id, [
             'quantity' => $item->quantity,

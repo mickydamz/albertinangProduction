@@ -27,7 +27,7 @@ class ContactMessageReceived extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'New Contact Message – Albertina Nigeria',
+            subject: 'New Contact Message – AlbertinaNG',
         );
     }
 

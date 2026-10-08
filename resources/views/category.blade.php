@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', $categoryName . ' – Albertina Nigeria')
+@section('title', $categoryName . ' – AlbertinaNG')
 
 @push('styles')
 <style>
@@ -1282,4 +1282,5 @@
 
 })();
 </script>
+@include('products.partials.filter-tools')
 @endpush

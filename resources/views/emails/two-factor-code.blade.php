@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'Verification Code — Albertina Nigeria')
+@section('title', 'Verification Code — AlbertinaNG')
 
 @section('header_icon')
     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -41,7 +41,7 @@
 
     <p style="font-size:13px; color:#7a9a60; line-height:1.7; text-align:center;">
         If you didn't request this, you can safely ignore this email.<br>
-        <strong style="color:#2d5610;">Albertina Nigeria</strong>
+        <strong style="color:#2d5610;">AlbertinaNG</strong>
     </p>
 
 @endsection

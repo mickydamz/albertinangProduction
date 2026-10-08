@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', 'Store Locator — Albertina Nigeria')
+@section('title', 'Store Locator — AlbertinaNG')
 
 @php
 use App\Models\StoreLocation;
@@ -41,7 +41,7 @@ $storePoints = StoreLocation::orderByDesc('is_hq')->orderBy('sort_order')->order
     <section class="sloc-section">
         <div class="sloc-section__icon"><i class="fas fa-store"></i></div>
         <h2 class="sloc-section__title">Our Store Locations</h2>
-        <p class="sloc-section__p">Albertina Nigeria Limited is proud to serve you at our conveniently located showrooms across Nigeria. Each store offers a wide selection of Samsung, LG, Thermocool, and solar products, backed by our expert staff and excellent customer service.</p>
+        <p class="sloc-section__p">AlbertinaNG is proud to serve you at our conveniently located showrooms across Nigeria. Each store offers a wide selection of Samsung, LG, Thermocool, and solar products, backed by our expert staff and excellent customer service.</p>
 
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:24px;">
             @forelse($storePoints as $pt)
@@ -133,13 +133,13 @@ $storePoints = StoreLocation::orderByDesc('is_hq')->orderBy('sort_order')->order
     allowfullscreen=""
     loading="lazy"
     referrerpolicy="no-referrer-when-downgrade"
-    title="Albertina Nigeria — Enugu Showroom">
+    title="AlbertinaNG — Enugu Showroom">
 </iframe>
         </div>
 
         <p style="font-size:12.5px;color:var(--ink3);margin-top:10px;display:flex;align-items:center;gap:6px;">
             <i class="fas fa-info-circle" style="color:var(--g500);"></i>
-            Map shows the Enugu HQ. Use Google Maps to search "Albertina Nigeria Lagos" or "Albertina Nigeria Awka" for other branches.
+            Map shows the Enugu HQ. Use Google Maps to search "AlbertinaNG Lagos" or "AlbertinaNG Awka" for other branches.
         </p>
     </section>
 

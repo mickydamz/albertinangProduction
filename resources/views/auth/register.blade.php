@@ -1,6 +1,6 @@
 @extends('layouts.authlayout')
 
-@section('title', 'Create Account — Albertina Nigeria')
+@section('title', 'Create Account — AlbertinaNG')
 
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.min.css">
@@ -180,10 +180,24 @@
             </div>
         </div>
 
+        <p class="text-muted">Your address helps us prepare deliveries. You can also add or update it in your account later.</p>
+        <div class="form-group">
+            <label for="shipping_address">Street address (optional)</label>
+            <textarea class="form-control" id="shipping_address" name="shipping_address"
+                      rows="2" maxlength="255" autocomplete="street-address"
+                      placeholder="House number and street&#10;Flat, suite or building (optional)">{{ old('shipping_address') }}</textarea>
+        </div>
+        <div class="form-group">
+            <label for="city">City / town (optional)</label>
+            <input type="text" class="form-control" id="city" name="city"
+                   maxlength="100" autocomplete="address-level2" value="{{ old('city') }}"
+                   placeholder="Enter your city or town">
+        </div>
+
         {{-- Country (searchable, Tom Select) --}}
         <div class="form-group">
             <label for="country_id">Country</label>
-            <select id="country_id" name="country_id" required>
+            <select id="country_id" name="country_id" required autocomplete="country">
                 <option value="" disabled {{ old('country_id') ? '' : 'selected' }}>Choose your country…</option>
                 @foreach($countries as $c)
                     <option value="{{ $c->id }}" data-iso="{{ $c->iso_code }}" {{ (string) old('country_id') === (string) $c->id ? 'selected' : '' }}>
@@ -200,7 +214,7 @@
                 State / Province
                 <span id="state-loading">Loading…</span>
             </label>
-            <select id="state_id" name="state_id">
+            <select id="state_id" name="state_id" autocomplete="address-level1">
                 <option value="" disabled {{ old('state_id') ? '' : 'selected' }}>Choose your state…</option>
                 @foreach($initialStates as $s)
                     <option value="{{ $s['id'] }}" {{ (string) old('state_id') === (string) $s['id'] ? 'selected' : '' }}>
@@ -220,22 +234,10 @@
 
         {{-- Postal Code --}}
         <div class="form-group">
-            <label for="postal_code">Postal Code</label>
-            <input type="text" class="form-control" id="postal_code" name="postal_code"
+            <label for="postal_code">Postcode / ZIP code (optional)</label>
+            <input type="text" class="form-control" id="postal_code" name="postal_code" maxlength="20" autocomplete="postal-code"
                    placeholder="Enter your postal code"
                    value="{{ old('postal_code') }}">
-        </div>
-
-        {{-- Referral Code --}}
-        <div class="form-group">
-            <label for="affiliate_code">
-                Referral Code
-                <span style="font-size:11px; color:var(--ink3); margin-left:6px;">(optional)</span>
-            </label>
-            <input type="text" class="form-control" id="affiliate_code" name="affiliate_code"
-                   placeholder="Enter referral code (optional)"
-                   value="{{ old('affiliate_code', $referralCode ?? '') }}"
-                   autocomplete="off" style="letter-spacing:.05em;">
         </div>
 
         {{-- Terms --}}
@@ -330,7 +332,10 @@
     }
 
     // ── Fetch states for a country ID ─────────────────────────────────────────
+    let stateRequestVersion = 0;
+    let countryChangedByUser = false;
     async function loadStates(countryId, preselectId) {
+        const requestVersion = ++stateRequestVersion;
         if (!countryId) { stateField.classList.add('hidden'); return; }
 
         stateLoading.style.display = 'inline';
@@ -343,24 +348,21 @@
             if (!r.ok) throw new Error('HTTP ' + r.status);
             const data = await r.json();
             if (!Array.isArray(data)) throw new Error('bad response');
+            if (requestVersion !== stateRequestVersion) return;
             populateStates(data, preselectId);
         } catch (err) {
             // A transient failure (rate-limit, network) must not make the field
             // vanish — fall back to a free-text input so the user can proceed.
+            if (requestVersion !== stateRequestVersion) return;
             console.error('States load failed:', err);
             setStateMode('text');
         } finally {
-            stateLoading.style.display = 'none';
-            stateTs.enable();
+            if (requestVersion === stateRequestVersion) {
+                stateLoading.style.display = 'none';
+                stateTs.enable();
+            }
         }
     }
-
-    // ── Auto-uppercase referral code ───────────────────────────────────────────
-    document.getElementById('affiliate_code').addEventListener('input', function () {
-        const pos = this.selectionStart;
-        this.value = this.value.toUpperCase();
-        this.setSelectionRange(pos, pos);
-    });
 
     // ── Form validation ────────────────────────────────────────────────────────
     window.validateForm = function () {
@@ -393,6 +395,7 @@
     // Registered *after* init so the initial setValue above can never trigger a
     // fetch — states only reload when the user actually switches country.
     countryTs.on('change', function (value) {
+        countryChangedByUser = true;
         loadStates(value ? parseInt(value) : null, null);
     });
 
@@ -442,7 +445,7 @@
             .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
             .then(function (geo) {
                 if (!geo || !geo.country_code) return;
-                if (countryTs.getValue() !== String(INITIAL_COUNTRY)) return; // user already changed it
+                if (countryChangedByUser) return;
 
                 var iso3 = ISO2_TO_ISO3[geo.country_code.toUpperCase()];
                 if (!iso3) return;
@@ -450,6 +453,7 @@
                 var opt = document.querySelector('#country_id option[data-iso="' + iso3 + '"]');
                 if (!opt) return; // that country isn't in our list — keep the default
 
+                if (countryTs.getValue() === String(opt.value)) return;
                 countryTs.setValue(String(opt.value), true); // silent
                 loadStates(parseInt(opt.value, 10), null);
             })

@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'We Got Your Message — Albertina Nigeria')
+@section('title', 'We Got Your Message — AlbertinaNG')
 
 @section('header_icon')
     <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -20,7 +20,7 @@
 
     <p class="greeting">
         Hi <strong>{{ $name }}</strong>,<br><br>
-        Thank you for contacting Albertina Nigeria. We've received your message and a member of our team will respond to you as soon as possible — usually within 24 hours on business days.
+        Thank you for contacting AlbertinaNG. We've received your message and a member of our team will respond to you as soon as possible — usually within 24 hours on business days.
     </p>
 
     <div class="section-title">Your Message</div>
@@ -68,7 +68,7 @@
     </div>
 
     <p style="font-size:13px; color:#7a9a60; line-height:1.7; text-align:center;">
-        Thank you for choosing <strong style="color:#2d5610;">Albertina Nigeria</strong>.<br>
+        Thank you for choosing <strong style="color:#2d5610;">AlbertinaNG</strong>.<br>
         Premium Electronics &amp; Home Appliances.
     </p>
 

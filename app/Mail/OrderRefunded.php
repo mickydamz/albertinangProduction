@@ -24,7 +24,7 @@ class OrderRefunded extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->progress()['label'] . ' for Order ' . $this->order->order_number . ' – Albertina Nigeria',
+            subject: $this->progress()['label'] . ' for Order ' . $this->order->order_number . ' – AlbertinaNG',
         );
     }
 

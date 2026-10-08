@@ -19,7 +19,7 @@ class OrderCancelled extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Order ' . $this->order->order_number . ' Has Been Cancelled – Albertina Nigeria',
+            subject: 'Your Order ' . $this->order->order_number . ' Has Been Cancelled – AlbertinaNG',
         );
     }
 

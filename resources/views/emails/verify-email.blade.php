@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'Verify Your Email — Albertina Nigeria')
+@section('title', 'Verify Your Email — AlbertinaNG')
 
 @section('header_title', 'Verify Your Email')
 @section('header_sub', 'One quick step to activate your account.')
@@ -9,7 +9,7 @@
 
     <p class="greeting">
         Hello{{ isset($notifiable->name) ? ' ' . $notifiable->name : '' }}!<br><br>
-        Thanks for signing up with Albertina Nigeria. Please confirm your email address by clicking the button below.
+        Thanks for signing up with AlbertinaNG. Please confirm your email address by clicking the button below.
     </p>
 
     {{-- Verify button --}}
@@ -38,7 +38,7 @@
 
     <p class="greeting" style="margin-bottom:0;">
         Regards,<br>
-        <strong>Albertina Nigeria</strong>
+        <strong>AlbertinaNG</strong>
     </p>
 
     <div class="divider"></div>

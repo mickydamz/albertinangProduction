@@ -74,87 +74,34 @@ class OrderCancellationRefundTest extends TestCase
         );
     }
 
-    // ── Paystack ────────────────────────────────────────────────────────────
-
     /** @test */
-    public function paystack_refund_succeeds_and_marks_order_and_cancellation_refunded()
-    {
-        Http::fake([
-            'api.paystack.co/refund' => Http::response([
-                'status'  => true,
-                'message' => 'Refund has been queued for processing',
-                'data'    => ['id' => 987654, 'status' => 'pending'],
-            ], 200),
-        ]);
-
-        $order        = $this->makeOrder(['payment_method' => 'paystack', 'total' => 50000]);
-        $cancellation = $this->makeCancellation($order);
-
-        $this->review($cancellation, 'refunded')->assertRedirect();
-
-        $order->refresh();
-        $cancellation->refresh();
-
-        $this->assertSame('refunded', $order->status);
-        $this->assertSame('refunded', $cancellation->status);
-        $this->assertSame('987654', (string) $cancellation->refund_id);
-        $this->assertSame('pending', $cancellation->refund_status);
-        $this->assertNotNull($cancellation->refunded_at);
-
-        // The right request was sent: correct endpoint, transaction ref, and
-        // amount converted from naira to kobo.
-        Http::assertSent(function ($request) use ($order) {
-            return $request->url() === 'https://api.paystack.co/refund'
-                && $request['transaction'] === $order->reference
-                && (int) $request['amount'] === 5000000   // ₦50,000 -> kobo
-                && $request['currency'] === 'NGN';
-        });
-
-        Mail::assertQueued(OrderRefunded::class);
-    }
-
-    /** @test */
-    public function paystack_refund_failure_marks_refunded_but_flags_for_manual_handling()
-    {
-        Http::fake([
-            'api.paystack.co/refund' => Http::response([
-                'status'  => false,
-                'message' => 'Transaction has already been fully reversed',
-            ], 400),
-        ]);
-
-        $order        = $this->makeOrder(['payment_method' => 'paystack']);
-        $cancellation = $this->makeCancellation($order);
-
-        $response = $this->review($cancellation, 'refunded');
-        $response->assertSessionHas('success');
-
-        $order->refresh();
-        $cancellation->refresh();
-
-        // Order is still moved to refunded, but no gateway refund id was stored
-        // and the admin is told to handle it manually.
-        $this->assertSame('refunded', $order->status);
-        $this->assertNull($cancellation->refund_id);
-        $this->assertStringContainsString('process manually', session('success'));
-    }
-
-    /** @test */
-    public function paystack_refund_is_not_reissued_when_cancellation_already_has_a_refund_id()
+    public function paystack_cancellation_review_only_records_notes_without_reissuing_refund()
     {
         Http::fake();
-
-        $order        = $this->makeOrder(['payment_method' => 'paystack']);
-        $cancellation = $this->makeCancellation($order, ['refund_id' => 'existing_ref_123']);
-
-        $this->review($cancellation, 'refunded');
-
-        // No second refund call — protects against double refunds.
+        $order=$this->makeOrder();
+        $cancellation=$this->makeCancellation($order,['status'=>'approved','refund_id'=>'existing_ref_123','refund_status'=>'pending']);
+        $this->actingAs($this->admin())->patch(route('admin.cancellations.review',$cancellation),
+            ['action'=>'note','admin_notes'=>'Checked with customer; awaiting Paystack settlement.'])->assertSessionHasNoErrors();
         Http::assertNothingSent();
+        $this->assertSame('cancelled',$order->fresh()->status);
+        $this->assertSame('approved',$cancellation->fresh()->status);
+        $this->assertSame('pending',$cancellation->fresh()->refund_status);
+        $this->assertNull($cancellation->fresh()->refunded_at);
+        $this->assertDatabaseHas('order_request_events',['order_id'=>$order->id,'action'=>'note']);
+        Mail::assertNothingSent();
+    }
 
-        $order->refresh();
-        $this->assertSame('refunded', $order->status);
-        $this->assertSame('existing_ref_123', $cancellation->fresh()->refund_id);
+    /** @test */
+    public function paystack_review_cannot_reject_a_cancelled_order_or_issue_another_refund()
+    {
+        Http::fake();
+        $order=$this->makeOrder(); $cancellation=$this->makeCancellation($order,['status'=>'approved']);
+        foreach (['approved','rejected','refunded'] as $status) {
+            $this->review($cancellation,$status)->assertSessionHasErrors('action');
+        }
+        Http::assertNothingSent();
+        $this->assertSame('cancelled',$order->fresh()->status);
+        $this->assertSame('approved',$cancellation->fresh()->status);
     }
 
     // ── Stripe ──────────────────────────────────────────────────────────────
@@ -241,7 +188,7 @@ class OrderCancellationRefundTest extends TestCase
     {
         Http::fake();
 
-        $order        = $this->makeOrder(['payment_method' => 'paystack', 'status' => 'paid']);
+        $order        = $this->makeOrder(['payment_method' => 'stripe', 'status' => 'paid']);
         $cancellation = $this->makeCancellation($order);
 
         $this->review($cancellation, 'approved');
@@ -261,7 +208,7 @@ class OrderCancellationRefundTest extends TestCase
     {
         Http::fake();
 
-        $order        = $this->makeOrder(['payment_method' => 'paystack', 'status' => 'cancelled']);
+        $order        = $this->makeOrder(['payment_method' => 'stripe', 'status' => 'cancelled']);
         $cancellation = $this->makeCancellation($order);
 
         $this->review($cancellation, 'rejected');
@@ -288,7 +235,7 @@ class OrderCancellationRefundTest extends TestCase
             ['status' => 'not-a-real-status']
         );
 
-        $response->assertSessionHasErrors('status');
+        $response->assertSessionHasErrors('action');
         $this->assertSame('pending', $cancellation->fresh()->status);
     }
 

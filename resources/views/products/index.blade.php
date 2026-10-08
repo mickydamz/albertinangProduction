@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', 'All Products – Albertina Nigeria')
+@section('title', 'All Products – AlbertinaNG')
 
 @section('content')
 <livewire:product-list />

@@ -39,8 +39,8 @@
                             <div class="mb-3">
                                 <label class="form-label" style="font-size:12.5px;font-weight:600;">Page Title</label>
                                 <input type="text" name="contact_hero_title" class="form-control" style="border-radius:var(--al-radius);font-size:13.5px;"
-                                       value="{{ $settings['contact_hero_title'] ?? 'Contact Albertina Nigeria' }}"
-                                       placeholder="Contact Albertina Nigeria">
+                                       value="{{ $settings['contact_hero_title'] ?? 'Contact AlbertinaNG' }}"
+                                       placeholder="Contact AlbertinaNG">
                             </div>
                             <div class="mb-0">
                                 <label class="form-label" style="font-size:12.5px;font-weight:600;">Hero Subtitle</label>

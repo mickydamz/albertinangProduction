@@ -91,7 +91,9 @@ class TicketController extends Controller
     {
         $this->authorizeAccess($ticket);
 
-        return view('tickets.edit', compact('ticket'));
+        $replies = $ticket->replies()->with('user')->get();
+
+        return view('tickets.edit', compact('ticket', 'replies'));
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
@@ -103,7 +105,8 @@ class TicketController extends Controller
         $validated = $request->validate([
             'subject'     => 'required|max:255',
             'description' => 'required',
-            'status'      => 'required|in:open,closed,pending',
+            'status'      => 'sometimes|required|in:open,closed,pending',
+            'priority'    => 'sometimes|required|in:low,medium,high',
         ]);
 
         $ticket->update($validated);

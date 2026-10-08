@@ -57,8 +57,8 @@
                                 <div class="mb-3">
                                     <label class="form-label fw-semibold">Store Name <span class="text-danger">*</span></label>
                                     <input type="text" name="store_name" class="form-control"
-                                           value="{{ old('store_name', $settings['store_name'] ?? 'Albertina Nigeria') }}"
-                                           required maxlength="100" placeholder="e.g. Albertina Nigeria">
+                                           value="{{ old('store_name', $settings['store_name'] ?? 'AlbertinaNG') }}"
+                                           required maxlength="100" placeholder="e.g. AlbertinaNG">
                                     <small class="text-muted">Shown in the browser title and emails.</small>
                                 </div>
 

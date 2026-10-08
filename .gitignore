@@ -22,3 +22,15 @@ yarn-error.log
 # Local preview database
 /database/local-preview.sqlite
 /database/local-preview.sqlite-*
+
+# Generated test reports and runtime caches
+/playwright-report/
+/test-results/
+/storage/framework/views/*.php
+/storage/framework/sessions/*
+/storage/logs/*.log
+
+# Keep environment credentials and local databases out of commits
+/.env.*
+!/.env.example
+/database/*.sqlite*

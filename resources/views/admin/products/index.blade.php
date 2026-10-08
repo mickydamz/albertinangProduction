@@ -52,63 +52,7 @@
 
       <div class="card">
 
-        {{-- Toolbar --}}
-        <div class="card-header border-bottom">
-          <form method="GET" action="{{ route('admin.products.index') }}" id="filterForm"
-                class="d-flex flex-wrap align-items-center gap-50 w-100">
-
-            {{-- Preserve sort state across filter submits --}}
-            <input type="hidden" name="sort" value="{{ $sortBy ?? '' }}">
-            <input type="hidden" name="dir"  value="{{ $sortDir ?? '' }}">
-
-            {{-- Search --}}
-            <div style="flex: 1 1 auto;">
-              <input type="search" name="search" value="{{ old('search', $search) }}"
-                     class="form-control" placeholder="Search products…" style="width:100%;">
-            </div>
-
-            {{-- Line break on mobile --}}
-            <div class="d-block d-sm-none w-100" style="height:0;"></div>
-
-            {{-- Category --}}
-            <select name="category" class="form-select" style="width:140px; flex-shrink:0; min-width:0;"
-                    onchange="this.form.submit()">
-              <option value="">All Categories</option>
-              @foreach($categories as $cat)
-                <option value="{{ $cat->id }}" {{ ($filterCategory ?? '') == $cat->id ? 'selected' : '' }}>
-                  {{ $cat->name }}
-                </option>
-              @endforeach
-            </select>
-
-            {{-- Status --}}
-            <select name="status" class="form-select" style="width:130px; flex-shrink:0; min-width:0;"
-                    onchange="this.form.submit()">
-              <option value="">All Statuses</option>
-              <option value="1" {{ ($filterStatus ?? '') === '1' ? 'selected' : '' }}>Active</option>
-              <option value="0" {{ ($filterStatus ?? '') === '0' ? 'selected' : '' }}>Inactive</option>
-            </select>
-
-            {{-- Brand --}}
-            <select name="brand" class="form-select" style="width:130px; flex-shrink:0; min-width:0;"
-                    onchange="this.form.submit()">
-              <option value="">All Brands</option>
-              @foreach($brands as $brand)
-                <option value="{{ $brand->id }}" {{ ($filterBrand ?? '') == $brand->id ? 'selected' : '' }}>
-                  {{ $brand->name }}
-                </option>
-              @endforeach
-            </select>
-
-            {{-- Reset --}}
-            <a href="{{ route('admin.products.index') }}"
-               class="btn btn-icon btn-outline-secondary waves-effect"
-               data-bs-toggle="tooltip" title="Reset" style="flex-shrink:0;">
-              <i class="fas fa-rotate"></i>
-            </a>
-
-          </form>
-        </div>
+        @include('admin.products.partials.filters')
 
         {{-- Table --}}
         @php
@@ -124,14 +68,7 @@
             ['col' => '',           'label' => 'Actions'],
           ];
 
-          $pageQuery = array_filter([
-            'search'   => $search ?? '',
-            'category' => $filterCategory ?? '',
-            'status'   => $filterStatus ?? '',
-            'brand'    => $filterBrand ?? '',
-            'sort'     => $sortBy ?? '',
-            'dir'      => $sortDir ?? '',
-          ]);
+          $pageQuery = request()->except('page');
         @endphp
 
         <div class="card-datatable table-responsive">

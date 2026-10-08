@@ -55,8 +55,6 @@ public function verify(Request $request)
         session()->flash('success', 'Identity verified. Welcome back, ' . $user->name . '!');
 
         if ($user->role === 'admin')     return redirect()->intended(route('admin.dashboard'));
-        if ($user->role === 'supplier')  return redirect()->intended(route('supplier.dashboard'));
-        if ($user->role === 'affiliate') return redirect()->intended(route('affiliate.dashboard'));
         if ($user->role === 'manager')   return redirect()->intended(route('manager.dashboard'));
         return redirect()->intended(route('dashboard'));
     }

@@ -4,10 +4,10 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=0,minimal-ui">
-    <meta name="description" content="Albertina Nigeria – Premium Electronics">
-    <meta name="keywords" content="Albertina Nigeria">
+    <meta name="description" content="AlbertinaNG – Premium Electronics">
+    <meta name="keywords" content="AlbertinaNG">
     <meta name="author" content="Albertina">
-    <title>@yield('title', 'Albertina Nigeria')</title>
+    <title>@yield('title', 'AlbertinaNG')</title>
 
     <link rel="apple-touch-icon" href="{{ asset('/app-asset/images/logo/favicon.ico') }}">
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('/app-asset/images/logo/favicon.ico') }}">
@@ -19,7 +19,7 @@
 
     <style>
         /* ===================================================
-           ALBERTINA NIGERIA — AUTH LAYOUT DESIGN SYSTEM
+           AlbertinaNG — AUTH LAYOUT DESIGN SYSTEM
            Green-first palette · Plus Jakarta Sans + DM Sans
         =================================================== */
         :root {
@@ -342,7 +342,7 @@
     {{-- TOP STRIP --}}
     <div class="top-strip">
         <div class="top-strip__inner">
-            <span>Welcome to Albertina Nigeria</span>
+            <span>Welcome to AlbertinaNG</span>
             <div class="top-strip__links">
                 <a href="/account/orders">Track Order</a>
                 <a href="/">Shop</a>
@@ -353,11 +353,11 @@
     {{-- AUTH HEADER --}}
     <header class="auth-header">
         <div class="auth-header__inner">
-            <a href="/" aria-label="Albertina Nigeria Home">
+            <a href="/" aria-label="AlbertinaNG Home">
                 @if(!empty($appStoreLogo))
-                    <img src="{{ asset('storage/' . $appStoreLogo) }}" alt="{{ $appStoreName ?? 'Albertina Nigeria' }}" style="height:44px; width:auto; object-fit:contain; display:block;">
+                    <img src="{{ asset('storage/' . $appStoreLogo) }}" alt="{{ $appStoreName ?? 'AlbertinaNG' }}" style="height:44px; width:auto; object-fit:contain; display:block;">
                 @else
-                    <img src="{{ asset('image.png') }}" alt="{{ $appStoreName ?? 'Albertina Nigeria' }}" style="height:44px; width:auto; object-fit:contain; display:block;">
+                    <img src="{{ asset('image.png') }}" alt="{{ $appStoreName ?? 'AlbertinaNG' }}" style="height:44px; width:auto; object-fit:contain; display:block;">
                 @endif
             </a>
             <nav class="auth-header__links">
@@ -380,9 +380,9 @@
             <div class="auth-card__logo">
                 <a href="/">
                     @if(!empty($appStoreLogo))
-                        <img src="{{ asset('storage/' . $appStoreLogo) }}" alt="{{ $appStoreName ?? 'Albertina Nigeria' }}" style="height:54px; width:auto; object-fit:contain; display:inline-block;">
+                        <img src="{{ asset('storage/' . $appStoreLogo) }}" alt="{{ $appStoreName ?? 'AlbertinaNG' }}" style="height:54px; width:auto; object-fit:contain; display:inline-block;">
                     @else
-                        <img src="{{ asset('image.png') }}" alt="{{ $appStoreName ?? 'Albertina Nigeria' }}" style="height:54px; width:auto; object-fit:contain; display:inline-block;">
+                        <img src="{{ asset('image.png') }}" alt="{{ $appStoreName ?? 'AlbertinaNG' }}" style="height:54px; width:auto; object-fit:contain; display:inline-block;">
                     @endif
                 </a>
                 <p>Nigeria's Trusted Electronics Store</p>
@@ -395,7 +395,7 @@
 
     {{-- FOOTER --}}
     <footer class="auth-footer">
-        © {{ date('Y') }} Albertina Nigeria Limited &nbsp;·&nbsp;
+        © {{ date('Y') }} AlbertinaNG &nbsp;·&nbsp;
         <a href="#">Privacy Policy</a> &nbsp;·&nbsp;
         <a href="#">Terms of Use</a>
     </footer>

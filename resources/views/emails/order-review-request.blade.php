@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'Leave a Review — Albertina Nigeria')
+@section('title', 'Leave a Review — AlbertinaNG')
 
 @section('header_title', 'How did we do?')
 @section('header_sub', 'Share your thoughts and help other shoppers.')
@@ -65,7 +65,7 @@
 
     <p class="greeting" style="margin-bottom:0;">
         Regards,<br>
-        <strong>Albertina Nigeria</strong>
+        <strong>AlbertinaNG</strong>
     </p>
 
 @endsection

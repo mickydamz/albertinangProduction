@@ -1,6 +1,6 @@
 @extends('layouts.authlayout')
 
-@section('title', 'Two-Factor Verification — Albertina Nigeria')
+@section('title', 'Two-Factor Verification — AlbertinaNG')
 
 @push('styles')
 <style>

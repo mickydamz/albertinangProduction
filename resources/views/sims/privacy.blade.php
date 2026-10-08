@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', 'Privacy Policy – Albertina Nigeria')
+@section('title', 'Privacy Policy – AlbertinaNG')
 
 @section('content')
 <div class="main-wrap">

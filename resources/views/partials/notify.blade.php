@@ -1,5 +1,5 @@
 {{-- ╔══════════════════════════════════════════════════════════════════════╗ --}}
-{{-- ║  Progress-bar Notification System — Albertina Nigeria               ║ --}}
+{{-- ║  Progress-bar Notification System — AlbertinaNG               ║ --}}
 {{-- ║  Usage: showNotify(msg, type, duration)                             ║ --}}
 {{-- ║         type: 'success' | 'error' | 'warning' | 'info'             ║ --}}
 {{-- ╚══════════════════════════════════════════════════════════════════════╝ --}}

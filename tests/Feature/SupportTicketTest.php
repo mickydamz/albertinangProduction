@@ -191,4 +191,15 @@ class SupportTicketTest extends TestCase
         $this->get('/tickets')->assertRedirect(route('login'));
         $this->get('/tickets/create')->assertRedirect(route('login'));
     }
+    public function test_owner_can_edit_priority_and_description_without_changing_status()
+    {
+        $owner = User::factory()->create();
+        $ticket = $this->makeTicket($owner, ['status'=>'pending']);
+        $this->actingAs($owner)->get("/tickets/{$ticket->id}/edit")->assertOk()->assertViewHas('replies');
+        $this->actingAs($owner)->put("/tickets/{$ticket->id}", [
+            'subject'=>'Updated support request', 'description'=>'Updated details', 'priority'=>'high',
+        ])->assertRedirect(route('tickets.index'));
+        $this->assertDatabaseHas('tickets', ['id'=>$ticket->id,'priority'=>'high','status'=>'pending','description'=>'Updated details']);
+        $this->actingAs(User::factory()->create())->get("/tickets/{$ticket->id}/edit")->assertForbidden();
+    }
 }

@@ -27,6 +27,6 @@ class OrderCancellationRequestedUser extends Mailable
     public function content(): Content
     {
         $this->order->load('cancellation', 'return');
-        return new Content(markdown: 'emails.orders.cancellation-user');
+        return new Content(view: 'emails.orders.cancellation-user');
     }
 }

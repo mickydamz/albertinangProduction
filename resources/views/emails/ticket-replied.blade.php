@@ -1,5 +1,5 @@
 @extends('emails.layout')
-@section('title', 'New Reply on Your Ticket — Albertina Nigeria')
+@section('title', 'New Reply on Your Ticket — AlbertinaNG')
 @section('header_title', 'New Reply on Your Ticket')
 @section('header_sub', 'Our support team has responded to your request.')
 
@@ -55,6 +55,6 @@
 
     <p class="greeting" style="margin-bottom:0;">
         Regards,<br>
-        <strong>Albertina Nigeria Support Team</strong>
+        <strong>AlbertinaNG Support Team</strong>
     </p>
 @endsection

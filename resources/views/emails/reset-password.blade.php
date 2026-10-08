@@ -1,6 +1,6 @@
 @extends('emails.layout')
 
-@section('title', 'Reset Password — Albertina Nigeria')
+@section('title', 'Reset Password — AlbertinaNG')
 
 @section('header_title', 'Reset Password')
 @section('header_sub', 'We received a request to reset your password.')
@@ -39,7 +39,7 @@
 
     <p class="greeting" style="margin-bottom:0;">
         Regards,<br>
-        <strong>Albertina Nigeria</strong>
+        <strong>AlbertinaNG</strong>
     </p>
 
     <div class="divider"></div>

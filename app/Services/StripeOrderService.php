@@ -105,11 +105,18 @@ class StripeOrderService
         $resolvedUserId = $pending->user_id        ?? $userId;
         $totalUsd       = $amount / 100;
 
+        $duplicate = false;
         try {
             $order = DB::transaction(function () use (
                 $reference, $paymentIntentId, $resolvedUserId, $pending, $fulfillment,
-                $items, $couponData, $custEmail, $totalUsd
+                $items, $couponData, $custEmail, $totalUsd, &$duplicate
             ) {
+                PendingCheckout::whereKey($pending->id)->lockForUpdate()->firstOrFail();
+                $existing = Order::where('reference', $reference)->first();
+                if ($existing) { $duplicate = true; return $existing; }
+                $allocation = app(CheckoutAllocationService::class);
+                $allocatedCoupon = $allocation->allocate($items, $couponData, $resolvedUserId);
+
                 $order = Order::create([
                     'user_id'                => $resolvedUserId,
                     'status'                 => 'paid',
@@ -151,26 +158,15 @@ class StripeOrderService
                     ]);
                 }
 
-                if (!empty($couponData['id'])) {
-                    $coupon = Coupon::lockForUpdate()->find($couponData['id']);
-                    if ($coupon) {
-                        if ($coupon->max_uses !== null && $coupon->used_count >= $coupon->max_uses) {
-                            Log::warning("Coupon {$coupon->code} limit exhausted at Stripe fulfilment (ref={$reference}); skipping increment.");
-                        } else {
-                            $coupon->increment('used_count');
-                            CouponUsage::create([
-                                'coupon_id' => $coupon->id,
-                                'user_id'   => $resolvedUserId,
-                                'order_id'  => $order->id,
-                            ]);
-                        }
-                    }
-                }
+                $allocation->recordUsage($allocatedCoupon, $order, $resolvedUserId);
 
                 $pending->update(['fulfilled_at' => now()]);
 
                 return $order;
-            });
+            }, 5);
+        } catch (\DomainException $e) {
+            Log::alert("Paid checkout requires review ref={$reference}: " . $e->getMessage());
+            return $this->result(false, null, null, false, 'allocation', 'Payment received; coupon availability changed. Do not pay again. Contact support with reference: ' . $reference);
         } catch (\Illuminate\Database\QueryException $e) {
             $mysqlDuplicate    = ($e->errorInfo[1] ?? null) === 1062;
             $postgresDuplicate = ($e->errorInfo[0] ?? '') === '23505';
@@ -192,6 +188,8 @@ class StripeOrderService
             Log::error("Stripe order creation failed for ref={$reference}: " . $e->getMessage());
             return $this->result(false, null, null, false, 'transient', $e->getMessage());
         }
+
+        if ($duplicate) return $this->result(true, $order->id, $order->order_number, true, null, 'Order already exists.');
 
         $recipient = $order->user?->email ?? $custEmail;
         if ($recipient) {

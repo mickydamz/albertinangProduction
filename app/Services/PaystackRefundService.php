@@ -25,6 +25,9 @@ class PaystackRefundService
             $order = Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
             $existing = DB::table('paystack_refunds')->where('order_id',$order->id)->first();
             if ($existing) return $existing;
+            if ($request instanceof OrderReturn && !in_array($request->stage(), ['inspected','refund_requested'], true)) {
+                throw ValidationException::withMessages(['refund'=>'Receive and inspect the returned goods before requesting a refund.']);
+            }
             // Never issue another refund for a legacy record until it has been reconciled.
             foreach ([$order->cancellation,$order->return] as $legacy) {
                 if ($legacy && ($legacy->refund_id || $legacy->refunded_at || $legacy->status === 'refunded')) {
@@ -123,11 +126,12 @@ class PaystackRefundService
             $request->update(['status'=>$done ? 'refunded' : 'approved','refund_id'=>$row->refund_id ?? ($data['id'] ?? null),
                 'refund_status'=>$status,'refunded_at'=>$done ? now() : null]);
             $order=Order::findOrFail($row->order_id);
-            if ($done) {
-                $order->update(['status'=>'refunded']);
-                
+            // Keep fulfilment history separate from the payment provider's refund status.
+            if ($row->status !== $status) {
+                DB::table('order_request_events')->insert(['order_id'=>$order->id,'request_type'=>$row->request_type,'request_id'=>$row->request_id,
+                    'actor_id'=>null,'action'=>'refund_'.$status,'notes'=>'Payment provider status update','created_at'=>now(),'updated_at'=>now()]);
+                $notify=$order;
             }
-            if ($row->status !== $status) $notify=$order;
             return true;
         });
         if ($notify) $this->notify($notify,$status);

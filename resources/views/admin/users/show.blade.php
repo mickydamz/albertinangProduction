@@ -126,7 +126,6 @@
                         </div>
                         <div class="col-md-6">
                             <ul class="list-unstyled mb-0">
-                                <li class="d-flex justify-content-between py-50 border-bottom"><span class="text-muted"><i class="fas fa-hashtag me-50"></i>Affiliate Code</span><strong class="font-monospace">{{ $user->affiliate_code ?? '—' }}</strong></li>
                                 <li class="d-flex justify-content-between py-50 border-bottom"><span class="text-muted"><i class="fas fa-mail-bulk me-50"></i>Postal Code</span><strong>{{ $user->postal_code ?? '—' }}</strong></li>
                                 <li class="d-flex justify-content-between py-50"><span class="text-muted"><i class="fas fa-calendar me-50"></i>Joined</span><strong>{{ $user->created_at?->format('d M Y') ?? '—' }}</strong></li>
                             </ul>

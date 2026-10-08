@@ -30,6 +30,9 @@ class CountryStateSeeder extends Seeder
             return;
         }
 
+        Cache::forget('reg:countries:withstates');
+        foreach (Country::pluck('id') as $countryId) Cache::forget('geo:states:' . $countryId);
+
         // Wipe existing data so re-seeding is idempotent
         City::query()->delete();
         Country::query()->delete();

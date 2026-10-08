@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', 'Albertina Nigeria – Premium Electronics & Home Appliances')
+@section('title', 'AlbertinaNG – Premium Electronics & Home Appliances')
 
 @push('styles')
 <style>

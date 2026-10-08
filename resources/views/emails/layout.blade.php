@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', $appStoreName ?? 'Albertina Nigeria')</title>
+    <title>@yield('title', $appStoreName ?? 'AlbertinaNG')</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -113,19 +113,10 @@
 
     {{-- ══════════════ HEADER ══════════════ --}}
     <div class="email-header">
-        {{-- Logo image with text fallback --}}
-        @php
-            $emailLogoUrl = !empty($appStoreLogo)
-                ? rtrim(config('app.url'), '/') . '/storage/' . $appStoreLogo
-                : asset('app-asset/images/logo/logo.png');
-            $emailStoreName = $appStoreName ?? 'Albertina Nigeria';
-        @endphp
-        <img src="{{ $emailLogoUrl }}"
-             alt="{{ $emailStoreName }}"
-             width="auto"
-             height="34"
-             class="brand-logo-img"
-             style="height:34px;width:auto;margin:0 auto 18px;display:block;border:0;filter:brightness(0) invert(1);">
+        {{-- Text branding renders reliably without remote image loading. --}}
+        @php $emailStoreName = $appStoreName ?? 'AlbertinaNG'; @endphp
+        <div style="font-size:24px;font-weight:700;color:#ffffff;margin:0 auto 18px;">{{ $emailStoreName }}</div>
+
 
         @hasSection('header_icon')
             <div class="header-icon">@yield('header_icon')</div>
@@ -160,7 +151,7 @@
                 <div class="meta-value">{{ ucfirst($order->payment_method ?? 'N/A') }}</div>
             </td>
             <td style="text-align:center; padding:16px 12px;">
-                <div class="meta-label">Status</div>
+                <div class="meta-label">{{ $statusHeading ?? 'Status' }}</div>
                 <div>
                     <span style="display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px; font-weight:700; background:{{ $statusBg }}; color:{{ $statusColor }}; border:1px solid {{ $statusBorder }};">
                         {{ $statusLabel }}
@@ -186,7 +177,7 @@
             <a href="mailto:{{ $storeEmail ?? 'Info@Albertinang.com' }}">Support</a>
         </div>
         <div class="footer-copy">
-            © {{ date('Y') }} {{ $emailStoreName }} Ltd. All rights reserved.<br>
+            © {{ date('Y') }} {{ $emailStoreName }}. All rights reserved.<br>
             You're receiving this because you placed an order with us.
             @isset($order)
                 <br>This email was sent to {{ $order->customer_email ?? $order->user?->email }}.

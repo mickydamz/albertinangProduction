@@ -19,7 +19,7 @@ class OrderReviewRequest extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'How was your order? Leave a review – Albertina Nigeria',
+            subject: 'How was your order? Leave a review – AlbertinaNG',
         );
     }
 

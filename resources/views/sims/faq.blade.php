@@ -1,6 +1,6 @@
 @extends('layouts.simslayout')
 
-@section('title', 'FAQ – Albertina Nigeria')
+@section('title', 'FAQ – AlbertinaNG')
 
 @section('content')
 @php
@@ -356,7 +356,7 @@ $catMeta = [
     {{-- Hero --}}
     <div class="faq-hero">
         <h1>Frequently Asked Questions</h1>
-        <p>Find answers to common questions about shopping with Albertina Nigeria. We're here to make your experience as smooth as possible.</p>
+        <p>Find answers to common questions about shopping with AlbertinaNG. We're here to make your experience as smooth as possible.</p>
     </div>
 
     {{-- Search --}}

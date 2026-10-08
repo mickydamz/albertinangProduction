@@ -37,7 +37,7 @@ $invInitData = [
     'bankDetails'=> $settings['inv_bank_details'] ?? '',
     'terms'      => $settings['inv_terms']        ?? '',
     'footer'     => $settings['inv_footer']       ?? '',
-    'storeName'  => $appStoreName ?? 'Albertina Nigeria',
+    'storeName'  => $appStoreName ?? 'AlbertinaNG',
     'storeAddr'  => $storeAddress ?? 'No. 22 Zik Avenue, Uwani, Enugu',
     'storeEmail' => $storeEmail   ?? 'support@albertinang.com',
     'storePhone' => $storePhone   ?? '',
@@ -289,7 +289,7 @@ var SECTION_META = {
 var DEFAULT_BODY = ['bill_to','fulfillment','items','notes_totals','bank','terms','footer'];
 
 var STORE = {
-    name:  INV_INIT.storeName  || 'Albertina Nigeria',
+    name:  INV_INIT.storeName  || 'AlbertinaNG',
     addr:  INV_INIT.storeAddr  || 'No. 22 Zik Avenue, Uwani, Enugu',
     email: INV_INIT.storeEmail || 'support@albertinang.com',
     phone: INV_INIT.storePhone || '',

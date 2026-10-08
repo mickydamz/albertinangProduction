@@ -82,10 +82,8 @@ class RouteServiceProvider extends ServiceProvider
             // Role-based redirection logic
             if ($user->role === 'admin') {
                 return route('admin.dashboard');
-            } elseif ($user->role === 'supplier') {
-                return route('supplier.dashboard');
-            } elseif ($user->role === 'affiliate') {
-                return route('affiliate.dashboard');
+            } elseif ($user->role === 'supplier' || $user->role === 'affiliate') {
+                return route('dashboard');
             }
     
             // Default redirection for other users

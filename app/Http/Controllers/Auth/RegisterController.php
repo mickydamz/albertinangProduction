@@ -80,8 +80,9 @@ class RegisterController extends Controller
                 ? ['required', 'integer',
                    Rule::exists('cities', 'id')->where('country_id', $countryId)]
                 : ['nullable', 'integer'],
+            'shipping_address' => ['nullable', 'string', 'max:255'],
+            'city'             => ['nullable', 'string', 'max:100'],
             'postal_code'    => ['nullable', 'string', 'max:20'],
-            'affiliate_code' => ['nullable', 'exists:users,affiliate_code'],
         ], [
             'country_id.required' => 'Please select a country.',
             'country_id.exists'   => 'The selected country is not valid.',
@@ -93,11 +94,6 @@ class RegisterController extends Controller
     protected function create(array $data)
     {
         try {
-            $referrer = null;
-            if (!empty($data['affiliate_code'])) {
-                $referrer = User::where('affiliate_code', $data['affiliate_code'])->first();
-            }
-
             $country   = Country::find($data['country_id']);
             $stateName = !empty($data['state_id'])
                 ? City::whereKey($data['state_id'])->value('name')
@@ -112,9 +108,9 @@ class RegisterController extends Controller
                 'state_id'       => $data['state_id'] ?? null,
                 'state'          => $stateName,        // legacy string column (invoices, account page)
                 'postal_code'    => $data['postal_code'] ?? null,
+                'shipping_address' => $data['shipping_address'] ?? null,
+                'city'             => $data['city'] ?? null,
                 'role'           => 'user',
-                'affiliate_code' => Str::random(10),
-                'referred_by'    => $referrer?->id,
             ]);
 
             session()->flash('success', 'Registration successful! Welcome to our platform, ' . $user->name . '!');
@@ -168,8 +164,6 @@ class RegisterController extends Controller
         return match ($user->role) {
             'admin'     => redirect()->route('admin.dashboard'),
             'user'      => redirect()->route('dashboard'),
-            'supplier'  => redirect()->route('supplier.dashboard'),
-            'affiliate' => redirect()->route('affiliate.dashboard'),
             default     => redirect($this->redirectPath()),
         };
     }

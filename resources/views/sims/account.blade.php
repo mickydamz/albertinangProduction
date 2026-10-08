@@ -493,32 +493,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
                                    readonly>
                         </div>
                     </div>
-                    @if(auth()->user()->affiliate_code)
-                    <div class="form-group" style="margin-top:14px;">
-                        <label>Your Referral Code</label>
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            <input type="text"
-                                   id="affiliateCode"
-                                   class="form-control"
-                                   value="{{ auth()->user()->affiliate_code }}"
-                                   readonly>
-                            <button type="button"
-                                    class="profile-btn profile-btn--secondary copy-btn"
-                                    style="white-space:nowrap; flex-shrink:0;"
-                                    aria-label="Copy referral code"
-                                    onclick="copyAffiliateCode()">
-                                <i class="fas fa-copy" style="font-size:11px;"></i>
-                                <span class="copy-btn__label">Copy</span>
-                                <svg class="copy-btn__svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                            </button>
-                        </div>
-                        <span class="form-hint">Share this code to earn referral rewards.</span>
-                    </div>
-                    @endif
+
                 </div>
             </div>
 

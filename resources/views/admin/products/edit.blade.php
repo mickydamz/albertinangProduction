@@ -549,7 +549,7 @@
                                         @error('description') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                     </div>
 
-                                    @include('partials.block-editor-field', ['blocks' => $product->description_blocks ?? []])
+                                    <details class="mb-2"><summary class="form-label">Rich description (optional)</summary>@include('partials.block-editor-field', ['blocks' => $product->description_blocks ?? []])</details>
                                 </div>
 
                                 {{-- ━━━━━━━━━━━ PRICING & STOCK ━━━━━━━━━━━ --}}
@@ -567,7 +567,7 @@
                                             <label for="price" class="form-label">Price (₦) <span class="text-danger">*</span></label>
                                             <input type="number" name="price" id="price"
                                                    class="form-control @error('price') is-invalid @enderror"
-                                                   value="{{ old('price', $product->price) }}" step="0.01" min="0" required>
+                                                   value="{{ old('price', $product->price) }}" step="0.01" min="0.01" required>
                                             @error('price') <div class="invalid-feedback">{{ $message }}</div> @enderror
                                         </div>
                                         <div class="col-md-6 mb-1">
@@ -640,7 +640,7 @@
                                     </div>
 
                                     <div class="mb-1">
-                                        <label class="form-label">Brand <span class="text-danger">*</span></label>
+                                        <label class="form-label">Brand (optional)</label>
                                         <div class="position-relative">
                                             <div class="pill-box" id="brand-box">
                                                 <div id="sel-brand" style="display:contents;"></div>
@@ -684,7 +684,7 @@
 
                                     <div class="row">
                                         <div class="col-md-6 mb-1">
-                                            <label class="form-label">Sizes</label>
+                                            <label class="form-label">Legacy sizes (optional)</label><p class="small text-muted">For new listings, use category-specific specifications such as Screen Size, Capacity or Load Capacity. Generic sizes are retained for existing products.</p>
                                             <div class="position-relative">
                                                 <div class="pill-box">
                                                     <div id="sel-sizes" style="display:contents;"></div>
@@ -697,7 +697,7 @@
                                             @error('sizes') <p class="text-danger mt-25" style="font-size:.857rem;">{{ $message }}</p> @enderror
                                         </div>
                                         <div class="col-md-6 mb-1">
-                                            <label class="form-label">Colors</label>
+                                            <label class="form-label">Colour</label><p class="small text-muted">Choose a standard colour here. It joins the same customer Colour filter as existing colour specifications.</p>
                                             <div class="position-relative">
                                                 <div class="pill-box">
                                                     <div id="sel-colors" style="display:contents;"></div>
@@ -767,7 +767,7 @@
                                         <label for="images" class="form-label">Upload New Images</label>
                                         <input type="file" name="images[]" id="images"
                                                class="form-control @error('images') is-invalid @enderror"
-                                               multiple accept="image/jpeg,image/png,image/jpg,image/gif">
+                                               multiple accept="image/jpeg,image/png,image/webp">
                                         @error('images') <div class="invalid-feedback">{{ $message }}</div> @enderror
 
                                         <div id="image-previews">
@@ -1628,16 +1628,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', () => { btn.closest('.install-opt-row').remove(); reIndexInstall(); });
     });
 
-    /* ─── Submit validation — jump to the offending section ─── */
-    document.getElementById('product-form').addEventListener('submit', function (e) {
-        if (!selBrand) {
-            e.preventDefault();
-            // Organization pane is index 2
-            const orgIdx = navItems.findIndex(n => n.dataset.target === 'pane-org');
-            if (orgIdx >= 0) showPane(orgIdx);
-            showToast('Please select a brand.', 'danger');
-        }
-    });
+    // Brand is optional; native field checks and server validation handle submission.
 
     /* ─── Toast ─── */
     function showToast(msg, type = 'danger') {
@@ -1674,4 +1665,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
+@include('admin.products.partials.essentials')
 @endsection
