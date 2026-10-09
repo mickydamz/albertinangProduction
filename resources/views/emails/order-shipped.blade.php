@@ -11,11 +11,6 @@
 
 @section('header_title', 'Your Order Is On Its Way! 🚚')
 
-@section('header_sub')
-    Great news — your order has been dispatched<br>
-    and is heading your way right now.
-@endsection
-
 @php
     $statusLabel  = 'Shipped';
     $statusBg     = '#f0fdf4';

@@ -11,11 +11,6 @@
 
 @section('header_title', "We're Processing Your Order ⚙️")
 
-@section('header_sub')
-    Your order is now being prepared by our team.<br>
-    @if($order->fulfillment_method === 'pickup') We'll notify you when it is ready for pickup. @else We'll notify you as soon as it ships. @endif
-@endsection
-
 @php
     $statusLabel  = 'Processing';
     $statusBg     = '#eff6ff';

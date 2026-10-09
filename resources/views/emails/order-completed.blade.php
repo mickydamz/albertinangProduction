@@ -3,7 +3,6 @@
 @section('title', 'Order Complete — AlbertinaNG')
 
 @section('header_title', 'Order Complete')
-@section('header_sub', 'Thank you for shopping with AlbertinaNG.')
 
 @php
     $statusLabel  = 'Completed';

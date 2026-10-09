@@ -84,7 +84,9 @@ class ReturnWorkflowTest extends CriticalTestCase
         $r = OrderReturn::create(['order_id'=>$o->id, 'user_id'=>$o->user_id, 'reason'=>'Dummy return', 'status'=>'approved']);
         app()->instance('mailer', new \Illuminate\Mail\Mailer('regression', app('view'), new \Symfony\Component\Mailer\Transport\NullTransport(), app('events')));
         $html = (new ReturnStageUpdated($r, 'Return approved', 'Bring the goods with your order number.'))->render();
-        $this->assertStringContainsString('Bring the goods with your order number.', $html);
+        $this->assertSame(1, substr_count($html, 'Bring the goods with your order number.'));
+        $this->assertStringNotContainsString('<p class="header-sub">', $html);
+        $this->assertStringContainsString('<div class="header-title">Return approved</div>', $html);
         $this->assertStringContainsString($o->order_number, $html);
         $this->assertStringContainsString('does not confirm a completed refund', $html);
         $this->assertStringContainsString('email-container', $html);

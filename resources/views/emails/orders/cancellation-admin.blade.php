@@ -11,7 +11,6 @@
 
 @section('header_title', 'New Cancellation Request')
 
-@section('header_sub', 'A customer has requested to cancel their order.')
 
 @section('body')
 

@@ -6,11 +6,10 @@
 @endphp
 @section('title', $refundProgress['label'].' – AlbertinaNG')
 @section('header_title', $refundProgress['label'])
-@section('header_sub', $refundProgress['message'])
 @section('body')
 <p class="greeting">Hi {{ $order->user?->name ?? 'Customer' }},</p>
 <div class="info-block">
-    <div class="info-block-title">{{ $refundProgress['label'] }}</div>
+    <div class="info-block-title">Refund details</div>
     <div class="info-block-content">
         <strong>Order:</strong> #{{ $order->order_number }}<br>
         <strong>Refund amount:</strong> ₦{{ number_format($order->total, 2) }}<br>

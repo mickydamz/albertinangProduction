@@ -1,12 +1,11 @@
 @extends('emails.layout')
 @section('title', $label.' – AlbertinaNG')
 @section('header_title', $label)
-@section('header_sub', 'An update on your return request.')
 @section('body')
 <p class="greeting">Hi <strong>{{ $return->user?->name ?? 'Valued Customer' }}</strong>,<br><br>
 Here is the latest update for your return on <strong>Order #{{ $order->order_number }}</strong>.</p>
 <div class="info-block" style="margin-bottom:24px;">
-    <div class="info-block-title">{{ $label }}</div>
+    <div class="info-block-title">Return details</div>
     <div class="info-block-content" style="white-space:pre-line;">{{ $stageMessage ?: 'You can view the latest return progress in My Orders.' }}</div>
 </div>
 @if(str_starts_with($label, 'Return approved'))

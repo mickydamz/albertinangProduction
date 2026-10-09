@@ -20,11 +20,6 @@
 
 @section('header_title', 'Order Cancelled')
 
-@section('header_sub')
-    Your order has been cancelled.<br>
-    If this was a mistake, please contact us right away.
-@endsection
-
 @php
     $statusLabel  = 'Cancelled';
     $statusBg     = '#fef2f2';

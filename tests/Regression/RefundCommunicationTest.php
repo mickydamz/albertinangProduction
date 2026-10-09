@@ -48,7 +48,21 @@ class RefundCommunicationTest extends CriticalTestCase
         $this->assertStringNotContainsString('Cancelled', $html);
         $this->assertStringNotContainsString('Ltd.', $html);
         $this->assertStringNotContainsString('brand-logo-img"', $html);
-        $this->assertGreaterThanOrEqual(3, substr_count($html, $label));
+        $this->assertSame(3, substr_count($html, $label)); // Document title, header and status badge.
+        $this->assertSame(1, substr_count($html, RefundProgress::forStatus($status)['message']));
+        $this->assertStringNotContainsString('<p class="header-sub">', $html);
+        $this->assertStringContainsString('<div class="header-title">'.$label.'</div>', $html);
+    }
+
+    public function test_order_notification_headers_do_not_repeat_body_explanations(): void
+    {
+        $o=$this->order($this->customer(), 'paid', 'paystack');
+        foreach (['order-confirmation','order-processing','order-shipped','order-delivered','order-completed','order-ready-for-pickup','order_ready_for_pickup','order-cancelled','order-review-request'] as $template) {
+            $html=view('emails.'.$template, ['order'=>$o])->render();
+            $this->assertStringNotContainsString('<p class="header-sub">', $html, $template);
+            $this->assertStringContainsString('email-body', $html, $template);
+            $this->assertStringContainsString($o->order_number, $html, $template);
+        }
     }
 
     public function test_transitions_send_matching_email_once_and_old_events_do_not_regress(): void

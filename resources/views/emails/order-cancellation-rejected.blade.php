@@ -3,7 +3,6 @@
 @section('title', 'Cancellation Request Update')
 
 @section('header_title', 'Cancellation Not Approved')
-@section('header_sub', 'We’ve reviewed your cancellation request')
 
 @php
     // Override the meta bar status pill to a "rejected" amber/red treatment.

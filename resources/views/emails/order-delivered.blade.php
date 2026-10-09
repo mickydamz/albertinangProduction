@@ -11,11 +11,6 @@
 
 @section('header_title', 'Order Delivered! 📦')
 
-@section('header_sub')
-    Your order has arrived. We hope you love it!<br>
-    Thank you for shopping with AlbertinaNG.
-@endsection
-
 @php
     $statusLabel  = 'Delivered';
     $statusBg     = '#eef5e6';

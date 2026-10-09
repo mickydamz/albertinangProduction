@@ -3,7 +3,6 @@
 @section('title', 'Leave a Review — AlbertinaNG')
 
 @section('header_title', 'How did we do?')
-@section('header_sub', 'Share your thoughts and help other shoppers.')
 
 @section('body')
 

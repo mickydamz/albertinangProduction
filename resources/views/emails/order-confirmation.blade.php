@@ -11,11 +11,6 @@
 
 @section('header_title', 'Order Confirmed! 🎉')
 
-@section('header_sub')
-    Thank you for your purchase. We've received your order<br>
-    and it's being processed right away.
-@endsection
-
 @section('body')
 
     <p class="greeting">

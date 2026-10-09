@@ -18,11 +18,6 @@
 
 @section('header_title', 'Your Order Is Ready for Pickup! 📦')
 
-@section('header_sub')
-    Great news — your order has been packed<br>
-    and is waiting for you at our store.
-@endsection
-
 @section('body')
 
     <p class="greeting">

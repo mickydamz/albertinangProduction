@@ -1,7 +1,6 @@
 @extends('emails.layout')
 @section('title', 'New Reply on Your Ticket — AlbertinaNG')
 @section('header_title', 'New Reply on Your Ticket')
-@section('header_sub', 'Our support team has responded to your request.')
 
 @section('body')
   <p class="greeting">
