@@ -38,3 +38,7 @@ yarn-error.log
 # Archives / scratch junk
 *.zip
 todo list.md
+browser-diagnostic.cjs
+commerce_edits.py
+commerce_followup.py
+commerce_integrate.py
