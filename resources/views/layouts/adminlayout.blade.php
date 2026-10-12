@@ -64,7 +64,7 @@
         html { -webkit-text-size-adjust: 100%; }
 
         body {
-            margin: 0; padding: 0;
+            margin: 0; padding: var(--al-top) 0 0;
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             font-size: 14px; line-height: 1.5;
             color: var(--al-text-2);
@@ -119,7 +119,7 @@
         /* ════════════════════════════════════════
            SHELL
         ════════════════════════════════════════ */
-        .al-shell { display: flex; flex-direction: column; min-height: 100vh; }
+        .al-shell { display: flex; flex-direction: column; min-height: calc(100vh - var(--al-top)); }
 
         /* ════════════════════════════════════════
            TOPBAR
@@ -130,7 +130,7 @@
             border-bottom: 1px solid var(--al-border);
             display: flex; align-items: center;
             padding: 0 20px; gap: 0;
-            position: sticky; top: 0; z-index: 300;
+            position: fixed; top: 0; left: 0; right: 0; z-index: 300;
         }
 
         .al-hamburger {
