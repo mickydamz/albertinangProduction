@@ -117,6 +117,12 @@ public function store(Request $request)
     //         ->with('success', 'Brand created successfully.');
     // }
 
+    // Viewing a single brand just opens its edit form (no standalone show view).
+    public function show(Brand $brand)
+    {
+        return redirect()->route('admin.brands.edit', $brand);
+    }
+
     public function edit(Brand $brand)
     {
         return view('admin.brands.edit', compact('brand'));

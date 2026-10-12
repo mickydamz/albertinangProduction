@@ -52,6 +52,12 @@ class AdminCategoryController extends Controller
     }
 
     // Show the form for editing a category
+    // Viewing a single category just opens its edit form (no standalone show view).
+    public function show(Category $category)
+    {
+        return redirect()->route('admin.categories.edit', $category);
+    }
+
     public function edit(Category $category)
     {
         return view('admin.categories.edit', compact('category'));
