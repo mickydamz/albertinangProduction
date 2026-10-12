@@ -1,7 +1,9 @@
 <div class="al-nav-tools">
-    <div class="d-flex align-items-center justify-content-between">
+    <div class="al-nav-tools-head">
         <label for="adminMenuSearch">Find an admin page</label>
-        <button type="button" class="al-nav-close" id="adminNavClose" aria-label="Close navigation">Close</button>
+        <button type="button" class="al-nav-close" id="adminNavClose" aria-label="Close navigation" title="Close">
+            <i class="fas fa-xmark" aria-hidden="true"></i>
+        </button>
     </div>
     <input type="search" id="adminMenuSearch" placeholder="Orders, coupons, invoices…" autocomplete="off">
     <small id="adminNavResults" role="status" aria-live="polite"></small>

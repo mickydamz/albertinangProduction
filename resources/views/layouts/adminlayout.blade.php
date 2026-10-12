@@ -214,7 +214,7 @@
            MOBILE DRAWER
         ════════════════════════════════════════ */
         .al-drawer {
-            position: fixed; top: 0; left: 0; bottom: 0; width: 260px;
+            position: fixed; top: 0; left: 0; bottom: 0; width: min(284px, 86vw);
             background: var(--al-surface); border-right: 1px solid var(--al-border);
             z-index: 400; transform: translateX(-100%);
             transition: transform .25s cubic-bezier(.4,0,.2,1);
@@ -533,7 +533,13 @@
         :focus-visible { outline:3px solid #3d8012; outline-offset:3px; }
         .al-nav-tools { padding:12px; border-bottom:1px solid var(--al-border); }
         .al-nav-tools label { display:block; font-weight:600; margin-bottom:6px; }
-        .al-nav-tools input { width:100%; border:1px solid #cbd5e1; border-radius:8px; padding:10px; font:inherit; }
+        .al-nav-tools-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+        .al-nav-tools-head label { margin-bottom:0; }
+        .al-nav-tools input { width:100%; border:1px solid var(--al-border); border-radius:8px; padding:10px; font:inherit; -webkit-appearance:none; appearance:none; background:var(--al-bg); box-sizing:border-box; transition:border-color .13s, box-shadow .13s, background .13s; }
+        .al-nav-tools input:hover { border-color:#d1d5db; }
+        .al-nav-tools input:focus { outline:none; border-color:var(--al-primary); background:var(--al-surface); box-shadow:0 0 0 3px rgba(61,128,18,.12); }
+        .al-nav-tools input::-webkit-search-decoration,
+        .al-nav-tools input::-webkit-search-cancel-button { -webkit-appearance:none; }
         .al-nav-tools small { display:block; color:var(--al-text-3); margin-top:5px; }
         .al-nav-group { margin:6px 0; }
         .al-nav-group summary { display:flex; align-items:center; gap:9px; cursor:pointer; padding:10px; font-weight:600; border-radius:8px; color:var(--al-text-2); list-style:none; }
@@ -545,7 +551,8 @@
         .al-dsub a { padding:9px 10px 9px 28px; white-space:normal; }
         .al-dsub a.al-active { background:var(--al-primary-lt); }
         [hidden] { display:none !important; }
-        .al-nav-close { display:none; margin-left:auto; border:1px solid var(--al-border); border-radius:6px; background:#fff; padding:7px 10px; }
+        .al-nav-close { display:none; align-items:center; justify-content:center; width:34px; height:34px; flex-shrink:0; border:1px solid var(--al-border); border-radius:8px; background:var(--al-surface); color:var(--al-text-3); font-size:16px; line-height:1; cursor:pointer; transition:background .13s, color .13s, border-color .13s; }
+        .al-nav-close:hover { background:#f3f4f6; color:var(--al-text); border-color:#d1d5db; }
         .al-workspace { margin-bottom:24px; }
         .al-shortcuts { display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 20px; }
         .al-shortcuts a { padding:10px 14px; border:1px solid var(--al-border); border-radius:8px; background:#fff; color:var(--al-text); text-decoration:none; }
@@ -562,9 +569,19 @@
             body.al-menu-hidden .al-content { margin-left:0; }
         }
         @media(max-width:1024px) {
-            .al-nav-close { display:block; }
+            .al-nav-close { display:flex; }
             .al-content { margin-left:0; }
             .al-directory { grid-template-columns:1fr; }
+            /* Lock the page behind the drawer so only the drawer scrolls. */
+            body.al-drawer-open { overflow:hidden; }
+        }
+        @media(max-width:768px) {
+            /* Secondary context label crowds the topbar on phones — hide it so
+               the hamburger, logo and account button always fit. */
+            .al-admin-context { display:none; }
+            .al-logo img { max-width:116px; }
+            .al-topbar { padding:0 12px; }
+            .al-topbar .al-hamburger { margin-right:8px; }
         }
     </style>
 
@@ -723,15 +740,22 @@ if (typeof feather === 'undefined') { window.feather = { replace: function(){} }
     }
     syncMenu();
     desktopMenu.addEventListener('change', function () {
-        drawer.classList.remove('open'); overlay.classList.remove('open'); syncMenu();
+        drawer.classList.remove('open'); overlay.classList.remove('open');
+        document.body.classList.remove('al-drawer-open'); syncMenu();
     });
     hamburger.addEventListener('click', function () {
         if (desktopMenu.matches) {
             menuHidden = !menuHidden;
             try { localStorage.setItem('albertina.admin.menuHidden', String(menuHidden)); } catch (_) {}
         } else {
-            drawer.classList.toggle('open'); overlay.classList.toggle('open');
-            if (drawer.classList.contains('open')) document.getElementById('adminMenuSearch').focus();
+            const open = !drawer.classList.contains('open');
+            drawer.classList.toggle('open', open);
+            overlay.classList.toggle('open', open);
+            document.body.classList.toggle('al-drawer-open', open);
+            // Move focus into the drawer for keyboard/screen-reader users, but
+            // NOT into the search box — focusing it pops the on-screen keyboard
+            // before the user has asked to search.
+            if (open) document.getElementById('adminNavClose').focus();
         }
         syncMenu();
         window.dispatchEvent(new Event('resize'));
@@ -759,6 +783,7 @@ if (typeof feather === 'undefined') { window.feather = { replace: function(){} }
     });
     function closeDrawer() {
         drawer.classList.remove('open'); overlay.classList.remove('open');
+        document.body.classList.remove('al-drawer-open');
         syncMenu();
     }
     document.addEventListener('keydown', function (event) {
