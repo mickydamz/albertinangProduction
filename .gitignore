@@ -34,3 +34,7 @@ yarn-error.log
 /.env.*
 !/.env.example
 /database/*.sqlite*
+
+# Archives / scratch junk
+*.zip
+todo list.md
