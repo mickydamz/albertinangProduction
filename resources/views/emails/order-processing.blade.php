@@ -23,7 +23,7 @@
     <p class="greeting">
         Hi <strong>{{ $order->user?->name ?? 'Valued Customer' }}</strong>,<br><br>
         Good news — our team has picked up your order and it's now being processed.
-        @if($order->fulfillment_method === 'pickup') We'll send you another update when your order is ready for collection. @else Everything is on track and we'll send you another update once your item(s) are on their way. @endif
+        @if($order->fulfillment_method === 'pickup') We'll send you another update when your order is ready for pickup. @else Everything is on track and we'll send you another update as soon as it ships. @endif
     </p>
 
     {{-- Order Items --}}
@@ -107,7 +107,7 @@
                             @else
                                 <strong>{{ $order->pickup_location }}</strong><br>
                             @endif
-                            <span style="font-size:12px; color:#7a9a60;">Your order will be ready for collection soon.</span>
+                            <span style="font-size:12px; color:#7a9a60;">Your order will be ready for pickup soon.</span>
                         @elseif($order->shipping_address)
                             <strong>{{ $order->shipping_address }}</strong><br>
                             @php $loc = collect([$order->delivery_location_name, $order->delivery_state_name])->filter()->implode(', '); @endphp

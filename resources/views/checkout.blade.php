@@ -123,6 +123,10 @@
         .shipping-address-textarea:hover{border-color:var(--border2);}
         .shipping-address-textarea:focus{border-color:var(--g500);box-shadow:0 0 0 3px rgba(90,171,31,.12);}
         .shipping-address-textarea::placeholder{color:var(--ink4);}
+        .shipping-address-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13.5px;color:var(--ink);background:#fff;font-family:var(--font-body);transition:border-color .15s,box-shadow .15s;outline:none;}
+        .shipping-address-input:hover{border-color:var(--border2);}
+        .shipping-address-input:focus{border-color:var(--g500);box-shadow:0 0 0 3px rgba(90,171,31,.12);}
+        .shipping-address-input::placeholder{color:var(--ink4);}
 
         /* Pickup points */
         #currentPickupLocation{font-weight:700;color:var(--g600);}
@@ -380,15 +384,26 @@
                     {{-- Delivery panel --}}
                     <div class="fulfillment-panel" id="deliveryPanel">
                         <div class="shipping-address-wrap" style="margin-top:0;margin-bottom:1rem;">
-                            <label class="field-label" for="shippingAddressInput">
-                                Street / Delivery Address <span style="color:var(--red);">*</span>
+                            <label class="field-label" for="shippingStreet1Input">
+                                Street Address Line 1 <span style="color:var(--red);">*</span>
                             </label>
-                            <textarea
-                                class="shipping-address-textarea"
-                                id="shippingAddressInput"
-                                placeholder="e.g. 12 Ogui Road, GRA, Enugu — include any landmark that helps the driver find you"
-                                maxlength="500"
-                            ></textarea>
+                            <input
+                                type="text"
+                                class="shipping-address-input"
+                                id="shippingStreet1Input"
+                                placeholder="e.g. 12 Ogui Road, GRA, Enugu"
+                                maxlength="250"
+                                autocomplete="address-line1">
+                            <label class="field-label" for="shippingStreet2Input" style="margin-top:.75rem;">
+                                Street Address Line 2 <span style="color:var(--ink4);font-weight:400;">(optional)</span>
+                            </label>
+                            <input
+                                type="text"
+                                class="shipping-address-input"
+                                id="shippingStreet2Input"
+                                placeholder="Apartment, suite, or a landmark that helps the driver find you"
+                                maxlength="250"
+                                autocomplete="address-line2">
                         </div>
 
                         <label class="field-label" for="deliveryStateSelect">State</label>
@@ -631,7 +646,16 @@
         const deliveryFeeDisplay         = document.getElementById('deliveryFeeDisplay');
         const deliveryFeeAmount          = document.getElementById('deliveryFeeAmount');
         const noDeliveryLocationsMessage = document.getElementById('noDeliveryLocationsMessage');
-        const shippingAddressInput       = document.getElementById('shippingAddressInput');
+        const shippingStreet1Input       = document.getElementById('shippingStreet1Input');
+        const shippingStreet2Input       = document.getElementById('shippingStreet2Input');
+        // The backend still receives a single `shipping_address` string. The two
+        // street inputs are a display convenience only — we join them (line 1 +
+        // optional line 2) into the same combined value the rest of the page uses.
+        const readShippingAddress = () => {
+            const l1 = (shippingStreet1Input?.value || '').trim();
+            const l2 = (shippingStreet2Input?.value || '').trim();
+            return [l1, l2].filter(Boolean).join('\n');
+        };
 
         // ── Coupon refs ───────────────────────────────────────────────────────
         const couponInput        = document.getElementById('couponInput');
@@ -1603,7 +1627,7 @@
                 }
                 if (!shippingAddress.trim()) {
                     flashFulfillmentSection();
-                    shippingAddressInput?.focus();
+                    shippingStreet1Input?.focus();
                     Swal.fire({ icon: 'warning', title: 'Delivery Address Required', text: 'Please enter your street or delivery address so we know exactly where to bring your order.', confirmButtonColor: '#4e7a1a' });
                     return;
                 }
@@ -1654,11 +1678,13 @@
             });
         });
 
-        shippingAddressInput?.addEventListener('input', () => {
-            shippingAddress = shippingAddressInput.value;
+        [shippingStreet1Input, shippingStreet2Input].forEach(el => el?.addEventListener('input', () => {
+            shippingAddress = readShippingAddress();
             localStorage.setItem('shippingAddress', shippingAddress);
+            localStorage.setItem('shippingStreet1', shippingStreet1Input?.value || '');
+            localStorage.setItem('shippingStreet2', shippingStreet2Input?.value || '');
             refreshPaymentGate();
-        });
+        }));
 
         closeLocationModalBtn?.addEventListener('click', closeLocationModal);
         locationModalOverlay?.addEventListener('click', e => { if (e.target === locationModalOverlay) closeLocationModal(); });
@@ -1946,9 +1972,16 @@
         }
     }
 
-    // Restore shipping address textarea from localStorage
-    if (shippingAddressInput && shippingAddress) {
-        shippingAddressInput.value = shippingAddress;
+    // Restore the two street inputs from localStorage. Prefer the split parts;
+    // fall back to any previously stored combined address (or a prefilled last
+    // order address) by dropping it into line 1 so nothing is lost.
+    if (shippingStreet1Input) {
+        shippingStreet1Input.value = localStorage.getItem('shippingStreet1') || '';
+        if (shippingStreet2Input) shippingStreet2Input.value = localStorage.getItem('shippingStreet2') || '';
+        if (!shippingStreet1Input.value && !(shippingStreet2Input?.value) && shippingAddress) {
+            shippingStreet1Input.value = shippingAddress.replace(/\r?\n/g, ', ');
+        }
+        shippingAddress = readShippingAddress();
     }
 
     refreshPaymentGate();
