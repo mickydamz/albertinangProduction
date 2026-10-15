@@ -12,7 +12,7 @@ Branch: `codex/customer-marketing`, based on GitHub `origin/main` at `9404f98` (
 
 ## Staging installation checklist
 
-Nothing has been deployed and no customer emails have been sent by this implementation.
+Deployed to test.albertinang.com on 15 October 2026 with campaign sending disabled. See `customer-marketing-deployment-20261015.md` for the installation and live verification record. No customer emails have been sent. The steps below describe installation or reinstallation.
 
 1. Back up the staging database and deploy this branch to **test.albertinang.com** using the usual staging process.
 2. Set `APP_URL=https://test.albertinang.com` so signed email links point to staging. Confirm HTTPS and the staging mail transport/sandbox. Leave `MARKETING_EMAIL_ENABLED=false` until ready for a controlled test.
