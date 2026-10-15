@@ -5,6 +5,7 @@ namespace App\Mail;
 use App\Models\MarketingCampaign;
 use App\Models\MarketingDelivery;
 use App\Models\User;
+use App\Services\MarketingBrand;
 use App\Services\MarketingHtml;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\URL;
@@ -27,12 +28,12 @@ class MarketingPromotion extends Mailable
         $this->campaign = $campaign;
         $this->isTest = $isTest;
         $this->unsubscribeUrl = URL::signedRoute('marketing.unsubscribe', ['user' => $user->id] + ($delivery ? ['delivery' => $delivery->id] : []));
-        $this->offerUrl = $delivery && $campaign->offer_url ? URL::signedRoute('marketing.click', ['delivery' => $delivery->id]) : $campaign->offer_url;
+        $this->offerUrl = $delivery ? URL::signedRoute('marketing.click', ['delivery' => $delivery->id]) : ($campaign->offer_url ?: url('/shop'));
     }
 
     public function viewData(): array
     {
-        return ['campaign' => $this->campaign, 'unsubscribeUrl' => $this->unsubscribeUrl, 'offerUrl' => $this->offerUrl, 'safeHtml' => MarketingHtml::clean($this->campaign->body_html), 'brand' => $this->campaign->brand ?: ['name' => 'AlbertinaNG', 'logo' => asset('image.png'), 'address' => "17-18 Zik's Avenue, Uwani, Enugu", 'email' => 'promotions@albertinang.com'], 'isTest' => $this->isTest];
+        return ['campaign' => $this->campaign, 'unsubscribeUrl' => $this->unsubscribeUrl, 'offerUrl' => $this->offerUrl, 'safeHtml' => MarketingHtml::clean($this->campaign->body_html), 'brand' => MarketingBrand::current(), 'isTest' => $this->isTest];
     }
 
     public function build()

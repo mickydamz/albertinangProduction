@@ -13,7 +13,6 @@
   form.querySelector('[data-text-color]').addEventListener('input',event=>{restore();document.execCommand('foreColor',false,event.target.value);remember();});
   editor.addEventListener('paste',event=>{event.preventDefault();document.execCommand('insertText',false,event.clipboardData.getData('text/plain'));});
   form.addEventListener('submit',event=>{
-   if(!editor.innerText.trim()){event.preventDefault();editor.focus();window.alert('Write a promotion message.');return;}
    form.querySelector('[data-html-output]').value=editor.innerHTML;
   });
   const input=form.querySelector('[data-image-input]');

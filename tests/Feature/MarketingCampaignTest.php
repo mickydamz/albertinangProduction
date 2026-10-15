@@ -38,6 +38,16 @@ class MarketingCampaignTest extends TestCase
             $t->string('name');
             $t->string('slug');
         });
+        Schema::create('settings', function (Blueprint $t) {
+            $t->id();
+            $t->string('key')->unique();
+            $t->text('value')->nullable();
+            $t->timestamps();
+        });
+        \App\Models\Setting::clearCache();
+        foreach (['store_name' => 'AlbertinaNG', 'store_address' => 'Office from settings', 'store_phone' => '08064066170', 'store_phone_country_code' => '+234', 'store_email' => 'contact@example.test'] as $key => $value) {
+            \App\Models\Setting::set($key, $value);
+        }
         (require database_path('migrations/2026_10_15_000001_create_marketing_campaigns.php'))->up();
         (require database_path('migrations/2026_10_15_000002_expand_marketing_campaigns.php'))->up();
         config(['marketing.mailer' => 'smtp', 'mail.mailers.smtp.transport' => 'smtp']);
@@ -190,7 +200,7 @@ class MarketingCampaignTest extends TestCase
         $campaign = MarketingCampaign::first();
         $this->assertCount(1, $campaign->images);
         \Storage::disk('public')->assertExists($campaign->images[0]['path']);
-        $this->get(route('admin.marketing.preview', $campaign))->assertOk()->assertSee('Our offer banner')->assertSee('promotions@albertinang.com');
+        $this->get(route('admin.marketing.preview', $campaign))->assertOk()->assertSee('Our offer banner')->assertSee('contact@example.test');
         $this->put(route('admin.marketing.update', $campaign), ['subject' => 'Picture offer', 'body_html' => '<p>Updated offer</p>', 'remove_images' => [0]])->assertRedirect();
         $this->assertCount(0, $campaign->fresh()->images);
         $this->post('/admin/marketing', ['subject' => 'Bad image', 'message' => 'Offer', 'images' => [\Illuminate\Http\UploadedFile::fake()->create('script.svg', 20, 'image/svg+xml')]])->assertSessionHasErrors('images.0');
@@ -327,5 +337,62 @@ class MarketingCampaignTest extends TestCase
         $this->assertStringContainsString('cid:', $html);
         $this->assertCount(2, $mime->getAttachments());
         $this->assertSame('', \App\Services\MarketingAssets::picture('../.env', $message));
+    }
+
+    public function test_promotion_message_is_optional_and_offer_defaults_to_the_test_shop()
+    {
+        $this->actingAs($this->user('admin'))->post('/admin/marketing', ['subject' => 'Subject only'])->assertRedirect();
+        $campaign = MarketingCampaign::first();
+        $this->assertSame('', $campaign->message);
+        $this->assertNull($campaign->body_html);
+        $this->assertSame(url('/shop'), $campaign->offer_url);
+        $this->get(route('admin.marketing.preview', $campaign))->assertOk()->assertDontSee('Subject only')->assertSee('Shop now');
+    }
+
+    public function test_existing_campaign_footer_uses_current_settings_and_does_not_repeat_subject()
+    {
+        $campaign = $this->campaign();
+        $campaign->update(['brand' => ['name' => 'Old name', 'phone' => '0999999', 'address' => 'Old address', 'email' => 'old@example.test']]);
+        $this->actingAs($this->user('admin'))->get(route('admin.marketing.preview', $campaign))->assertOk()
+            ->assertSee('Office from settings')->assertSee('contact@example.test')->assertSee('+2348064066170')
+            ->assertSee('tel:+2348064066170', false)->assertDontSee('Old address')->assertDontSee('<h1', false);
+        \App\Models\Setting::set('store_address', 'Updated office');
+        \App\Models\Setting::set('store_email', 'updated@example.test');
+        $this->get(route('admin.marketing.preview', $campaign))->assertSee('Updated office')->assertSee('updated@example.test');
+        $mail = new MarketingPromotion($campaign, $this->user());
+        $plain = view('marketing.plain', $mail->viewData())->render();
+        $this->assertStringNotContainsString($campaign->subject, $plain);
+        $this->assertStringContainsString('updated@example.test', $plain);
+    }
+
+    public function test_international_contact_numbers_preserve_existing_country_codes()
+    {
+        $this->assertSame('+2348064066170', \App\Services\MarketingBrand::internationalPhone('0806 406 6170'));
+        $this->assertSame('+2348064066170', \App\Services\MarketingBrand::internationalPhone('2348064066170'));
+        $this->assertSame('+447700900123', \App\Services\MarketingBrand::internationalPhone('+44 7700 900123'));
+        $this->assertSame('+447700900123', \App\Services\MarketingBrand::internationalPhone('0044 7700 900123'));
+        $this->assertSame('+447700900123', \App\Services\MarketingBrand::internationalPhone('07700 900123', '+44'));
+    }
+
+    public function test_email_offer_button_has_a_real_clickable_destination_and_new_window_target()
+    {
+        $campaign = $this->campaign();
+        $campaign->update(['offer_url' => 'https://test.albertinang.com/shop']);
+        $this->actingAs($this->user('admin'))->get(route('admin.marketing.preview', $campaign))->assertOk()
+            ->assertSee('href="https://test.albertinang.com/shop" target="_blank"', false);
+        $campaign->update(['offer_url' => null]);
+        $customer = $this->user('user', true);
+        $this->post(route('admin.marketing.send', $campaign), ['confirm' => 1]);
+        $delivery = $campaign->deliveries()->first();
+        $this->get(URL::signedRoute('marketing.click', ['delivery' => $delivery->id]))->assertRedirect(url('/shop'));
+    }
+
+    public function test_admin_can_set_phone_country_code_and_invalid_codes_are_rejected()
+    {
+        $this->actingAs($this->user('admin'))->put(route('admin.settings.update'), ['store_name' => 'AlbertinaNG', 'store_phone' => '07700 900123', 'store_phone_country_code' => '+44', 'store_email' => 'office@example.test', 'store_address' => 'London office'])->assertRedirect();
+        $brand = \App\Services\MarketingBrand::current();
+        $this->assertSame('+447700900123', $brand['phone']);
+        $this->assertSame('office@example.test', $brand['email']);
+        $this->put(route('admin.settings.update'), ['store_name' => 'AlbertinaNG', 'store_phone_country_code' => 'bad'])->assertSessionHasErrors('store_phone_country_code');
     }
 }

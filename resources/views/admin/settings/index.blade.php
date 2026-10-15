@@ -108,6 +108,9 @@
 
                                 <div class="row">
                                     <div class="col-sm-6 mb-3">
+                                        <label class="form-label fw-semibold" for="store_phone_country_code">Phone country code</label>
+                                        <input class="form-control mb-2" id="store_phone_country_code" name="store_phone_country_code" value="{{ old('store_phone_country_code', $settings['store_phone_country_code'] ?? '+234') }}" placeholder="+234" maxlength="5" pattern="\+[1-9][0-9]{0,3}">
+                                        <small class="text-muted">Used in promotional emails when the saved phone number starts with 0.</small><br>
                                         <label class="form-label fw-semibold">Phone Number</label>
                                         <input type="text" name="store_phone" class="form-control"
                                                value="{{ old('store_phone', $settings['store_phone'] ?? '') }}"

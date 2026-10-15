@@ -4,8 +4,6 @@ namespace App\Services;
 
 use App\Http\Requests\SaveMarketingCampaign;
 use App\Models\MarketingCampaign;
-use App\Models\Setting;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class MarketingCampaignContent
@@ -15,10 +13,7 @@ class MarketingCampaignContent
         $data = $request->validated();
         $html = MarketingHtml::clean($data['body_html'] ?? null);
         $text = $html ? MarketingHtml::text($html) : trim($data['message'] ?? '');
-        if ($text === '') {
-            throw ValidationException::withMessages(['body_html' => 'Write a promotion message.']);
-        }
-        $data['body_html'] = $html ?: null;
+        $data['body_html'] = $text !== '' ? ($html ?: null) : null;
         $data['message'] = $text;
         $data['template'] = $data['template'] ?? 'classic';
         $data['button_text'] = ($data['button_text'] ?? '') ?: 'Shop now';
@@ -40,18 +35,9 @@ class MarketingCampaignContent
         }
         $data['images'] = $images;
         unset($data['image_alt'],$data['remove_images']);
-        // Store a brand snapshot with the draft so a later setting change cannot alter queued mail.
-        $settings = [];
-        try {
-            $settings = Setting::pluck('value', 'key')->all();
-        } catch (\Throwable $e) {
-        }
-        $logo = $settings['store_logo'] ?? null;
-        $logoUrl = $logo ? (str_starts_with($logo, 'https://') ? $logo : Storage::disk('public')->url($logo)) : asset('image.png');
-        if (! str_starts_with($logoUrl, 'https://')) {
-            $logoUrl = null;
-        }
-        $data['brand'] = ['name' => 'AlbertinaNG', 'logo' => $logoUrl, 'address' => ($settings['store_address'] ?? '17-18 Zik\'s Avenue, Uwani, Enugu'), 'phone' => ($settings['store_phone'] ?? null), 'email' => 'promotions@albertinang.com'];
+        // Retain draft branding metadata; email contact details resolve from Settings when rendered.
+        $data['brand'] = MarketingBrand::current();
+        $data['offer_url'] = ($data['offer_url'] ?? '') ?: url('/shop');
         $data['tested_at'] = null;
 
         return $data;

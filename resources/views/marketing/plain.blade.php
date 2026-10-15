@@ -1,4 +1,4 @@
-AlbertinaNG — {{ $campaign->subject }}
+{{ $brand['name'] }}
 @if($isTest)TEST EMAIL — for internal review
 @endif
 {{ $campaign->message }}
@@ -6,7 +6,8 @@ AlbertinaNG — {{ $campaign->subject }}
 {{ $campaign->button_text ?: 'Shop now' }}: {{ $offerUrl }}
 @endif
 {{ $brand['address'] ?? '' }}
-promotions@albertinang.com
+{{ $brand['phone'] ?? '' }}
+{{ $brand['email'] ?? '' }}
 
 You opted in to AlbertinaNG promotional emails.
 Unsubscribe: {{ $unsubscribeUrl }}

@@ -1,0 +1,9 @@
+# Promotion contact and layout refinements
+
+- Footer name, logo, address, telephone and contact email resolve from current Store Settings, including for existing drafts. The dedicated promotions@albertinang.com sender and reply address remain unchanged.
+- Added a Phone country code field to Store Settings. Promotional emails format local numbers using that field (default +234 for this Nigerian store), preserve existing international prefixes, and use clickable tel/mailto links. The raw stored telephone value is not overwritten by rendering an email.
+- Removed the campaign subject from the HTML and plain-text body. It remains the email Subject header. Empty promotion messages are accepted by both browser and backend, with no empty message container in the template.
+- The offer button has a complete hyperlink and an explicit new-window target. Missing offer destinations default to this site's /shop, including existing campaigns. Tracked delivery links retain signature checks and can also resolve the default shop. The admin preview permits the button to open a new tab.
+- The user explicitly chose to keep the test shop rather than the public storefront. Hosting-password protection still applies to the destination; it was not removed or bypassed.
+
+26 isolated marketing/settings feature tests / 160 assertions passed. Tests include current settings on existing drafts, country codes, optional messages, HTML/plain subject removal, default and explicit button destinations, tracking redirects, country-code settings validation and existing campaign controls. Blade compilation and whitespace checks passed. Deployment and browser verification evidence is recorded in the deployment folder. No additional email sending is authorised by this refinement request.
