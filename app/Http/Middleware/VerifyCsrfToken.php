@@ -13,5 +13,7 @@ class VerifyCsrfToken extends Middleware
      */
     protected $except = [
         'webhooks/paystack',
+        // Signed, action-specific links authorize mail-provider one-click unsubscribe.
+        'marketing/unsubscribe-one-click/*',
     ];
 }

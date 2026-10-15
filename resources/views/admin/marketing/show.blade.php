@@ -1,24 +1,27 @@
 @extends('layouts.adminlayout')
 @section('content')
-<div class="app-content content"><div class="content-wrapper container-xxl"><a href="{{ route('admin.marketing.index') }}">All campaigns</a><h1>{{ $campaign->subject }}</h1>
-@if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-@if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
-<p>Status: {{ $campaign->status }}</p><div class="card p-3"><div style="white-space:pre-line">{{ $campaign->message }}</div>
-@if($campaign->offer_url)<p><a href="{{ $campaign->offer_url }}">View offer</a></p>@endif</div>
-<p><a class="btn btn-outline-primary" target="_blank" rel="noopener" href="{{ route('admin.marketing.preview', $campaign) }}">Preview email</a></p>
-@if(!config('marketing.enabled'))<p class="alert alert-warning">Email sending is disabled in this environment. Drafts and previews are available.</p>
-@else<form method="POST" action="{{ route('admin.marketing.test', $campaign) }}">@csrf<button class="btn btn-secondary">Send test to my admin email</button></form>
-@if($campaign->status === 'draft')<form class="mt-3" method="POST" action="{{ route('admin.marketing.send', $campaign) }}">@csrf
-<label><input type="checkbox" name="confirm" value="1" required> I have reviewed this promotion and want to send it to opted-in registered customers.</label><br><button class="btn btn-primary mt-2">Queue campaign</button></form>@endif
-@endif
-@if($campaign->status === 'draft')
-<details class="card p-3 mt-3"><summary>Edit draft</summary><form method="POST" action="{{ route('admin.marketing.update', $campaign) }}">@csrf @method('PUT')
-<label for="subject">Subject</label><input class="form-control mb-2" id="subject" name="subject" maxlength="150" value="{{ old('subject', $campaign->subject) }}" required>
-<label for="message">Message</label><textarea class="form-control mb-2" id="message" name="message" rows="8" maxlength="20000" required>{{ old('message', $campaign->message) }}</textarea>
-<label for="offer_url">Offer link (optional, HTTPS)</label><input class="form-control mb-2" type="url" id="offer_url" name="offer_url" value="{{ old('offer_url', $campaign->offer_url) }}">
-<button class="btn btn-primary">Save changes</button></form></details>
-@endif
-<h2 class="mt-3">Delivery progress</h2><p>Sent means accepted by the mail transport; it does not confirm inbox delivery.</p>
-@foreach(['pending', 'sending', 'sent', 'skipped', 'failed'] as $status)<p>{{ ucfirst($status) }}: {{ $counts[$status] ?? 0 }}</p>@endforeach
+<div class="app-content content"><div class="content-wrapper container-xxl">
+<a href="{{ route('admin.marketing.index') }}">← All campaigns</a>
+<div class="promo-head mt-2"><div><h1>{{ $campaign->subject }}</h1><span class="promo-label">{{ ucfirst($campaign->status) }}</span><span class="text-muted ms-2">From AlbertinaNG · promotions@albertinang.com</span></div><form method="POST" action="{{ route('admin.marketing.duplicate',$campaign) }}">@csrf<button class="btn btn-outline-primary">Copy to new draft</button></form></div>
+@if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
+@if($errors->any())<div class="alert alert-danger" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+<div class="row">@foreach(['sent'=>'Accepted by mail server','pending'=>'Pending','failed'=>'Failed','skipped'=>'Skipped'] as $status=>$label)<div class="col-6 col-lg-3"><div class="promo-stat"><strong>{{ $counts[$status] ?? 0 }}</strong>{{ $label }}</div></div>@endforeach</div>
+<div class="row"><div class="col-lg-8"><div class="card p-3">
+<div class="promo-head"><h2 class="mb-0">Email preview</h2><div class="promo-actions"><button type="button" class="btn btn-sm btn-outline-secondary" data-preview-width="desktop">Desktop</button><button type="button" class="btn btn-sm btn-outline-secondary" data-preview-width="mobile">Mobile</button><a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener" href="{{ route('admin.marketing.preview',$campaign) }}">Open preview</a></div></div>
+<iframe title="Promotion email preview" class="promo-preview" data-email-preview src="{{ route('admin.marketing.preview',$campaign) }}" sandbox="allow-same-origin"></iframe>
+</div></div><div class="col-lg-4"><div class="card p-3"><h2>Review &amp; send</h2><p>{{ $audience }} currently eligible customers in this audience.</p><p class="small text-muted">Consent is checked again before delivery. Existing accounts are never automatically subscribed.</p>
+@if(config('marketing.test_enabled') || config('marketing.enabled'))<form method="POST" action="{{ route('admin.marketing.test',$campaign) }}">@csrf<button class="btn btn-outline-primary">Send test to my admin email</button></form>@else<p class="alert alert-warning">Test sending is disabled until the promotions mailbox is connected.</p>@endif
+@if($campaign->tested_at)<p class="small mt-2">Last test accepted: {{ $campaign->tested_at->timezone('Europe/London')->format('d M Y H:i') }} London time.</p>@endif
+@if(!config('marketing.enabled'))<p class="alert alert-warning mt-2">Campaign sending is disabled in this environment. Drafts and previews are available.</p>
+@elseif($campaign->status==='draft')<form class="mt-3" method="POST" action="{{ route('admin.marketing.send',$campaign) }}">@csrf
+<label for="scheduled_at">Send later (optional, London time)</label><input type="datetime-local" name="scheduled_at" id="scheduled_at" class="form-control mb-2" value="{{ old('scheduled_at') }}"><p class="small text-muted">Leave blank to send now.</p>
+<label><input type="checkbox" name="confirm" value="1" required> I have reviewed the email and approve sending it to the selected opted-in audience.</label><button class="btn btn-primary mt-2">Send or schedule campaign</button></form>@endif
+@if($campaign->scheduled_at)<p class="mt-2">Scheduled: {{ $campaign->scheduled_at->timezone('Europe/London')->format('d M Y H:i') }} London time.</p>@endif
+@if(in_array($campaign->status,['queued','scheduled','paused']))<form method="POST" class="promo-actions mt-3" action="{{ route('admin.marketing.control',$campaign) }}">@csrf<button class="btn btn-outline-secondary" name="action" value="{{ $campaign->status==='paused'?'resume':'pause' }}">{{ $campaign->status==='paused'?'Resume':'Pause' }}</button><button class="btn btn-outline-danger" name="action" value="cancel">Cancel remaining emails</button></form><p class="small mt-2">Emails already being sent may still finish.</p>@endif
+</div><div class="card p-3"><h2>Engagement</h2><p><strong>{{ $clicked }}</strong> recipients with an offer-button click</p><p><strong>{{ $unsubscribed }}</strong> campaign unsubscribes</p><p class="small text-muted">Clicks can include automated mail security checks. Inbox delivery and bounce reporting depend on your email provider. No open-tracking pixels are used.</p><a href="{{ route('admin.marketing.export',$campaign) }}" class="btn btn-outline-secondary">Download delivery report</a></div></div></div>
+@if($campaign->status==='draft')<details class="card p-3"><summary>Edit draft</summary><div class="mt-3">@include('admin.marketing.form')</div></details>@endif
+<h2>Delivery history</h2><p class="text-muted">Sent means accepted by the mail transport. It does not confirm inbox delivery. Sending: {{ $counts['sending'] ?? 0 }} · Cancelled: {{ $counts['cancelled'] ?? 0 }}</p>
+<div class="promo-scroll"><table class="table"><thead><tr><th>Recipient</th><th>Status</th><th>Accepted at (UTC)</th><th>Offer clicks</th></tr></thead><tbody>@forelse($deliveries as $delivery)<tr><td>{{ $delivery->email }}</td><td>{{ $delivery->status }}</td><td>{{ $delivery->sent_at ?: '—' }}</td><td>{{ $delivery->click_count }}</td></tr>@empty<tr><td colspan="4">No emails have been queued for this draft.</td></tr>@endforelse</tbody></table></div>{{ $deliveries->links() }}
 </div></div>
+@include('admin.marketing.styles')
 @endsection

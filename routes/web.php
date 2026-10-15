@@ -789,6 +789,9 @@ Route::post('/account/email-preferences', [\App\Http\Controllers\MarketingPrefer
 Route::get('/marketing/unsubscribe/{user}', [\App\Http\Controllers\MarketingPreferenceController::class, 'unsubscribe'])->middleware('signed')->name('marketing.unsubscribe');
 Route::post('/marketing/unsubscribe/{user}', [\App\Http\Controllers\MarketingPreferenceController::class, 'confirmUnsubscribe'])->middleware('signed');
 Route::middleware(['auth', 'role:admin'])->prefix('admin/marketing')->name('admin.marketing.')->group(function () {
+    Route::post('/{campaign}/duplicate', [\App\Http\Controllers\AdminMarketingController::class, 'duplicate'])->name('duplicate');
+    Route::post('/{campaign}/control', [\App\Http\Controllers\AdminMarketingController::class, 'control'])->name('control');
+    Route::get('/{campaign}/report', [\App\Http\Controllers\AdminMarketingController::class, 'export'])->name('export');
     Route::get('/', [\App\Http\Controllers\AdminMarketingController::class, 'index'])->name('index');
     Route::post('/', [\App\Http\Controllers\AdminMarketingController::class, 'store'])->name('store');
     Route::get('/{campaign}', [\App\Http\Controllers\AdminMarketingController::class, 'show'])->name('show');
@@ -797,3 +800,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin/marketing')->name('admi
     Route::post('/{campaign}/test', [\App\Http\Controllers\AdminMarketingController::class, 'test'])->middleware('throttle:5,1')->name('test');
     Route::post('/{campaign}/send', [\App\Http\Controllers\AdminMarketingController::class, 'send'])->name('send');
 });
+
+Route::get('/marketing/offer/{delivery}', [\App\Http\Controllers\MarketingTrackingController::class, 'click'])->middleware(['signed', 'throttle:120,1'])->name('marketing.click');
+
+Route::post('/marketing/unsubscribe-one-click/{user}', [\App\Http\Controllers\MarketingPreferenceController::class, 'oneClickUnsubscribe'])->middleware(['signed', 'throttle:60,1'])->name('marketing.unsubscribe.oneclick');

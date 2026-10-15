@@ -39,6 +39,8 @@ class MarketingCampaignTest extends TestCase
             $t->string('slug');
         });
         (require database_path('migrations/2026_10_15_000001_create_marketing_campaigns.php'))->up();
+        (require database_path('migrations/2026_10_15_000002_expand_marketing_campaigns.php'))->up();
+        config(['marketing.mailer' => 'smtp', 'mail.mailers.smtp.transport' => 'smtp']);
         Mail::fake();
     }
 
@@ -136,6 +138,7 @@ class MarketingCampaignTest extends TestCase
         $this->user('user', true);
         $campaign = $this->campaign();
         $this->actingAs($this->user('admin'))->post(route('admin.marketing.send', $campaign), ['confirm' => 1]);
+        Mail::shouldReceive('mailer')->with('smtp')->once()->andReturnSelf();
         Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('Transport unavailable'));
         $this->artisan('marketing:send')->assertSuccessful();
         $this->artisan('marketing:send')->assertSuccessful();
@@ -161,5 +164,153 @@ class MarketingCampaignTest extends TestCase
         $this->artisan('marketing:send')->assertSuccessful();
         Mail::assertNothingSent();
         $this->assertDatabaseHas('marketing_deliveries', ['status' => 'skipped']);
+    }
+
+    public function test_rich_text_is_sanitized_and_preserves_safe_formatting()
+    {
+        $this->actingAs($this->user('admin'))->post('/admin/marketing', [
+            'subject' => 'Rich sale', 'body_html' => '<h2 style="color:#177855;background:url(javascript:bad)">Sale</h2><script>alert(1)</script><p onclick="alert(2)"><strong>Save today</strong> <a href="javascript:alert(3)">unsafe</a><a href="https://example.test">Shop</a><img src=x onerror=alert(4)></p>',
+        ])->assertRedirect();
+        $campaign = MarketingCampaign::first();
+        $this->assertStringContainsString('<strong>Save today</strong>', $campaign->body_html);
+        $this->assertStringContainsString('color:#177855', $campaign->body_html);
+        foreach (['<script', 'onclick', 'javascript:', '<img', 'background:'] as $bad) {
+            $this->assertStringNotContainsString($bad, $campaign->body_html);
+        }
+        $this->assertStringContainsString('Save today', $campaign->message);
+    }
+
+    public function test_images_are_validated_stored_removed_and_included_with_branding()
+    {
+        \Storage::fake('public');
+        $this->actingAs($this->user('admin'))->post('/admin/marketing', [
+            'subject' => 'Picture offer', 'body_html' => '<p>Our latest offers</p>',
+            'images' => [\Illuminate\Http\UploadedFile::fake()->image('offer.jpg', 640, 300)], 'image_alt' => ['Our offer banner'],
+        ])->assertRedirect();
+        $campaign = MarketingCampaign::first();
+        $this->assertCount(1, $campaign->images);
+        \Storage::disk('public')->assertExists($campaign->images[0]['path']);
+        $this->get(route('admin.marketing.preview', $campaign))->assertOk()->assertSee('Our offer banner')->assertSee('promotions@albertinang.com');
+        $this->put(route('admin.marketing.update', $campaign), ['subject' => 'Picture offer', 'body_html' => '<p>Updated offer</p>', 'remove_images' => [0]])->assertRedirect();
+        $this->assertCount(0, $campaign->fresh()->images);
+        $this->post('/admin/marketing', ['subject' => 'Bad image', 'message' => 'Offer', 'images' => [\Illuminate\Http\UploadedFile::fake()->create('script.svg', 20, 'image/svg+xml')]])->assertSessionHasErrors('images.0');
+    }
+
+    public function test_future_campaigns_wait_until_due_and_pause_resume_cancel_work()
+    {
+        $this->user('user', true);
+        $campaign = $this->campaign();
+        $this->actingAs($this->user('admin'))->post(route('admin.marketing.send', $campaign), ['confirm' => 1, 'scheduled_at' => now()->addDays(2)->timezone('Europe/London')->format('Y-m-d\\TH:i')])->assertRedirect();
+        $this->assertSame('scheduled', $campaign->fresh()->status);
+        $this->artisan('marketing:send')->assertSuccessful();
+        Mail::assertNothingSent();
+        $this->post(route('admin.marketing.control', $campaign), ['action' => 'pause'])->assertRedirect();
+        $this->assertSame('paused', $campaign->fresh()->status);
+        $this->post(route('admin.marketing.control', $campaign), ['action' => 'resume'])->assertRedirect();
+        $this->assertSame('scheduled', $campaign->fresh()->status);
+        $this->post(route('admin.marketing.control', $campaign), ['action' => 'cancel'])->assertRedirect();
+        $this->assertSame('cancelled', $campaign->fresh()->status);
+        $this->assertDatabaseHas('marketing_deliveries', ['status' => 'cancelled']);
+        $this->travel(3)->days();
+        $this->artisan('marketing:send')->assertSuccessful();
+        Mail::assertNothingSent();
+    }
+
+    public function test_due_scheduled_campaign_is_delivered_and_recent_audience_filters_old_opt_ins()
+    {
+        $old = $this->user('user', true);
+        $old->forceFill(['marketing_subscribed_at' => now()->subDays(60)])->save();
+        $recent = $this->user('user', true);
+        $campaign = $this->campaign();
+        $campaign->update(['audience' => 'recent']);
+        $this->actingAs($this->user('admin'))->post(route('admin.marketing.send', $campaign), ['confirm' => 1, 'scheduled_at' => now()->addDay()->timezone('Europe/London')->format('Y-m-d\\TH:i')])->assertRedirect();
+        $this->assertDatabaseCount('marketing_deliveries', 1);
+        $this->travel(2)->days();
+        $this->artisan('marketing:send')->assertSuccessful();
+        Mail::assertSent(MarketingPromotion::class, fn ($mail) => $mail->hasTo($recent->email));
+    }
+
+    public function test_selected_audience_excludes_unsubscribed_users_and_copy_has_no_deliveries()
+    {
+        $selected = $this->user('user', true);
+        $excluded = $this->user();
+        $this->user('user', true);
+        $campaign = $this->campaign();
+        $campaign->update(['audience' => 'selected', 'selected_users' => [$selected->id, $excluded->id]]);
+        $this->actingAs($this->user('admin'))->post(route('admin.marketing.send', $campaign), ['confirm' => 1])->assertRedirect();
+        $this->assertDatabaseCount('marketing_deliveries', 1);
+        $this->post(route('admin.marketing.duplicate', $campaign))->assertRedirect();
+        $copy = MarketingCampaign::latest('id')->first();
+        $this->assertSame('draft', $copy->status);
+        $this->assertSame(0, $copy->deliveries()->count());
+    }
+
+    public function test_click_tracking_requires_signature_and_records_only_sent_delivery()
+    {
+        $this->user('user', true);
+        $campaign = $this->campaign();
+        $campaign->update(['offer_url' => 'https://example.test/sale']);
+        $this->actingAs($this->user('admin'))->post(route('admin.marketing.send', $campaign), ['confirm' => 1]);
+        $delivery = $campaign->deliveries()->first();
+        $url = URL::signedRoute('marketing.click', ['delivery' => $delivery->id]);
+        $this->get('/marketing/offer/'.$delivery->id)->assertForbidden();
+        $this->get($url)->assertRedirect('https://example.test/sale');
+        $this->assertSame(0, $delivery->fresh()->click_count);
+        $this->artisan('marketing:send')->assertSuccessful();
+        $this->get($url)->assertRedirect('https://example.test/sale');
+        $this->assertSame(1, $delivery->fresh()->click_count);
+        $this->assertNotNull($delivery->fresh()->clicked_at);
+        $this->get(route('admin.marketing.export', $campaign))->assertOk()->assertHeader('content-type', 'text/csv; charset=UTF-8');
+    }
+
+    public function test_promotional_email_has_official_sender_reply_address_text_fallback_and_unsubscribe_header()
+    {
+        Mail::swap($this->app->make('mail.manager'));
+        $mail = new MarketingPromotion($this->campaign(), $this->user());
+        $mail->build();
+        $this->assertSame('promotions@albertinang.com', $mail->from[0]['address']);
+        $this->assertSame('promotions@albertinang.com', $mail->replyTo[0]['address']);
+        $this->assertSame('marketing.plain', $mail->textView);
+        $message = new \Symfony\Component\Mime\Email();
+        foreach ($mail->callbacks as $callback) {
+            $callback($message);
+        }
+        $this->assertNotNull($message->getHeaders()->get('List-Unsubscribe'));
+    }
+
+    public function test_batch_limits_and_log_mailer_cannot_report_a_campaign_as_sent()
+    {
+        $this->user('user', true);
+        $this->user('user', true);
+        $campaign = $this->campaign();
+        $this->actingAs($this->user('admin'))->post(route('admin.marketing.send', $campaign), ['confirm' => 1]);
+        config(['marketing.batch_limit' => 1]);
+        $this->artisan('marketing:send')->assertSuccessful();
+        Mail::assertSent(MarketingPromotion::class, 1);
+        $this->assertDatabaseHas('marketing_deliveries', ['status' => 'pending']);
+        config(['mail.mailers.smtp.transport' => 'log']);
+        $this->artisan('marketing:send')->assertExitCode(1);
+        Mail::assertSent(MarketingPromotion::class, 1);
+    }
+
+    public function test_provider_one_click_unsubscribe_requires_valid_signed_link_and_records_campaign()
+    {
+        $customer = $this->user('user', true);
+        $campaign = $this->campaign();
+        $this->actingAs($this->user('admin'))->post(route('admin.marketing.send', $campaign), ['confirm' => 1]);
+        $delivery = $campaign->deliveries()->first();
+        $this->post('/marketing/unsubscribe-one-click/'.$customer->id, ['List-Unsubscribe' => 'One-Click'])->assertForbidden();
+        $url = URL::signedRoute('marketing.unsubscribe.oneclick', ['user' => $customer->id, 'delivery' => $delivery->id]);
+        $this->post($url, ['List-Unsubscribe' => 'One-Click'])->assertNoContent();
+        $this->assertNull($customer->fresh()->marketing_subscribed_at);
+        $this->assertNotNull($delivery->fresh()->unsubscribed_at);
+    }
+
+    public function test_schedule_rejects_past_dates_and_empty_selected_audiences()
+    {
+        $campaign = $this->campaign();
+        $this->actingAs($this->user('admin'))->post(route('admin.marketing.send', $campaign), ['confirm' => 1, 'scheduled_at' => '2020-01-01T10:00'])->assertSessionHasErrors('scheduled_at');
+        $this->post('/admin/marketing', ['subject' => 'Sale', 'message' => 'Offer', 'audience' => 'selected'])->assertSessionHasErrors('selected_users');
+        $this->assertDatabaseCount('marketing_deliveries', 0);
     }
 }

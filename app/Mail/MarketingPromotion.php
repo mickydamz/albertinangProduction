@@ -3,7 +3,9 @@
 namespace App\Mail;
 
 use App\Models\MarketingCampaign;
+use App\Models\MarketingDelivery;
 use App\Models\User;
+use App\Services\MarketingHtml;
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\URL;
 
@@ -13,14 +15,33 @@ class MarketingPromotion extends Mailable
 
     public $unsubscribeUrl;
 
-    public function __construct(MarketingCampaign $campaign, User $user)
+    public $oneClickUrl;
+
+    public $offerUrl;
+
+    public $isTest;
+
+    public function __construct(MarketingCampaign $campaign, User $user, ?MarketingDelivery $delivery = null, bool $isTest = false)
     {
+        $this->oneClickUrl = URL::signedRoute('marketing.unsubscribe.oneclick', ['user' => $user->id] + ($delivery ? ['delivery' => $delivery->id] : []));
         $this->campaign = $campaign;
-        $this->unsubscribeUrl = URL::signedRoute('marketing.unsubscribe', ['user' => $user->id]);
+        $this->isTest = $isTest;
+        $this->unsubscribeUrl = URL::signedRoute('marketing.unsubscribe', ['user' => $user->id] + ($delivery ? ['delivery' => $delivery->id] : []));
+        $this->offerUrl = $delivery && $campaign->offer_url ? URL::signedRoute('marketing.click', ['delivery' => $delivery->id]) : $campaign->offer_url;
+    }
+
+    public function viewData(): array
+    {
+        return ['campaign' => $this->campaign, 'unsubscribeUrl' => $this->unsubscribeUrl, 'offerUrl' => $this->offerUrl, 'safeHtml' => MarketingHtml::clean($this->campaign->body_html), 'brand' => $this->campaign->brand ?: ['name' => 'AlbertinaNG', 'logo' => asset('image.png'), 'address' => "17-18 Zik's Avenue, Uwani, Enugu", 'email' => 'promotions@albertinang.com'], 'isTest' => $this->isTest];
     }
 
     public function build()
     {
-        return $this->subject($this->campaign->subject)->view('marketing.email');
+        return $this->from(config('marketing.from.address'), config('marketing.from.name'))->replyTo(config('marketing.reply_to'))
+         ->subject(($this->isTest ? '[TEST] ' : '').$this->campaign->subject)->view('marketing.email')->text('marketing.plain')->with($this->viewData())
+         ->withSymfonyMessage(function ($message) {
+             $message->getHeaders()->addTextHeader('List-Unsubscribe-Post', 'List-Unsubscribe=One-Click');
+             $message->getHeaders()->addTextHeader('List-Unsubscribe', '<'.$this->oneClickUrl.'>');
+         });
     }
 }

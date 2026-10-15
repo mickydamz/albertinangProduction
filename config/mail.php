@@ -34,6 +34,17 @@ return [
     */
 
     'mailers' => [
+        'marketing' => [
+            'transport' => env('MARKETING_MAIL_TRANSPORT', 'smtp'),
+            'host' => env('MARKETING_SMTP_HOST', 'mail.albertinang.com'),
+            'port' => env('MARKETING_SMTP_PORT', 465),
+            'encryption' => env('MARKETING_SMTP_ENCRYPTION', 'ssl'),
+            'username' => env('MARKETING_SMTP_USERNAME', 'promotions@albertinang.com'),
+            'password' => env('MARKETING_SMTP_PASSWORD'),
+            'timeout' => 30,
+            'local_domain' => env('MAIL_EHLO_DOMAIN'),
+            'path' => env('MARKETING_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
+        ],
         'smtp' => [
             'transport' => 'smtp',
             'host' => env('MAIL_HOST', 'smtp.mailgun.org'),
@@ -74,6 +85,17 @@ return [
         'failover' => [
             'transport' => 'failover',
             'mailers' => [
+        'marketing' => [
+            'transport' => env('MARKETING_MAIL_TRANSPORT', 'smtp'),
+            'host' => env('MARKETING_SMTP_HOST', 'mail.albertinang.com'),
+            'port' => env('MARKETING_SMTP_PORT', 465),
+            'encryption' => env('MARKETING_SMTP_ENCRYPTION', 'ssl'),
+            'username' => env('MARKETING_SMTP_USERNAME', 'promotions@albertinang.com'),
+            'password' => env('MARKETING_SMTP_PASSWORD'),
+            'timeout' => 30,
+            'local_domain' => env('MAIL_EHLO_DOMAIN'),
+            'path' => env('MARKETING_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
+        ],
                 'smtp',
                 'log',
             ],

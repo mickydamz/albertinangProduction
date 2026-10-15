@@ -25,9 +25,20 @@ class MarketingPreferenceController extends Controller
         return view('marketing.unsubscribe');
     }
 
-    public function confirmUnsubscribe(User $user)
+    public function oneClickUnsubscribe(User $user, Request $request)
+    {
+        abort_unless($request->input('List-Unsubscribe') === 'One-Click', 422);
+        $this->confirmUnsubscribe($user, $request);
+
+        return response()->noContent();
+    }
+
+    public function confirmUnsubscribe(User $user, Request $request)
     {
         $user->forceFill(['marketing_subscribed_at' => null])->save();
+        if ($request->filled('delivery')) {
+            \App\Models\MarketingDelivery::whereKey($request->delivery)->where('user_id', $user->id)->whereNull('unsubscribed_at')->update(['unsubscribed_at' => now()]);
+        }
 
         return view('marketing.unsubscribe', ['done' => true]);
     }
