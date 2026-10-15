@@ -19,6 +19,10 @@ class MarketingAssets
 
     public static function logo(?string $url, ?Message $message = null): ?string
     {
+        // Use the transparent email variant for the default company logo.
+        if ($url === asset('image.png') && is_file(public_path('marketing-logo-transparent.png'))) {
+            return $message ? $message->embed(public_path('marketing-logo-transparent.png')) : asset('marketing-logo-transparent.png');
+        }
         if (! $url || ! $message) {
             return $url;
         }
