@@ -1,3 +1,4 @@
+@php($buttonAlignment = in_array($campaign->brand['button_alignment'] ?? 'center', ['left','center','right'], true) ? ($campaign->brand['button_alignment'] ?? 'center') : 'center')
 @php($accent = $campaign->template === 'sale' ? '#a44620' : ($campaign->template === 'new-arrivals' ? '#234d73' : '#177855'))
 @php($kicker = $campaign->template === 'sale' ? 'SPECIAL OFFERS' : ($campaign->template === 'new-arrivals' ? 'NEW & NOTEWORTHY' : 'OFFERS & UPDATES'))
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ $brand['name'] }}</title>
@@ -14,7 +15,7 @@
 @if($safeHtml || trim($campaign->message) !== '' || $offerUrl)
 <tr><td class="email-pad" style="padding:28px 40px">
 @if($safeHtml || trim($campaign->message) !== '')<div style="font-size:16px;line-height:1.75;color:#37453c">@if($safeHtml){!! $safeHtml !!}@else<div style="white-space:pre-line">{{ $campaign->message }}</div>@endif</div>@endif
-@if($offerUrl)<table role="presentation" cellspacing="0" cellpadding="0" style="margin:28px 0 4px"><tr><td style="border-radius:7px;background:{{ $accent }}"><a href="{{ $offerUrl }}" target="_blank" rel="noopener noreferrer" style="display:block;border:16px solid {{ $accent }};border-left-width:28px;border-right-width:28px;border-radius:7px;font-size:16px;line-height:24px;font-weight:bold;color:#ffffff;text-decoration:none;background:{{ $accent }};mso-padding-alt:0">{{ $campaign->button_text ?: 'Shop now' }} →</a></td></tr></table>@endif
+@if($offerUrl)<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="{{ $buttonAlignment }}" style="padding-top:28px;padding-bottom:4px"><table role="presentation" align="{{ $buttonAlignment }}" cellspacing="0" cellpadding="0"><tr><td style="border-radius:7px;background:{{ $accent }}"><a href="{{ $offerUrl }}" target="_blank" rel="noopener noreferrer" style="display:block;border:16px solid {{ $accent }};border-left-width:28px;border-right-width:28px;border-radius:7px;font-size:16px;line-height:24px;font-weight:bold;color:#ffffff;text-decoration:none;background:{{ $accent }};mso-padding-alt:0">{{ $campaign->button_text ?: 'Shop now' }} →</a></td></tr></table></td></tr></table>@endif
 </td></tr>
 @endif
 @foreach(array_slice($campaign->images ?? [],1) as $image)<tr><td style="padding:0 32px 24px"><img src="{{ \App\Services\MarketingAssets::picture($image['path'], $message ?? null) }}" alt="{{ $image['alt'] }}" width="576" style="display:block;width:100%;height:auto;border-radius:10px;border:0"></td></tr>@endforeach

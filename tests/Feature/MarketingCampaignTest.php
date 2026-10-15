@@ -64,6 +64,60 @@ class MarketingCampaignTest extends TestCase
         return MarketingCampaign::create(['subject' => 'Sale', 'message' => 'Save on your next order.']);
     }
 
+    public function test_counts_include_staff_consent_but_only_customers_are_eligible()
+    {
+        $admin = $this->user('admin', true);
+        $customer = $this->user('user', true);
+        $this->user('user', false);
+        $this->actingAs($admin)->get('/admin/marketing?subscriber_counts=1')
+            ->assertOk()->assertExactJson(['total' => 2, 'customers' => 1]);
+        $this->get('/admin/marketing')->assertOk()->assertSee($customer->email)
+            ->assertSee('Staff account')->assertSee('2</span> people opted in', false);
+        $this->actingAs($customer)->post('/account/email-preferences', [])->assertRedirect();
+        $this->actingAs($admin)->get('/admin/marketing?subscriber_counts=1')
+            ->assertExactJson(['total' => 1, 'customers' => 0]);
+        $this->actingAs($customer)->get('/admin/marketing?subscriber_counts=1')->assertForbidden();
+    }
+
+    public function test_offer_button_positions_persist_and_render_with_centre_default()
+    {
+        $this->actingAs($this->user('admin'));
+        foreach (['left', 'center', 'right'] as $position) {
+            $this->post('/admin/marketing', ['subject' => 'Position', 'button_alignment' => $position])->assertRedirect();
+            $campaign = MarketingCampaign::latest('id')->first();
+            $this->assertSame($position, $campaign->brand['button_alignment']);
+            $this->get(route('admin.marketing.preview', $campaign))->assertOk()->assertSee('align="'.$position.'" cellspacing="0"', false);
+        }
+        $campaign = $this->campaign();
+        $this->get(route('admin.marketing.preview', $campaign))->assertSee('align="center" cellspacing="0"', false);
+        $this->post('/admin/marketing', ['subject' => 'Bad', 'button_alignment' => 'absolute'])->assertSessionHasErrors('button_alignment');
+    }
+
+    public function test_registration_consent_is_optional_and_saved_only_when_checked()
+    {
+        Schema::create('countries', function (Blueprint $t) { $t->id(); $t->string('name'); $t->string('iso_code'); });
+        Schema::create('cities', function (Blueprint $t) { $t->id(); $t->unsignedBigInteger('country_id'); $t->string('name'); });
+        Schema::table('users', function (Blueprint $t) {
+            foreach (['country', 'state', 'postal_code', 'shipping_address', 'city'] as $field) $t->string($field)->nullable();
+            $t->unsignedBigInteger('country_id')->nullable(); $t->unsignedBigInteger('state_id')->nullable();
+        });
+        \DB::table('countries')->insert(['id' => 1, 'name' => 'Nigeria', 'iso_code' => 'NG']);
+        $controller = new class extends \App\Http\Controllers\Auth\RegisterController {
+            public function validateData($data) { return $this->validator($data); }
+            public function createUser($data) { return $this->create($data); }
+        };
+        foreach ([null, '0', '1'] as $consent) {
+            $data = ['name' => 'Registration Demo', 'email' => uniqid().'@example.test', 'password' => 'password123', 'password_confirmation' => 'password123', 'country_id' => 1];
+            if ($consent !== null) $data['marketing_opt_in'] = $consent;
+            $this->assertFalse($controller->validateData($data)->fails());
+            $user = $controller->createUser($data);
+            $this->assertSame($consent === '1', $user->fresh()->marketing_subscribed_at !== null);
+        }
+        $data['marketing_opt_in'] = 'unexpected';
+        $this->assertTrue($controller->validateData($data)->fails());
+        $this->get('/register')->assertOk()->assertSee('name="marketing_opt_in" value="1"', false);
+    }
+
     public function test_admin_campaign_pages_render()
     {
         $campaign = $this->campaign();

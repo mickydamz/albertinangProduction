@@ -36,7 +36,8 @@ class MarketingCampaignContent
         $data['images'] = $images;
         unset($data['image_alt'],$data['remove_images']);
         // Retain draft branding metadata; email contact details resolve from Settings when rendered.
-        $data['brand'] = MarketingBrand::current();
+        $data['brand'] = MarketingBrand::current() + ['button_alignment' => $data['button_alignment'] ?? ($campaign->brand['button_alignment'] ?? 'center')];
+        unset($data['button_alignment']);
         $data['offer_url'] = ($data['offer_url'] ?? '') ?: url('/shop');
         $data['tested_at'] = null;
 

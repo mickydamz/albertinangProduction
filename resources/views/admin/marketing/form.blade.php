@@ -24,6 +24,9 @@
 </select>
 <div class="promo-brand mb-2"><strong>AlbertinaNG</strong><br><span>From: promotions@albertinang.com</span><br><span>Company logo and contact footer included</span></div>
 <label for="button_text">Offer button text</label><input class="form-control mb-2" id="button_text" name="button_text" maxlength="60" value="{{ old('button_text',$draft->button_text ?? 'Shop now') }}">
+<label for="button_alignment">Offer button position</label><select class="form-control mb-2" id="button_alignment" name="button_alignment">
+@foreach(['center'=>'Centre','left'=>'Left','right'=>'Right'] as $value=>$label)<option value="{{ $value }}" @selected(old('button_alignment',$draft->brand['button_alignment'] ?? 'center')===$value)>{{ $label }}</option>@endforeach
+</select>
 <label for="offer_url">Offer destination (HTTPS)</label><input class="form-control mb-2" type="url" id="offer_url" name="offer_url" value="{{ old('offer_url',$draft->offer_url ?: url('/shop')) }}" placeholder="https://test.albertinang.com/shop">
 <label for="audience">Recipients</label><select class="form-control mb-2" id="audience" name="audience">
 @foreach(['all'=>'All opted-in customers','recent'=>'Customers who opted in during the last 30 days','selected'=>'Selected opted-in customers'] as $value=>$label)<option value="{{ $value }}" @selected(old('audience',$draft->audience ?? 'all')===$value)>{{ $label }}</option>@endforeach

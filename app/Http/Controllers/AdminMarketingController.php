@@ -18,12 +18,16 @@ class AdminMarketingController extends Controller
 {
     public function index(Request $request)
     {
+        if ($request->boolean('subscriber_counts')) {
+            return response()->json(['total' => User::whereNotNull('marketing_subscribed_at')->count(), 'customers' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->count()])->header('Cache-Control', 'private, no-store');
+        }
+
         $query = MarketingCampaign::withCount('deliveries')->latest();
         if (in_array($request->status, ['draft', 'scheduled', 'queued', 'paused', 'completed', 'cancelled'])) {
             $query->where('status', $request->status);
         }
 
-        return view('admin.marketing.index', ['campaigns' => $query->paginate(20)->withQueryString(), 'audience' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->count(), 'customers' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->orderBy('name')->limit(1000)->get(['id', 'name', 'email'])]);
+        return response()->view('admin.marketing.index', ['campaigns' => $query->paginate(20)->withQueryString(), 'audience' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->count(), 'subscribedTotal' => User::whereNotNull('marketing_subscribed_at')->count(), 'subscribers' => User::whereNotNull('marketing_subscribed_at')->orderByDesc('marketing_subscribed_at')->paginate(20, ['id', 'name', 'email', 'role', 'marketing_subscribed_at'], 'subscribers_page')->withQueryString(), 'customers' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->orderBy('name')->limit(1000)->get(['id', 'name', 'email'])])->header('Cache-Control', 'private, no-store');
     }
 
     public function store(SaveMarketingCampaign $request)
