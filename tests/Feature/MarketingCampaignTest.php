@@ -313,4 +313,19 @@ class MarketingCampaignTest extends TestCase
         $this->post('/admin/marketing', ['subject' => 'Sale', 'message' => 'Offer', 'audience' => 'selected'])->assertSessionHasErrors('selected_users');
         $this->assertDatabaseCount('marketing_deliveries', 0);
     }
+
+    public function test_sent_email_embeds_logo_and_uploaded_picture_without_requiring_public_image_access()
+    {
+        \Storage::fake('public');
+        $picture = \Illuminate\Http\UploadedFile::fake()->image('banner.png')->store('marketing', 'public');
+        $campaign = $this->campaign();
+        $campaign->update(['images' => [['path' => $picture, 'alt' => 'Offer picture']]]);
+        $mail = new MarketingPromotion($campaign, $this->user());
+        $mime = new \Symfony\Component\Mime\Email();
+        $message = new \Illuminate\Mail\Message($mime);
+        $html = view('marketing.email', ['message' => $message] + $mail->viewData())->render();
+        $this->assertStringContainsString('cid:', $html);
+        $this->assertCount(2, $mime->getAttachments());
+        $this->assertSame('', \App\Services\MarketingAssets::picture('../.env', $message));
+    }
 }

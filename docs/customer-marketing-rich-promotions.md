@@ -2,7 +2,7 @@
 
 The promotions feature now supports:
 
-- A rich-text editor with headings, bold/italic/underline, lists, alignment, text colour and HTTPS links. Pasted content is cleaned, and server-side allowlisting rebuilds safe HTML. A plain-text email alternative is included.
+- A rich-text editor with headings, bold/italic/underline, lists, alignment, text colour and HTTPS links. Pasted content is cleaned, and server-side allowlisting rebuilds safe HTML. A plain-text email alternative is included. Sent emails embed local company logos and uploaded pictures inline, so those images do not depend on access to the password-protected staging website.
 - Up to four JPG/PNG pictures per campaign, descriptive alternative text, upload previews and picture removal. Pictures are public promotional assets; maximum 3 MB and 4,000 pixels per dimension. Previously referenced assets are retained so copied campaigns remain intact.
 - Classic, Sale and New arrivals branded layouts. The company logo comes from store settings (falling back to the existing official image.png), with a saved company footer and promotions@albertinang.com sender/reply address.
 - Inbox preview text, a configurable offer button, desktop/mobile preview widths, and an admin-address-only test action. Sending a test does not add customer delivery records.
@@ -21,4 +21,4 @@ Promotions use the dedicated `marketing` mailer, configured separately from orde
 
 ## Validation
 
-20 isolated feature tests / 125 assertions passed. These cover admin access, input validation, safe HTML, picture upload/removal/type restrictions, sender and reply address, plain-text fallback, audience filtering, future/due scheduling, pause/resume/cancel, duplication, consent suppression, signed clicks and unsubscribe, CSV response, batch limits and failure behaviour. Blade compilation and whitespace checks passed. Real SMTP delivery is not implied by fake-mail tests. Staging visual verification and deployment status are recorded separately.
+21 isolated feature tests / 128 assertions passed. These cover admin access, input validation, safe HTML, picture upload/removal/type restrictions, sender and reply address, plain-text fallback, audience filtering, future/due scheduling, pause/resume/cancel, duplication, consent suppression, signed clicks and unsubscribe, CSV response, batch limits and failure behaviour. Blade compilation and whitespace checks passed. Real SMTP delivery is not implied by fake-mail tests. Staging visual verification and deployment status are recorded separately.
