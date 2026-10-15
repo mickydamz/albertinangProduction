@@ -15,6 +15,7 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        $schedule->command('marketing:send')->everyMinute()->withoutOverlapping();
         $schedule->command('paystack:reconcile-refunds')->everyTenMinutes()->withoutOverlapping();
     }
 

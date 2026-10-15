@@ -1711,6 +1711,7 @@
                             <a href="/account" role="menuitem">
                                 <span class="user-menu__icon-box"><i class="fas fa-user"></i></span> My Account
                             </a>
+                            <a href="{{ route('marketing.preferences') }}" role="menuitem"><span class="user-menu__icon-box"><i class="fas fa-envelope"></i></span> Email preferences</a>
                             <a href="/account/orders" role="menuitem">
                                 <span class="user-menu__icon-box"><i class="fas fa-box"></i></span> My Orders
                             </a>
@@ -1987,6 +1988,7 @@
                 <h4>Customer</h4>
                 <ul>
                     <li><a href="{{ route('account.index') }}">My Account</a></li>
+                    @auth<li><a href="{{ route('marketing.preferences') }}">Email preferences</a></li>@endauth
                     <li><a href="{{ route('account.orders') }}">My Orders</a></li>
                     <li><a href="{{ route('contact') }}">Contact Us</a></li>
                     <li><a href="{{ route('faq') }}">FAQ</a></li>

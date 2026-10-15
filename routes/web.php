@@ -782,3 +782,18 @@ Route::get('/locations', function (\Illuminate\Http\Request $request) {
 
 // Add this alongside your existing location routes
 Route::get('/states', [LocationController::class, 'states']);
+
+// Customer marketing preferences and signed unsubscribe confirmation.
+Route::get('/account/email-preferences', [\App\Http\Controllers\MarketingPreferenceController::class, 'edit'])->middleware('auth')->name('marketing.preferences');
+Route::post('/account/email-preferences', [\App\Http\Controllers\MarketingPreferenceController::class, 'update'])->middleware('auth')->name('marketing.preferences.update');
+Route::get('/marketing/unsubscribe/{user}', [\App\Http\Controllers\MarketingPreferenceController::class, 'unsubscribe'])->middleware('signed')->name('marketing.unsubscribe');
+Route::post('/marketing/unsubscribe/{user}', [\App\Http\Controllers\MarketingPreferenceController::class, 'confirmUnsubscribe'])->middleware('signed');
+Route::middleware(['auth', 'role:admin'])->prefix('admin/marketing')->name('admin.marketing.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\AdminMarketingController::class, 'index'])->name('index');
+    Route::post('/', [\App\Http\Controllers\AdminMarketingController::class, 'store'])->name('store');
+    Route::get('/{campaign}', [\App\Http\Controllers\AdminMarketingController::class, 'show'])->name('show');
+    Route::put('/{campaign}', [\App\Http\Controllers\AdminMarketingController::class, 'update'])->name('update');
+    Route::get('/{campaign}/preview', [\App\Http\Controllers\AdminMarketingController::class, 'preview'])->name('preview');
+    Route::post('/{campaign}/test', [\App\Http\Controllers\AdminMarketingController::class, 'test'])->middleware('throttle:5,1')->name('test');
+    Route::post('/{campaign}/send', [\App\Http\Controllers\AdminMarketingController::class, 'send'])->name('send');
+});

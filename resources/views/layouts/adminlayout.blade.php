@@ -647,6 +647,7 @@
                         </div>
                         <div class="al-user-dd-email">{{ auth()->user()->email ?? '' }}</div>
                     </div>
+                    <a href="{{ route('admin.marketing.index') }}"><i class="fas fa-envelope"></i> Email campaigns</a>
                     <a href="/admin/users"><i class="fas fa-users"></i> Manage Users</a>
                     <a href="{{ route('admin.settings.index') }}"><i class="fas fa-cog"></i> Settings</a>
                     <div class="al-dd-divider"></div>

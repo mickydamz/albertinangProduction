@@ -32,6 +32,7 @@ return [
         'items' => [
             ['route' => "admin.markup.index", 'label' => "Price markup", 'matches' => ["admin.markup.*"], 'icon' => "percent", 'description' => "Set price margins and markup rules."],
             ['route' => "admin.discount.index", 'label' => "Discounts", 'matches' => ["admin.discount.*"], 'icon' => "scissors", 'description' => "Manage product discounts."],
+            ['route' => 'admin.marketing.index', 'label' => 'Email campaigns', 'matches' => ['admin.marketing.*'], 'icon' => 'envelope', 'description' => 'Create promotions for opted-in registered customers.'],
             ['route' => "admin.coupons.index", 'label' => "Coupon codes", 'matches' => ["admin.coupons.*"], 'icon' => "ticket", 'description' => "Create and manage checkout offers."],
         ],
     ],
