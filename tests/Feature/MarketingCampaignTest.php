@@ -393,6 +393,27 @@ class MarketingCampaignTest extends TestCase
         $this->assertSame('', \App\Services\MarketingAssets::picture('../.env', $message));
     }
 
+    public function test_logo_embeds_from_separate_hosting_document_root()
+    {
+        $originalPublic = public_path();
+        $temporaryPublic = storage_path('framework/testing/missing-marketing-public');
+        $hostedLogo = dirname(base_path()).'/image.png';
+        $existed = file_exists($hostedLogo);
+        if ($existed) $this->markTestSkipped('Hosting fixture already exists.');
+        copy($originalPublic.'/image.png', $hostedLogo);
+        $this->app->instance('path.public', $temporaryPublic);
+        try {
+            $mime = new \Symfony\Component\Mime\Email();
+            $source = \App\Services\MarketingAssets::logo(asset('image.png'), new \Illuminate\Mail\Message($mime));
+            $this->assertStringStartsWith('cid:', $source);
+            $this->assertCount(1, $mime->getAttachments());
+            $this->assertSame('image', $mime->getAttachments()[0]->getMediaType());
+        } finally {
+            $this->app->instance('path.public', $originalPublic);
+            unlink($hostedLogo);
+        }
+    }
+
     public function test_promotion_message_is_optional_and_offer_defaults_to_the_test_shop()
     {
         $this->actingAs($this->user('admin'))->post('/admin/marketing', ['subject' => 'Subject only'])->assertRedirect();

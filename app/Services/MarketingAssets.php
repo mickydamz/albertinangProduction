@@ -30,8 +30,13 @@ class MarketingAssets
                 return $message->embed($file);
             }
         }
-        if ($url === asset('image.png') && is_file(public_path('image.png'))) {
-            return $message->embed(public_path('image.png'));
+        if ($url === asset('image.png')) {
+            // Some hosts serve the site beside the Laravel checkout, rather than its public directory.
+            foreach ([public_path('image.png'), dirname(base_path()).'/image.png'] as $file) {
+                if (is_file($file) && getimagesize($file) !== false) {
+                    return $message->embed($file);
+                }
+            }
         }
 
         return $url;
