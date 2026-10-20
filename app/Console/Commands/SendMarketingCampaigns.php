@@ -6,6 +6,7 @@ use App\Mail\MarketingPromotion;
 use App\Models\MarketingCampaign;
 use App\Models\MarketingDelivery;
 use App\Models\User;
+use App\Services\MarketingDispatch;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -31,7 +32,12 @@ class SendMarketingCampaigns extends Command
         MarketingCampaign::where('status', 'scheduled')->where('scheduled_at', '<=', now())->update(['status' => 'queued']);
         $limit = max(1, min(1000, (int) $this->option('limit'), max(1, (int) config('marketing.batch_limit', 50))));
         $deliveries = MarketingDelivery::where('status', 'pending')->whereHas('campaign', fn ($q) => $q->where('status', 'queued'))->orderBy('id')->limit($limit)->get();
+        $started = microtime(true);
         foreach ($deliveries as $delivery) {
+            // Keep normal batches short enough to finish within a hosting cron invocation.
+            if (microtime(true) - $started >= 45) {
+                break;
+            }
             // Claim atomically so overlapping invocations cannot send the same record.
             if (! \DB::transaction(function () use ($delivery) {
                 $campaign = MarketingCampaign::whereKey($delivery->marketing_campaign_id)->lockForUpdate()->first();
@@ -58,7 +64,7 @@ class SendMarketingCampaigns extends Command
                 Log::warning('Marketing delivery failed', ['delivery_id' => $delivery->id, 'exception' => get_class($e)]);
             }
         }
-        MarketingCampaign::whereIn('status', ['queued', 'paused'])->whereDoesntHave('deliveries', fn ($q) => $q->whereIn('status', ['pending', 'sending']))->update(['status' => 'completed']);
+        MarketingDispatch::completeFinished();
 
         return 0;
     }

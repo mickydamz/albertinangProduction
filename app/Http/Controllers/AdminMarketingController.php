@@ -8,6 +8,7 @@ use App\Models\MarketingCampaign;
 use App\Models\User;
 use App\Services\MarketingCampaignContent;
 use App\Services\MarketingDispatch;
+use App\Services\MarketingProgress;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,9 @@ class AdminMarketingController extends Controller
 {
     public function index(Request $request)
     {
+        if ($request->boolean('progress')) {
+            return response()->json(['token' => MarketingProgress::token()])->header('Cache-Control', 'private, no-store');
+        }
         if ($request->boolean('subscriber_counts')) {
             return response()->json(['total' => User::whereNotNull('marketing_subscribed_at')->count(), 'customers' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->count()])->header('Cache-Control', 'private, no-store');
         }
@@ -27,7 +31,7 @@ class AdminMarketingController extends Controller
             $query->where('status', $request->status);
         }
 
-        return response()->view('admin.marketing.index', ['campaigns' => $query->paginate(20)->withQueryString(), 'audience' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->count(), 'subscribedTotal' => User::whereNotNull('marketing_subscribed_at')->count(), 'subscribers' => User::whereNotNull('marketing_subscribed_at')->orderByDesc('marketing_subscribed_at')->paginate(20, ['id', 'name', 'email', 'role', 'marketing_subscribed_at'], 'subscribers_page')->withQueryString(), 'customers' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->orderBy('name')->limit(1000)->get(['id', 'name', 'email'])])->header('Cache-Control', 'private, no-store');
+        return response()->view('admin.marketing.index', ['progressToken' => MarketingProgress::token(), 'campaigns' => $query->paginate(20)->withQueryString(), 'audience' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->count(), 'subscribedTotal' => User::whereNotNull('marketing_subscribed_at')->count(), 'subscribers' => User::whereNotNull('marketing_subscribed_at')->orderByDesc('marketing_subscribed_at')->paginate(20, ['id', 'name', 'email', 'role', 'marketing_subscribed_at'], 'subscribers_page')->withQueryString(), 'customers' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->orderBy('name')->limit(1000)->get(['id', 'name', 'email'])])->header('Cache-Control', 'private, no-store');
     }
 
     public function store(SaveMarketingCampaign $request)
@@ -48,9 +52,14 @@ class AdminMarketingController extends Controller
         return back()->with('success', 'Draft updated.');
     }
 
-    public function show(MarketingCampaign $campaign)
+    public function show(MarketingCampaign $campaign, Request $request)
     {
-        return view('admin.marketing.show', [
+        if ($request->boolean('progress')) {
+            return response()->json(['token' => MarketingProgress::token($campaign->id)])->header('Cache-Control', 'private, no-store');
+        }
+
+        return response()->view('admin.marketing.show', [
+            'progressToken' => MarketingProgress::token($campaign->id),
             'campaign' => $campaign,
             'counts' => $campaign->deliveries()->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status'),
             'clicked' => $campaign->deliveries()->whereNotNull('clicked_at')->count(),
@@ -58,7 +67,7 @@ class AdminMarketingController extends Controller
             'deliveries' => $campaign->deliveries()->orderBy('id')->paginate(30),
             'audience' => $campaign->eligibleUsers()->count(),
             'customers' => User::where('role', 'user')->whereNotNull('marketing_subscribed_at')->orderBy('name')->limit(1000)->get(['id', 'name', 'email']),
-        ]);
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     public function preview(MarketingCampaign $campaign, Request $request)

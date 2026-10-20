@@ -24,4 +24,5 @@
 <div class="promo-scroll"><table class="table"><thead><tr><th>Recipient</th><th>Status</th><th>Accepted at (UTC)</th><th>Offer clicks</th></tr></thead><tbody>@forelse($deliveries as $delivery)<tr><td>{{ $delivery->email }}</td><td>{{ $delivery->status }}</td><td>{{ $delivery->sent_at ?: '—' }}</td><td>{{ $delivery->click_count }}</td></tr>@empty<tr><td colspan="4">No emails have been queued for this draft.</td></tr>@endforelse</tbody></table></div>{{ $deliveries->links() }}
 </div></div>
 @include('admin.marketing.styles')
+@include('admin.marketing.progress')
 @endsection

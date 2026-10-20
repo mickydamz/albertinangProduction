@@ -16,6 +16,7 @@
 @forelse($campaigns as $campaign)<tr><td><a href="{{ route('admin.marketing.show',$campaign) }}">{{ $campaign->subject }}</a><br><small class="text-muted">{{ $campaign->template }}</small></td><td><span class="promo-label">{{ ucfirst($campaign->status) }}</span></td><td>{{ $campaign->deliveries_count }}</td><td>{{ $campaign->created_at->format('d M Y') }}</td></tr>@empty<tr><td colspan="4">Your saved campaigns will appear here.</td></tr>@endforelse
 </tbody></table></div>{{ $campaigns->links() }}</div></div>
 @include('admin.marketing.styles')
+@include('admin.marketing.progress')
 <script>
 (function () {
     async function refreshCounts() {

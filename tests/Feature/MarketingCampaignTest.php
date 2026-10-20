@@ -118,6 +118,72 @@ class MarketingCampaignTest extends TestCase
         $this->get('/register')->assertOk()->assertSee('name="marketing_opt_in" value="1"', false);
     }
 
+    public function test_progress_endpoints_change_when_delivery_history_changes_and_are_admin_only()
+    {
+        $admin = $this->user('admin');
+        $customer = $this->user('user', true);
+        $campaign = $this->campaign();
+        $this->actingAs($admin);
+        $before = $this->get('/admin/marketing?progress=1')->assertOk()->json('token');
+        $detailBefore = $this->get('/admin/marketing/'.$campaign->id.'?progress=1')->assertOk()->json('token');
+        \App\Services\MarketingDispatch::queue($campaign);
+        $this->assertNotSame($before, $this->get('/admin/marketing?progress=1')->json('token'));
+        $this->assertNotSame($detailBefore, $this->get('/admin/marketing/'.$campaign->id.'?progress=1')->json('token'));
+        $pending = $this->get('/admin/marketing?progress=1')->json('token');
+        $campaign->deliveries()->update(['status' => 'sent', 'sent_at' => now()]);
+        $this->assertNotSame($pending, $this->get('/admin/marketing?progress=1')->json('token'));
+        $this->get('/admin/marketing/'.$campaign->id)->assertOk()->assertSee('checkProgress', false);
+        $this->actingAs($customer)->get('/admin/marketing?progress=1')->assertForbidden();
+    }
+
+    public function test_finished_scheduled_campaign_is_reconciled_without_resending_terminal_deliveries()
+    {
+        $this->user('user', true);
+        $campaign = $this->campaign();
+        \App\Services\MarketingDispatch::queue($campaign, now()->subHour());
+        $campaign->deliveries()->update(['status' => 'sent', 'sent_at' => now()]);
+        $this->artisan('marketing:send')->assertExitCode(0);
+        $this->assertSame('completed', $campaign->fresh()->status);
+        Mail::assertNothingSent();
+        $this->artisan('marketing:send')->assertExitCode(0);
+        Mail::assertNothingSent();
+    }
+
+    public function test_pending_and_uncertain_sending_deliveries_prevent_false_completion()
+    {
+        $this->user('user', true);
+        $campaign = $this->campaign();
+        \App\Services\MarketingDispatch::queue($campaign, now()->addHour());
+        $this->assertSame(0, \App\Services\MarketingDispatch::completeFinished());
+        $campaign->deliveries()->update(['status' => 'sending']);
+        $this->assertSame(0, \App\Services\MarketingDispatch::completeFinished());
+        $this->assertSame('scheduled', $campaign->fresh()->status);
+    }
+
+    public function test_schedule_persists_in_application_timezone_and_does_not_send_early()
+    {
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-20 16:00:00', 'Europe/London'));
+        $this->actingAs($this->user('admin'));
+        $this->user('user', true);
+        $campaign = $this->campaign();
+        $this->post(route('admin.marketing.send', $campaign), ['confirm' => 1, 'scheduled_at' => '2026-10-20T17:00'])->assertRedirect();
+        $this->assertSame('2026-10-20 17:00:00', $campaign->fresh()->getRawOriginal('scheduled_at'));
+        $this->artisan('marketing:send')->assertExitCode(0);
+        Mail::assertNothingSent();
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-20 17:01:00', 'Europe/London'));
+        $this->artisan('marketing:send')->assertExitCode(0);
+        $this->assertSame('completed', $campaign->fresh()->status);
+        Mail::assertSent(MarketingPromotion::class, 1);
+    }
+
+    public function test_marketing_scheduler_lock_expires_after_five_minutes()
+    {
+        $events = app(\Illuminate\Console\Scheduling\Schedule::class)->events();
+        $marketing = collect($events)->first(fn ($event) => str_contains($event->command ?? '', 'marketing:send'));
+        $this->assertNotNull($marketing);
+        $this->assertSame(5, $marketing->expiresAt);
+    }
+
     public function test_admin_campaign_pages_render()
     {
         $campaign = $this->campaign();

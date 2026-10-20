@@ -1,0 +1,11 @@
+# Scheduled campaign recovery and live progress
+
+The 20 October staging investigation found campaign #13 still scheduled with two pending recipients, zero sent records and no active marketing process. Its scheduler mutex was nevertheless present with the default 1,440-minute expiry. Completed campaigns from earlier runs had their delivery records intact. The cron entry and deployed scheduler registration were present.
+
+The marketing event now expires an abandoned overlap lock after five minutes. Normal command batches stop claiming new recipients after 45 seconds, allowing a hosting cron invocation to finish and release its lock. Atomic per-delivery claims and no automatic retries of uncertain sends remain unchanged. Finished scheduled/queued/paused campaigns can be reconciled from terminal recipient states, without resending them; pending or sending records prevent completion.
+
+Schedule times now persist in the application timezone used by Eloquent and database comparisons. Previously the controller converted London input to UTC while the model interpreted the stored value as London time, causing a summer-time offset. The staging repair backs up and converts existing active schedules to preserve their originally intended instant.
+
+Admin campaign detail and campaign history pages check a private, uncached progress fingerprint every ten seconds and upon returning to the page. Status, delivery state, clicks and unsubscribes trigger a refresh. Unsaved forms stop background reloads, preserving draft edits and selections.
+
+Validation: 35 isolated marketing tests passed, including the five-minute lock setting, progress endpoint access and recipient-state changes, terminal scheduled reconciliation without a resend, unfinished/uncertain delivery protection, and London schedule timing before and after its due time. Deployment uses private source/schedule backups, exact source or context-patch checks, a staging database/host guard and an active-process check before clearing only the marketing mutex. The installer does not call the send command; normal scheduling resumes previously authorised work.
