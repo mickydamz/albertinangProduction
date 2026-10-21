@@ -52,6 +52,7 @@ class OrderShippingAddressSyncTest extends TestCase
     private function saveDelivery(User $user, Product $product, Location $location, ?string $address): \Illuminate\Testing\TestResponse
     {
         return $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'customer_email' => 'buyer@test.com',
             'items'          => [['product_id' => $product->id, 'quantity' => 1]],
             'fulfillment'    => [
@@ -107,6 +108,7 @@ class OrderShippingAddressSyncTest extends TestCase
         $product = $this->makeProduct();
 
         $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'customer_email' => 'buyer@test.com',
             'items'          => [['product_id' => $product->id, 'quantity' => 1]],
             'fulfillment'    => ['method' => 'pickup', 'pickup_location' => 'Enugu HQ'],

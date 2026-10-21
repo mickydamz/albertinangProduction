@@ -51,6 +51,10 @@ class PaymentController extends Controller
             return response()->json(['error' => 'Checkout session not found. Please start again.'], 422);
         }
 
+        if (!\App\Support\DeliveryMobile::normalize($pending->delivery_mobile)) {
+            return response()->json(['error' => 'Please restart checkout and provide a valid delivery mobile number.'], 422);
+        }
+
         $amountCents = app(StripeOrderService::class)->expectedUsdCents((float) $pending->total_ngn);
 
         Stripe::setApiKey($secret);
@@ -80,34 +84,9 @@ class PaymentController extends Controller
 
     public function initiatePayment(Request $request)
     {
-        // Validate the incoming payment amount
-        $request->validate([
-            'amount' => 'required|numeric|min:1000',
-            'email' => 'required|email'
-        ]);
-
-        // Get payment details from the request
-        $amount = $request->input('amount');
-        $email = $request->input('email');
-
-        // Generate a unique reference for the transaction
-        $reference = 'paystack_' . uniqid();
-
-        // Store the transaction details in the database
-        $transaction = new Transaction();
-        $transaction->email = $email;
-        $transaction->amount = $amount;
-        $transaction->reference = $reference;
-        $transaction->status = 'pending'; // Status will be pending until verified
-        $transaction->save();
-
-        // Initiate payment on Paystack by using the reference and amount
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Payment initiated successfully',
-            'reference' => $reference
-        ]);
+        return response()->json(['error' => 'Please use checkout to provide delivery contact details and securely calculate your payment.'], 422);
     }
+
 
     /**
      * Verify the payment using Paystack API

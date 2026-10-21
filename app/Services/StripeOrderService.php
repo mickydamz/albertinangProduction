@@ -137,6 +137,7 @@ class StripeOrderService
                     'delivery_location_name' => $fulfillment['delivery_location_name'] ?? null,
                     'shipping_address'       => $fulfillment['shipping_address']       ?? null,
                     'shipping_cost'          => $fulfillment['delivery_fee_ngn']       ?? 0,
+                    'delivery_mobile'        => $pending->delivery_mobile,
                     'customer_email'         => $custEmail,
                     'coupon_id'              => $couponData['id']           ?? null,
                     'coupon_code_used'       => $couponData['code']         ?? null,

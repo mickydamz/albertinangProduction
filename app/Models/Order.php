@@ -33,6 +33,7 @@ use Auditable;
     }
 
     protected $fillable = [
+        'delivery_mobile',
         'user_id',
         'status',
         'received_at',

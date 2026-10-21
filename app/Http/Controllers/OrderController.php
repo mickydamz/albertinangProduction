@@ -35,7 +35,9 @@ class OrderController extends Controller
      */
     public function saveCheckout(Request $request)
     {
+        $request->merge(['delivery_mobile' => \App\Support\DeliveryMobile::normalize($request->input('delivery_mobile'))]);
         $validated = $request->validate([
+            'delivery_mobile' => 'required|string|max:16',
             'customer_email'                   => 'nullable|email|max:255',
             'items'                            => 'required|array|min:1',
             'items.*.product_id'               => 'required|integer|exists:products,id',
@@ -48,7 +50,7 @@ class OrderController extends Controller
             'fulfillment.pickup_location'      => 'nullable|string|max:255',
             'fulfillment.delivery_location_id' => 'nullable|integer',
             'fulfillment.shipping_address'     => 'nullable|string|max:500',
-        ]);
+        ], ['delivery_mobile.required' => 'Enter a valid mobile number for delivery contact, using a Nigerian mobile or an international country code.']);
 
         // 1. Load active products in one query. Inactive/unlisted products are rejected.
         $productIds = array_column($validated['items'], 'product_id');
@@ -219,6 +221,7 @@ class OrderController extends Controller
         $reference = 'ps_' . \Illuminate\Support\Str::ulid();
 
         PendingCheckout::create([
+            'delivery_mobile' => $validated['delivery_mobile'],
             'reference'      => $reference,
             'user_id'        => Auth::id(),
             'customer_email' => $validated['customer_email'] ?? Auth::user()?->email,

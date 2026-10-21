@@ -497,6 +497,11 @@
                             <div id="messages"></div>
 
                             <form id="main-checkout-form">
+                                <div style="margin-bottom:1rem;">
+                                    <label for="delivery-mobile">Mobile number for delivery contact *</label>
+                                    <input type="tel" id="delivery-mobile" name="delivery_mobile" autocomplete="tel" inputmode="tel" maxlength="40" required aria-describedby="delivery-mobile-help">
+                                    <p id="delivery-mobile-help">We will use this number to contact you about delivery or collection. Enter a Nigerian mobile (e.g. 08012345678) or include your country code (e.g. +447700900123).</p>
+                                </div>
                                 <div style="display:none;">
                                     <label for="amount">Amount (USD):</label>
                                     <input type="number" id="amount" name="amount" step="0.01" min="0.50" value="0.50" readonly>
@@ -1494,7 +1499,14 @@
         // computes prices, generates the reference, and returns both. Blocks on
         // failure — without a server-generated reference, the popup cannot open.
         async function savePendingCheckout() {
+            const mobileInput = document.getElementById('delivery-mobile');
+            if (!mobileInput.value.trim() || !mobileInput.reportValidity()) {
+                showMessage('danger', 'Please enter your mobile number for delivery contact.');
+                mobileInput.focus();
+                return { validationError: true };
+            }
             const body = JSON.stringify({
+                delivery_mobile: document.getElementById('delivery-mobile').value,
                 customer_email: emailInput.value,
                 // ⚠️ DO NOT REMOVE / DO NOT CHANGE THE SOURCE OF installation_option.
                 // This save-checkout payload builds PendingCheckout, which is the ONLY
@@ -1526,6 +1538,12 @@
                     if (res.ok) {
                         const data = await res.json();
                         return data; // { reference, total_ngn, coupon, coupon_error }
+                    }
+                    if (res.status === 422) {
+                        const error = await res.json();
+                        showMessage('danger', error.errors?.delivery_mobile?.[0] || error.message || 'Please check your checkout details.');
+                        mobileInput.focus();
+                        return { validationError: true };
                     }
                     console.warn('[savePendingCheckout] server error', res.status);
                 } catch (e) {
@@ -1731,7 +1749,7 @@
                 const saved = await savePendingCheckout();
                 if (!saved?.reference) {
                     hideLoading(stripeSubmitButton, stripeSpinner);
-                    showMessage('danger', 'Could not prepare your order. Please check your connection and try again.');
+                    if (!saved?.validationError) showMessage('danger', 'Could not prepare your order. Please check your connection and try again.');
                     return;
                 }
                 // 2. Create the PaymentIntent for that reference (amount set server-side).
@@ -1785,7 +1803,7 @@
             const saved = await savePendingCheckout();
             if (!saved?.reference) {
                 hideLoading(paystackSubmitButton, paystackSpinner);
-                showMessage('danger', 'Could not prepare your order. Please check your connection and try again.');
+                if (!saved?.validationError) showMessage('danger', 'Could not prepare your order. Please check your connection and try again.');
                 return;
             }
             const ref       = saved.reference;

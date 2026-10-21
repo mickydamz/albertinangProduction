@@ -106,6 +106,7 @@ class InstallationOptionsTest extends TestCase
         $product = $this->makeProduct([$this->tvOption()], 50000);
 
         $res = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items' => [[
                 'product_id'          => $product->id,
                 'quantity'            => 1,
@@ -131,6 +132,7 @@ class InstallationOptionsTest extends TestCase
         $product = $this->makeProduct([$this->tvOption()], 50000);
 
         $res = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items' => [[
                 'product_id'          => $product->id,
                 'quantity'            => 1,
@@ -152,6 +154,7 @@ class InstallationOptionsTest extends TestCase
         $product = $this->makeProduct([$this->tvOption()], 50000);
 
         $res = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items' => [[
                 'product_id'          => $product->id,
                 'quantity'            => 1,
@@ -172,6 +175,7 @@ class InstallationOptionsTest extends TestCase
         $product = $this->makeProduct([$this->tvOption()], 50000);
 
         $res = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items' => [[
                 'product_id'             => $product->id,
                 'quantity'               => 1,
@@ -195,6 +199,7 @@ class InstallationOptionsTest extends TestCase
         $withoutOpt = $this->makeProduct([], 30000);
 
         $res = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items' => [
                 ['product_id' => $withOpt->id,    'quantity' => 1, 'installation_option' => 'Add TV Installation Service'],
                 ['product_id' => $withoutOpt->id, 'quantity' => 1, 'installation_option' => null],
@@ -218,6 +223,7 @@ class InstallationOptionsTest extends TestCase
         $product = $this->makeProduct($this->premiumOptions(), 20000);
 
         $res = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items' => [[
                 'product_id'          => $product->id,
                 'quantity'            => 1,
@@ -239,6 +245,7 @@ class InstallationOptionsTest extends TestCase
         $product = $this->makeProduct([$this->tvOption()], 50000);
 
         $res = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items' => [[
                 'product_id'          => $product->id,
                 'quantity'            => 3,
@@ -367,6 +374,7 @@ class InstallationOptionsTest extends TestCase
 
         // 1. Browser saves the checkout (only product_id + qty + label leave the client).
         $save = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items' => [[
                 'product_id'          => $product->id,
                 'quantity'            => 1,
