@@ -97,6 +97,14 @@
                                     <span class="badge bg-light-{{ $color }}">{{ ucfirst(str_replace('_',' ',$order->status)) }}</span>
                                 </li>
                                 <li class="d-flex justify-content-between py-50 border-bottom">
+                                    <span class="text-muted">Delivery mobile:</span>
+                                    @if($order->delivery_mobile)
+                                        <strong><a href="tel:{{ $order->delivery_mobile }}">{{ $order->delivery_mobile }}</a></strong>
+                                    @else
+                                        <span class="text-muted">Not provided</span>
+                                    @endif
+                                </li>
+                                <li class="d-flex justify-content-between py-50 border-bottom">
                                     <span class="text-muted">Payment Method</span>
                                     <strong>{{ ucfirst($order->payment_method ?? 'N/A') }}</strong>
                                 </li>
@@ -215,9 +223,6 @@
                                         <small>{{ $order->customer_email }}</small>
                                     @endif
                                 </div>
-                            @endif
-                            @if($order->delivery_mobile)
-                                <p class="mt-2">Delivery mobile: <a href="tel:{{ $order->delivery_mobile }}">{{ $order->delivery_mobile }}</a></p>
                             @endif
                         </div>
                     </div>
