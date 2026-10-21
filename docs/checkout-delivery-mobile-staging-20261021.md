@@ -1,28 +1,15 @@
-# Delivery mobile: staging deployment completed
+# Delivery mobile staging deployment — 21 October 2026
 
-Staging URL: https://test.albertinang.com
-Feature branch: feature/checkout-delivery-mobile
-Implementation commit: 5c0f89ce4fc03a8c42f1ff0627219346abc591db
-Branch is local and has not been pushed or merged into main.
+Verified target: https://test.albertinang.com, document root /home/albertin/test, application /home/albertin/test/ecommerce. Hosting mapping, application bootstrap, effective APP_URL, staging environment and staging database were checked before deployment. Production was not deployed.
 
-## Verified staging deployment
+The initial deployment at 15:42 BST backed up existing source and all 56 staging database tables outside web roots, applied the scoped nullable-column migration, compiled templates and verified all 10 uploaded files by SHA-256. The staging checkout had an older single delivery-address textarea; a merge preserved that layout while adding the mobile requirement. The repository keeps its current two-line address layout.
 
-Completed on 21 October 2026 at 15:42 BST (server report: 2026-10-21T14:42:01+00:00).
+Subsequent staging source updates restricted numbers to Nigeria, shortened the copy, added the bold Collection/ delivery number label, and placed Delivery mobile directly in Order Summary. Source backups, template compilation and file readback checks completed for each update.
 
-cPanel Domains confirmed test.albertinang.com maps to /home/albertin/test. Application bootstrap, effective APP_URL, APP_ENV=staging and database albertin_tcopy were checked by a guarded CLI deployment script. Production was not deployed or changed.
+Order ALB-ENU-308230 (#260) retained its contact in its fulfilled checkout but had no contact on the order. Current source hashes and model configuration were correct at inspection; the original transfer failure's runtime cause was not established. At 16:22 BST the guarded recovery service restored the contact from the matching checkout. The refreshed authenticated admin order page displayed the Nigerian number and tel link instead of Not provided. No profile-phone substitution, payment replay or order-total/status change occurred.
 
-The first read-only preflight stopped on checkout template drift without changing application files or schema. The server's existing single delivery-address textarea was preserved by merging only the feature patch into the current server template. The other nine target files matched their expected baselines. The exact merged staging template compiled locally before deployment.
+Recovery source and prior order contact state were backed up at /home/albertin/mobile-recovery-20261021/backup. Initial database/source backups remain at /home/albertin/mobile-staging-20261021-r2/backup. Temporary deployment and diagnostic cron entries were removed; the original staging scheduler was preserved.
 
-The guarded deployment backed up existing target files and all 56 staging database tables outside web roots at /home/albertin/mobile-staging-20261021-r2/backup. Database backup size: 6315427 bytes. SHA-256: 7f006f7a172f8e70432b4ef41f855285f6be5333e96a833359be698a3ddd7032.
+Validation: 193 backend regression tests / 2064 assertions passed. Source hash verification, migration-column checks, Blade compilation and authenticated admin display were verified on staging. No real payment or notification was triggered by deployment or repair; a fresh end-to-end sandbox payment was not executed on staging.
 
-The scoped migration completed. Both orders.delivery_mobile and pending_checkouts.delivery_mobile were absent before and present afterward. Templates compiled successfully. Readback hashes matched all 10 files in application-files.json. The temporary inspection and deployment cron entries were removed; the original staging scheduler was preserved. Backup and deployment result files remain outside all document roots.
-
-## Behavior and validation
-
-Customers must supply a mobile number before checkout can prepare either payment flow. Nigerian local mobile numbers normalize to +234. International country-code numbers accept E.164 shape; validation does not prove ownership, reachability or international mobile allocation. The contact is saved in the checkout snapshot and copied onto the paid order by either gateway. Staff can view the contact on admin order details. Legacy paid checkout reconciliation remains possible. The obsolete amount-trusting initiation aliases are blocked.
-
-Local tests: 184 regression tests / 1990 assertions, plus 46 focused existing checkout and Stripe feature tests / 142 assertions, all passed. PHP syntax, Blade compilation and diff checks passed. These use synthetic gateways and isolated SQLite databases.
-
-Browser check: the staging site responded and protected /checkout redirected to its sign-in page. The browser has no authenticated customer session, so a signed-in visual checkout and a sandbox payment have not been executed on staging. No real payment or customer notification was triggered during deployment.
-
-The staging package contains the merged staging template. The feature branch retains the current main-branch two-line address layout, with the same mobile behavior; this prevents reverting the repository's address layout solely to match older staging code.
+Rollback: restore the relevant backed-up source. Retain nullable contact columns and recovered contact data; dropping columns would destroy data and requires a separately reviewed decision.
