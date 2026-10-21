@@ -498,9 +498,9 @@
 
                             <form id="main-checkout-form">
                                 <div style="margin-bottom:1rem;">
-                                    <label for="delivery-mobile">Nigerian mobile number *</label>
+                                    <label for="delivery-mobile"><strong>Collection/ delivery number</strong> *</label>
                                     <input type="tel" id="delivery-mobile" name="delivery_mobile" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="08012345678" pattern="(0[789][01][0-9]{8}|\+234[789][01][0-9]{8})" required aria-describedby="delivery-mobile-help">
-                                    <p id="delivery-mobile-help">For delivery contact.</p>
+                                    <p id="delivery-mobile-help">Nigerian mobile numbers only.</p>
                                 </div>
                                 <div style="display:none;">
                                     <label for="amount">Amount (USD):</label>
