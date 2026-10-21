@@ -9,9 +9,9 @@ A nullable migration preserves historical orders and already-paid legacy checkou
 
 Validation: full regression 184 tests / 1990 assertions; focused existing delivery, truck delivery, installation, shipping address and Stripe feature tests 46 tests / 142 assertions. All passed using isolated SQLite databases and synthetic gateways. Blade compilation, PHP syntax checks and git diff --check passed. No real payment, live browser checkout or remote migration was performed.
 
-## Staging deployment status
+## Initial staging deployment status (superseded)
 
-NOT DEPLOYED. Project records specify https://test.albertinang.com and /home/albertin/test/ecommerce; its document root is recorded as /home/albertin/test. Current hosting mapping must still be independently verified in cPanel. No text.albertinaNG domain was invented. No production files were changed.
+Deployment subsequently completed; see checkout-delivery-mobile-staging-20261021.md. Initial status: NOT DEPLOYED. Project records specify https://test.albertinang.com and /home/albertin/test/ecommerce; its document root is recorded as /home/albertin/test. Current hosting mapping must still be independently verified in cPanel. No text.albertinaNG domain was invented. No production files were changed.
 
 Automatic approval review rejected reading the cPanel accessibility tree because it exposes broad private hosting data beyond staging verification. Further hosting inspection and staging deployment require user approval for that hosting view. Do not work around that rejection.
 
