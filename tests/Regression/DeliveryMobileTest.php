@@ -68,4 +68,32 @@ class DeliveryMobileTest extends CriticalTestCase
             ->assertOk()->assertSee('Delivery mobile:')->assertSee('+2349012345678');
     }
 
+    public function test_missing_order_mobile_is_restored_from_its_fulfilled_checkout_on_callback_retry(): void {
+        $p=$this->pending($this->customer(),['delivery_mobile'=>'+2348012345678']);
+        $this->fakePayment($p); $first=$this->fulfil($p);
+        Order::whereKey($first['order_id'])->update(['delivery_mobile'=>null]);
+        $retry=$this->fulfil($p);
+        $this->assertTrue($retry['success']); $this->assertTrue($retry['duplicate']);
+        $this->assertSame('+2348012345678',Order::findOrFail($first['order_id'])->delivery_mobile);
+        $this->assertSame(1,Order::count());
+    }
+    /** @dataProvider unsafeSnapshots */
+    public function test_contact_recovery_rejects_unmatched_or_unfulfilled_snapshot(string $case): void {
+        $u=$this->customer(); $p=$this->pending($u,['delivery_mobile'=>'+2348012345678','fulfilled_at'=>now()]);
+        $order=$this->order($u); $order->update(['reference'=>$p->reference]);
+        if ($case==='user') $p->update(['user_id'=>$this->customer()->id]);
+        if ($case==='amount') $p->update(['total_ngn'=>1]);
+        if ($case==='unfulfilled') $p->update(['fulfilled_at'=>null]);
+        if ($case==='invalid') $p->update(['delivery_mobile'=>'+447700900123']);
+        $this->assertFalse(app(\App\Services\OrderDeliveryContact::class)->restore($order->id));
+        $this->assertNull($order->fresh()->delivery_mobile);
+    }
+    public static function unsafeSnapshots(): array {return [['user'],['amount'],['unfulfilled'],['invalid']];}
+    public function test_recovery_never_overwrites_an_existing_order_contact(): void {
+        $u=$this->customer();$p=$this->pending($u,['delivery_mobile'=>'+2348012345678','fulfilled_at'=>now()]);
+        $order=$this->order($u);$order->update(['reference'=>$p->reference,'delivery_mobile'=>'+2349012345678']);
+        $this->assertFalse(app(\App\Services\OrderDeliveryContact::class)->restore($order->id));
+        $this->assertSame('+2349012345678',$order->fresh()->delivery_mobile);
+    }
+
 }

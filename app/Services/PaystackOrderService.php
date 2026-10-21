@@ -277,6 +277,14 @@ class PaystackOrderService
 
     private function result(bool $success, ?int $orderId, ?string $orderNumber, bool $duplicate, ?string $errorType, string $message): array
     {
+        // Successful callbacks and idempotent retries retain the original checkout contact.
+        if ($success && $orderId) {
+            try {
+                app(OrderDeliveryContact::class)->restore($orderId);
+            } catch (\Throwable $e) {
+                Log::warning('Order delivery contact needs reconciliation', ['order_id' => $orderId]);
+            }
+        }
         return [
             'success'      => $success,
             'order_id'     => $orderId,
