@@ -50,7 +50,7 @@ class OrderController extends Controller
             'fulfillment.pickup_location'      => 'nullable|string|max:255',
             'fulfillment.delivery_location_id' => 'nullable|integer',
             'fulfillment.shipping_address'     => 'nullable|string|max:500',
-        ], ['delivery_mobile.required' => 'Enter a valid mobile number for delivery contact, using a Nigerian mobile or an international country code.']);
+        ], ['delivery_mobile.required' => 'Enter a valid Nigerian mobile number.']);
 
         // 1. Load active products in one query. Inactive/unlisted products are rejected.
         $productIds = array_column($validated['items'], 'product_id');

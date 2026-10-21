@@ -211,13 +211,13 @@
                                 <div class="text-center text-muted py-3">
                                     <i class="fas fa-user-slash fa-2x mb-2"></i>
                                     <p class="mb-0">Guest / Deleted User</p>
-                                    @if($order->delivery_mobile)
-                                        <p>Delivery mobile: <a href="tel:{{ $order->delivery_mobile }}">{{ $order->delivery_mobile }}</a></p>
-                                    @endif
                                     @if($order->customer_email)
                                         <small>{{ $order->customer_email }}</small>
                                     @endif
                                 </div>
+                            @endif
+                            @if($order->delivery_mobile)
+                                <p class="mt-2">Delivery mobile: <a href="tel:{{ $order->delivery_mobile }}">{{ $order->delivery_mobile }}</a></p>
                             @endif
                         </div>
                     </div>

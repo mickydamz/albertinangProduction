@@ -498,9 +498,9 @@
 
                             <form id="main-checkout-form">
                                 <div style="margin-bottom:1rem;">
-                                    <label for="delivery-mobile">Mobile number for delivery contact *</label>
-                                    <input type="tel" id="delivery-mobile" name="delivery_mobile" autocomplete="tel" inputmode="tel" maxlength="40" required aria-describedby="delivery-mobile-help">
-                                    <p id="delivery-mobile-help">We will use this number to contact you about delivery or collection. Enter a Nigerian mobile (e.g. 08012345678) or include your country code (e.g. +447700900123).</p>
+                                    <label for="delivery-mobile">Nigerian mobile number *</label>
+                                    <input type="tel" id="delivery-mobile" name="delivery_mobile" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="08012345678" pattern="(0[789][01][0-9]{8}|\+234[789][01][0-9]{8})" required aria-describedby="delivery-mobile-help">
+                                    <p id="delivery-mobile-help">For delivery contact.</p>
                                 </div>
                                 <div style="display:none;">
                                     <label for="amount">Amount (USD):</label>
@@ -1501,7 +1501,7 @@
         async function savePendingCheckout() {
             const mobileInput = document.getElementById('delivery-mobile');
             if (!mobileInput.value.trim() || !mobileInput.reportValidity()) {
-                showMessage('danger', 'Please enter your mobile number for delivery contact.');
+                showMessage('danger', 'Enter a Nigerian mobile number.');
                 mobileInput.focus();
                 return { validationError: true };
             }

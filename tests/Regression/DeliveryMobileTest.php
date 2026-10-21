@@ -16,7 +16,7 @@ class DeliveryMobileTest extends CriticalTestCase
         Http::assertNothingSent();
     }
     public static function invalidNumbers(): array {
-        return [[null],[''],['123'],['0801234567'],['02012345678'],['+2342012345678'],['08012345678 ext 1'],[['08012345678']],['+0000000000'],['<script>'],[str_repeat('1',100)]];
+        return [[null],[''],['123'],['0801234567'],['02012345678'],['+2342012345678'],['08012345678 ext 1'],[['08012345678']],['+0000000000'],['<script>'],['+447700900123'],['+12025550123'],[str_repeat('1',100)]];
     }
     /** @dataProvider validNumbers */
     public function test_checkout_normalizes_and_saves_contact($input, $expected): void {
@@ -27,7 +27,7 @@ class DeliveryMobileTest extends CriticalTestCase
         $this->assertSame($expected,$pending->delivery_mobile);
         $this->assertEquals(10000,$pending->total_ngn);
     }
-    public static function validNumbers(): array { return [['0801 234 5678','+2348012345678'],['+234 901 234 5678','+2349012345678'],['+44 (7700) 900123','+447700900123']]; }
+    public static function validNumbers(): array { return [['0801 234 5678','+2348012345678'],['+234 901 234 5678','+2349012345678']]; }
     public function test_paystack_order_and_retry_preserve_snapshot_contact(): void {
         $p=$this->pending($this->customer(),['delivery_mobile'=>'+2348012345678']);
         $this->fakePayment($p); $this->assertTrue($this->fulfil($p)['success']);
@@ -35,12 +35,12 @@ class DeliveryMobileTest extends CriticalTestCase
         $this->assertTrue($this->fulfil($p)['duplicate']); $this->assertSame(1,Order::count());
     }
     public function test_stripe_order_preserves_snapshot_contact(): void {
-        $p=$this->pending($this->customer(),['delivery_mobile'=>'+447700900123']);
+        $p=$this->pending($this->customer(),['delivery_mobile'=>'+2348012345678']);
         $service=\Mockery::mock(\App\Services\StripeOrderService::class)->makePartial()->shouldAllowMockingProtectedMethods();
         $service->shouldReceive('retrievePaymentIntent')->once()->andReturn(['status'=>'succeeded','amount_received'=>$service->expectedUsdCents(10000),'currency'=>'usd','metadata'=>['reference'=>$p->reference]]);
         $result=$service->fulfil($p->reference,'pi_mobile',$p->user_id);
         $this->assertTrue($result['success'], $result['message']);
-        $this->assertSame('+447700900123',Order::findOrFail($result['order_id'])->delivery_mobile);
+        $this->assertSame('+2348012345678',Order::findOrFail($result['order_id'])->delivery_mobile);
         $this->assertTrue($service->fulfil($p->reference,'pi_mobile',$p->user_id)['duplicate']);
     }
 
@@ -55,4 +55,17 @@ class DeliveryMobileTest extends CriticalTestCase
         $this->postJson('/stripe/create-payment-intent',['reference'=>$p->reference])->assertStatus(422);
         Http::assertNothingSent();
     }
+    public function test_admin_sees_delivery_mobile_for_registered_customer(): void {
+        $order=$this->order($this->customer());
+        $order->update(['delivery_mobile'=>'+2348012345678']);
+        $this->actingAs($this->customer('admin'))->get('/admin/orders/'.$order->id)
+            ->assertOk()->assertSee('Delivery mobile:')->assertSee('+2348012345678');
+    }
+    public function test_admin_sees_delivery_mobile_for_guest_order(): void {
+        $order=$this->order($this->customer());
+        $order->update(['user_id'=>null,'customer_email'=>'guest@example.com','delivery_mobile'=>'+2349012345678']);
+        $this->actingAs($this->customer('admin'))->get('/admin/orders/'.$order->id)
+            ->assertOk()->assertSee('Delivery mobile:')->assertSee('+2349012345678');
+    }
+
 }
