@@ -895,7 +895,7 @@ ul { list-style: none; }
                         </a>
 
                         <button class="cat-card__atc"
-                                @if(($product->stock ?? 1) === 0) disabled @endif
+
                                onclick="event.stopPropagation();
     window.addToCart(
         '{{ $product->id }}',
@@ -911,7 +911,7 @@ ul { list-style: none; }
                                         this.style.background='';
                                     },1800);">
                             <i class="fas fa-shopping-bag" style="font-size:11px;"></i>
-                            {{ ($product->stock ?? 1) === 0 ? 'Out of Stock' : 'Add to Cart' }}
+                            Add to Cart
                         </button>
 
                     </div>

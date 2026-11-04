@@ -25,6 +25,7 @@ class AdminSettingsController extends Controller
             'store_name'                         => 'required|string|max:100',
             'store_address'                      => 'nullable|string|max:500',
             'store_phone'                        => 'nullable|string|max:50',
+            'store_phone_country_code'           => ['nullable', 'regex:/^\+[1-9][0-9]{0,3}$/'],
             'store_email'                        => 'nullable|email|max:150',
             'store_logo'                         => 'nullable|image|mimes:jpg,jpeg,png,webp,svg|max:2048',
         ]);
@@ -32,6 +33,9 @@ class AdminSettingsController extends Controller
         Setting::set('store_name',    $request->store_name);
         Setting::set('store_address', $request->store_address);
         Setting::set('store_phone',   $request->store_phone);
+        if ($request->filled('store_phone_country_code')) {
+            Setting::set('store_phone_country_code', $request->store_phone_country_code);
+        }
         Setting::set('store_email',   $request->store_email);
         Setting::set('delivery_enabled',   $request->boolean('delivery_enabled')   ? '1' : '0');
         Setting::set('pickup_enabled',     $request->boolean('pickup_enabled')     ? '1' : '0');

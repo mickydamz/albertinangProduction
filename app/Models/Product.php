@@ -96,7 +96,7 @@ public function getRequiresTruckAttribute(): bool
 
         return false;
     }
-    
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
@@ -163,6 +163,8 @@ public function getRequiresTruckAttribute(): bool
     {
         return $this->belongsToMany(Color::class, 'product_color', 'product_id', 'color_id');
     }
+
+    public function pickupPoints() { return $this->belongsToMany(\App\Models\PickupPoint::class, 'product_pickup_point'); }
 
     public function locations()
     {
@@ -333,6 +335,10 @@ public function getRequiresTruckAttribute(): bool
 
     protected static function booted(): void
 {
+    static::addGlobalScope('shopping_location', function ($query) {
+        if (request()->attributes->get('shopping_catalogue'))
+            \App\Services\ShoppingLocation::applyState($query);
+    });
     static::saving(function (Product $product) {
         // Don't override an explicit manual assignment
         if (!empty($product->manager_id)) {

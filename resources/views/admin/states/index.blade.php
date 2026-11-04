@@ -49,8 +49,8 @@
                             <thead>
                                 <tr>
                                     <th>Name</th>
-                                    <th>Locations</th>
-                                    <th>Status</th>
+                                    <th>Delivery areas</th>
+                                    <th>Storefront visibility</th>
                                     <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
@@ -63,9 +63,9 @@
                                         </td>
                                         <td data-label="Status">
                                             @if ($state->is_active)
-                                                <span class="badge badge-light-success">Active</span>
+                                                <span class="badge badge-light-success">Visible</span>
                                             @else
-                                                <span class="badge badge-light-danger">Inactive</span>
+                                                <span class="badge badge-light-danger">Hidden</span>
                                             @endif
                                         </td>
                                         <td data-label="Actions" class="text-center">

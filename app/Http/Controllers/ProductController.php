@@ -92,7 +92,8 @@ class ProductController extends Controller
             'locations',
             'reviews',
             'reviews.author',
-        ])->findOrFail($id);
+        ])->find($id);
+        if (!$product) return response()->view('shopping-unavailable',[],404);
 
         // Related products — same subcategory first, fall back to category
         $relatedProducts = Product::with(['images'])
@@ -299,7 +300,7 @@ class ProductController extends Controller
             }
 
             if (empty($values)) continue;
-            if (count($values) < 2 && empty($selectedForKey) && !$this->isMandatoryFacet($key)) continue;
+            if (count($values) < 2 && empty($selectedForKey) && $key !== 'colour' && !$this->isMandatoryFacet($key)) continue;
             $customOptionsForFilter[$key] = $values;
         }
 
@@ -478,7 +479,7 @@ class ProductController extends Controller
             // Require count >= 2 (shared by 2+ products) and value length <= 50.
             $rankable = array_filter(
                 $baseline[$key] ?? [],
-                fn ($c, $v) => $c >= ($this->isMandatoryFacet($key) ? 1 : 2) && strlen((string) $v) <= 50,
+                fn ($c, $v) => $c >= (($key === 'colour' || $this->isMandatoryFacet($key)) ? 1 : 2) && strlen((string) $v) <= 50,
                 ARRAY_FILTER_USE_BOTH
             );
             $values = $this->topValuesByCount($rankable, $selectedForKey, $limit);
@@ -492,7 +493,7 @@ class ProductController extends Controller
             }
 
             if (empty($values)) continue;
-            if (count($values) < 2 && empty($selectedForKey) && !$this->isMandatoryFacet($key)) continue;
+            if (count($values) < 2 && empty($selectedForKey) && $key !== 'colour' && !$this->isMandatoryFacet($key)) continue;
             $customOptionsForFilter[$key] = $values;
         }
 
@@ -574,7 +575,7 @@ class ProductController extends Controller
 
             $rankable = array_filter(
                 $baseline[$key] ?? [],
-                fn ($c, $v) => $c >= ($this->isMandatoryFacet($key) ? 1 : 2) && strlen((string) $v) <= 50,
+                fn ($c, $v) => $c >= (($key === 'colour' || $this->isMandatoryFacet($key)) ? 1 : 2) && strlen((string) $v) <= 50,
                 ARRAY_FILTER_USE_BOTH
             );
             $values = $this->topValuesByCount($rankable, $selectedForKey, $limit);
@@ -587,7 +588,7 @@ class ProductController extends Controller
             }
 
             if (empty($values)) continue;
-            if (count($values) < 2 && empty($selectedForKey) && !$this->isMandatoryFacet($key)) continue;
+            if (count($values) < 2 && empty($selectedForKey) && $key !== 'colour' && !$this->isMandatoryFacet($key)) continue;
             $customOptionsForFilter[$key] = $values;
         }
 
@@ -895,6 +896,7 @@ class ProductController extends Controller
             $type ??= $product->category?->name;
             unset($attributes['product_type']);
             if ($type) $attributes['product_type'] = [$type];
+            if($product->colors->isNotEmpty())unset($attributes['colour']);
             foreach ($product->colors as $color) {
                 $attributes['colour'][] = \App\Support\ProductFilterNormalizer::value('colour', $color->name);
             }
@@ -1211,10 +1213,10 @@ class ProductController extends Controller
 
             // ── Availability axis: count against all OTHER filters ────────────
             if ($this->matchesFilters($p, $request, 'availability')) {
-                if (($p->stock ?? 0) > 0) {
+                if (true) {
                     $facets['availability']['in-stock']++;
                 }
-                if ($p->stock_status === 'pre_order') {
+                if (false) {
                     $facets['availability']['pre-order']++;
                 }
             }
@@ -1392,6 +1394,7 @@ class ProductController extends Controller
         });
 
         $keptKeys = array_slice(array_keys($scored), 0, $max);
+        if(isset($options['colour']) && !in_array('colour',$keptKeys,true))$keptKeys[]='colour';
 
         // Force-keep any attribute the user has an active filter on.
         foreach ($selectedKeys as $sk) {
@@ -1507,8 +1510,8 @@ class ProductController extends Controller
             );
             if (!empty($avail)) {
                 $ok = false;
-                if (in_array('in-stock', $avail) && ($product->stock ?? 0) > 0)               $ok = true;
-                if (in_array('pre-order', $avail) && $product->stock_status === 'pre_order')   $ok = true;
+                if (in_array('in-stock', $avail))               $ok = true;
+                if (false)   $ok = true;
                 if (!$ok) return false;
             }
         }

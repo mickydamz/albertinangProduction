@@ -18,7 +18,7 @@ class ManagerMiddleware
         }
 
         // Logged in but wrong role → unauthorized
-        if (!in_array(auth()->user()->role, ['manager', 'admin'])) {
+        if (auth()->user()->status === 'banned' || !in_array(auth()->user()->role, ['manager', 'admin'])) {
             return $request->expectsJson()
                 ? response()->json(['message' => 'Unauthorized. Manager access only.'], 403)
                 : abort(403, 'You do not have permission to access this area.');

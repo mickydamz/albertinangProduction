@@ -2,6 +2,9 @@
     <h2 id="workspaceHeading" style="font-size:20px; margin-bottom:6px;">Your store workspace</h2>
     <p style="color:var(--al-text-3);">Start a daily task or browse the sections below. Use the menu search to find any admin page.</p>
     <div class="al-shortcuts" aria-label="Common tasks">
+        <a href="{{ route('admin.order-management.index') }}">Manager approvals &amp; assignments</a>
+        <a href="{{ route('admin.catalogue.index') }}">Product approvals</a>
+        <a href="{{ route('admin.shopping-locations.index') }}">Stores &amp; collection points</a>
         <a href="{{ route('admin.orders.index') }}">Manage orders</a>
         <a href="{{ route('admin.products.create') }}">Add a product</a>
         <a href="{{ route('admin.tickets.index') }}">Customer support</a>

@@ -12,7 +12,7 @@ use App\Traits\Auditable;   // at top
 class Order extends Model
 {
 
-use Auditable;  
+use Auditable;
 
     public function canCancel(): bool
     {
@@ -33,9 +33,11 @@ use Auditable;
     }
 
     protected $fillable = [
+        'delivery_mobile',
         'user_id',
         'status',
         'received_at',
+        'shopping_location_id','shopping_location_name','dispatch_point_id','dispatch_point_name','dispatch_point_address',
         'shipping_cost',
         'total',
         'total_usd',

@@ -36,7 +36,7 @@ class TwoFactorController extends Controller
     //     return back()->withErrors(['two_factor_code' => 'The provided two-factor code is incorrect or has expired.']);
     // }
 
-   
+
 public function verify(Request $request)
 {
     $request->validate([
@@ -54,6 +54,7 @@ public function verify(Request $request)
 
         session()->flash('success', 'Identity verified. Welcome back, ' . $user->name . '!');
 
+        if ($user->role === 'catalogue_editor') return redirect()->route('catalogue.dashboard');
         if ($user->role === 'admin')     return redirect()->intended(route('admin.dashboard'));
         if ($user->role === 'manager')   return redirect()->intended(route('manager.dashboard'));
         return redirect()->intended(route('dashboard'));

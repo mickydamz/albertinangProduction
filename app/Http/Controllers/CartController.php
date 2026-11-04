@@ -100,6 +100,7 @@ public function remove($cartItemId)
 
     public function add(Request $request, Product $product)
     {
+        if (\App\Services\ShoppingLocation::unavailable([$product->id])) \App\Services\ShoppingLocation::fail('items','This product is unavailable in your selected state.');
 
         $cartItem = Cart::where('user_id', auth()->id())
             ->where('product_id', $product->id)

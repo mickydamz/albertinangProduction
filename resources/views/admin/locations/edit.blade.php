@@ -1,4 +1,4 @@
-﻿@extends('layouts.adminlayout')
+@extends('layouts.adminlayout')
 
 @section('content')
 
@@ -19,10 +19,10 @@
             <div class="col-12 mb-2">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h2 class="content-header-title mb-0">Edit Location</h2>
+                        <h2 class="content-header-title mb-0">Edit delivery area</h2>
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('admin.locations.index') }}">Locations</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('admin.locations.index') }}">Delivery areas</a></li>
                             <li class="breadcrumb-item active">Edit</li>
                         </ol>
                     </div>
@@ -39,7 +39,7 @@
                     <div class="col-12">
                         <div class="card">
                             <div class="card-header d-flex justify-content-between align-items-center">
-                                <h4 class="card-title mb-0">Edit Location: {{ $location->name }}</h4>
+                                <h4 class="card-title mb-0">Edit delivery area: {{ $location->name }}</h4>
                                 {{-- Current status badge --}}
                                 <span class="badge {{ $location->is_active ? 'bg-success' : 'bg-secondary' }} fs-6">
                                     <i class="fas {{ $location->is_active ? 'fa-check-circle' : 'fa-ban' }} me-50"></i>
@@ -61,9 +61,9 @@
 
                                     <input type="hidden" name="redirect_to" value="{{ $returnTo }}">
 
-                                    {{-- Location Name --}}
+                                    {{-- Delivery area name --}}
                                     <div class="mb-1">
-                                        <label class="form-label" for="name">Location Name <span class="text-danger">*</span></label>
+                                        <label class="form-label" for="name">Delivery area name <span class="text-danger">*</span></label>
                                         <input
                                             type="text"
                                             id="name"

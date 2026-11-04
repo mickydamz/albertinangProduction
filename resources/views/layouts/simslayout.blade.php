@@ -1484,8 +1484,11 @@
     </style>
 
     @stack('styles')
+<script>window.cartText = function(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); };</script>
 </head>
 <body>
+@include('partials.shopping-location')
+
 
 <a href="#main-content" class="skip-link">Skip to main content</a>
 
@@ -1711,6 +1714,7 @@
                             <a href="/account" role="menuitem">
                                 <span class="user-menu__icon-box"><i class="fas fa-user"></i></span> My Account
                             </a>
+                            <a href="{{ route('marketing.preferences') }}" role="menuitem"><span class="user-menu__icon-box"><i class="fas fa-envelope"></i></span> Email preferences</a>
                             <a href="/account/orders" role="menuitem">
                                 <span class="user-menu__icon-box"><i class="fas fa-box"></i></span> My Orders
                             </a>
@@ -1987,6 +1991,7 @@
                 <h4>Customer</h4>
                 <ul>
                     <li><a href="{{ route('account.index') }}">My Account</a></li>
+                    @auth<li><a href="{{ route('marketing.preferences') }}">Email preferences</a></li>@endauth
                     <li><a href="{{ route('account.orders') }}">My Orders</a></li>
                     <li><a href="{{ route('contact') }}">Contact Us</a></li>
                     <li><a href="{{ route('faq') }}">FAQ</a></li>
@@ -2344,15 +2349,28 @@ document.addEventListener('DOMContentLoaded', function () {
     window.getCart  = function () { try { return JSON.parse(localStorage.getItem('shoppingCart') || '[]'); } catch(e){ return []; } };
     window.saveCart = function (cart) { localStorage.setItem('shoppingCart', JSON.stringify(cart)); updateMiniCart(); };
 
-    window.addToCart = function (id, name, priceNgn, imageUrl, requiresTruck) {
+    window.addToCart = async function (id, name, priceNgn, imageUrl, requiresTruck, colourId) {
+        try {
+            const response=await fetch('/shopping/cart-check',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify({items:[Number(id)]})});
+            if(!response.ok){window.showToast('Choose a location where this product is available.','fa-map-marker-alt');return;}
+        } catch(e){window.showToast('Could not check product availability. Please retry.','fa-info-circle');return;}
+        let colour=null;
+        try {
+            const res=await fetch('/products/'+encodeURIComponent(id)+'/colour-options',{headers:{Accept:'application/json'}});
+            if(!res.ok)throw Error();const data=await res.json();const choices=data.colours||[];
+            colour=choices.find(c=>Number(c.id)===Number(colourId)) || (choices.length===1 ? choices[0] : null);
+            if(choices.length && !colour){window.location.href='/product/'+encodeURIComponent(id)+'#productColourChoices';return false;}
+        }catch(e){window.showToast('Could not check colour choices. Please retry.','fa-info-circle');return false;}
+        if(colour)name=name+' — Colour: '+colour.name;
         var cart = window.getCart();
-        var idx  = cart.findIndex(function(i){ return i.id === id; });
-        if (idx > -1) { cart[idx].quantity++; } else { cart.push({ id:id, name:name, basePriceNgn:priceNgn, image:imageUrl, quantity:1, requires_truck: requiresTruck === true || requiresTruck === 'true' }); }
+        var idx  = cart.findIndex(function(i){ return String(i.id) === String(id) && Number(i.colour_id||0)===Number(colour?.id||0); });
+        if (idx > -1) { cart[idx].quantity++; } else { cart.push({ id:id, colour_id:colour?.id || null,colour_name:colour?.name || null, name:name, basePriceNgn:priceNgn, image:imageUrl, quantity:1, requires_truck: requiresTruck === true || requiresTruck === 'true' }); }
         window.saveCart(cart);
         // bump badge
         var badge = document.getElementById('cartCount');
         if (badge) { badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump'); }
         window.showToast(String(name).substring(0,30) + '… added to cart', 'fa-check');
+        return true;
     };
 
     function updateMiniCart() {
@@ -2375,12 +2393,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (footEl) footEl.style.display = 'block';
         itemsEl.innerHTML = cart.map(function(item){
+            var itemName = window.cartText(item.name);
             var price = parseFloat(item.basePriceNgn) || 0;
             var img   = item.image || 'https://placehold.co/54x54/eef3e8/3d8012?text=+';
             return '<div class="mini-cart__item">'
-                 + '<img src="' + img + '" alt="' + item.name + '" loading="lazy" onerror="this.src=\'https://placehold.co/54x54/eef3e8/3d8012?text=+\'">'
+                 + '<img src="' + img + '" alt="' + itemName + '" loading="lazy" onerror="this.src=\'https://placehold.co/54x54/eef3e8/3d8012?text=+\'">'
                  + '<div class="mini-cart__item-info">'
-                 + '<div class="mini-cart__item-name">' + item.name + '</div>'
+                 + '<div class="mini-cart__item-name">' + itemName + '</div>'
                  + '<div class="mini-cart__item-price">' + window.CURRENCY.format(price) + '</div>'
                  + '<div class="mini-cart__item-qty">Qty: ' + (item.quantity||1) + '</div>'
                  + '</div></div>';
@@ -2863,7 +2882,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var CHEVRON = '<svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1l5 5 5-5" stroke="#6b7280" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     function initCS(sel) {
-        if (sel.dataset.csInit) return;
+        if (sel.dataset.csInit || sel.closest('#shoppingLocationDialog')) return;
         sel.dataset.csInit = '1';
 
         var wrap = document.createElement('div');

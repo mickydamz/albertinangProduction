@@ -16,10 +16,18 @@ abstract class RegressionTestCase extends TestCase
         }
         $this->frameworkRefreshDatabase();
     }
+    protected $shoppingArea; protected $shoppingPoint;
     protected function setUp(): void
     {
         parent::setUp();
+        \App\Models\Setting::clearCache();
         Mail::fake(); Notification::fake(); Storage::fake('public');
+        if (!($this instanceof ShoppingLocationTest)) {
+            $state=\App\Models\State::create(['name'=>'Regression state','is_active'=>true,'delivery_enabled'=>true]);
+            $this->shoppingArea=\App\Models\Location::create(['name'=>'Regression shopping area','state_id'=>$state->id,'is_active'=>true]);
+            $this->shoppingPoint=\App\Models\PickupPoint::create(['name'=>'Regression HQ','address'=>'Fictional HQ road','location_id'=>$this->shoppingArea->id,'is_active'=>true]);
+            $this->withSession(['shopping_point_id'=>$this->shoppingPoint->id]);
+        }
         Http::fake(['*' => Http::response(['status'=>false,'message'=>'Blocked by regression harness'], 503)]);
         foreach (['orders','order_items','order_returns','order_cancellations','reviews'] as $table) {
             $this->assertTrue(Schema::hasTable($table), "Missing real migration for {$table}; use current backend source. Do not invent a passing schema.");
@@ -32,7 +40,9 @@ abstract class RegressionTestCase extends TestCase
     protected function product(): Product
     {
         $supplier=$this->customer('supplier');
-        return Product::forceCreate(['supplier_id'=>$supplier->id,'name'=>'REGRESSION Dummy appliance','price'=>10000,'stock'=>10,'is_active'=>true]);
+        $product=Product::forceCreate(['supplier_id'=>$supplier->id,'name'=>'REGRESSION Dummy appliance','price'=>10000,'stock'=>10,'is_active'=>true]);
+        if ($this->shoppingPoint) { $product->locations()->sync([$this->shoppingArea->id]);$product->pickupPoints()->sync([$this->shoppingPoint->id]); }
+        return $product;
     }
     protected function order(User $user, string $status='paid', string $method='cash', ?Product $product=null): Order
     {

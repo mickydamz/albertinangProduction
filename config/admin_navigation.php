@@ -7,6 +7,7 @@ return [
         'description' => "Manage purchases from payment to fulfilment.",
         'items' => [
             ['route' => "admin.orders.index", 'label' => "All orders", 'matches' => ["admin.orders.*"], 'icon' => "list-ul", 'description' => "View payments and update delivery or collection progress."],
+            ['route' => 'admin.order-management.index', 'label' => 'Manager approvals & assignments', 'matches' => ['admin.order-management.*'], 'icon' => 'user-check', 'description' => 'Review manager offline payment approval requests and assign orders to managers.'],
             ['route' => "admin.cancellations.index", 'label' => "Cancellations", 'matches' => ["admin.cancellations.*"], 'icon' => "ban", 'description' => "Review cancellation requests and refunds before shipment or collection."],
             ['route' => "admin.returns.index", 'label' => "Returns", 'matches' => ["admin.returns.*"], 'icon' => "rotate-left", 'description' => "Handle return requests and refunds after delivery or collection."],
             ['route' => "admin.refunds.index", 'label' => "Refunds", 'matches' => ["admin.refunds.*"], 'icon' => "money-bill", 'description' => "Monitor Paystack refunds and check delayed payments without issuing duplicates."],
@@ -14,9 +15,10 @@ return [
     ],
     [
         'id' => "products", 'label' => "Products & catalogue", 'icon' => "box-open",
-        'description' => "Manage your catalogue and the people supplying it.",
+        'description' => "Manage product listings, publication approvals and brand assignments.",
         'items' => [
-            ['route' => "admin.products.index", 'label' => "Products", 'matches' => ["admin.products.*"], 'icon' => "box", 'description' => "Add products, manage stock and edit listings."],
+            ['route' => "admin.products.index", 'label' => "Products", 'matches' => ["admin.products.*"], 'icon' => "box", 'description' => "Add products, assign stores and control listing visibility."],
+            ['route' => 'admin.catalogue.index', 'label' => 'Product approvals', 'matches' => ['admin.catalogue.*'], 'icon' => 'clipboard-check', 'description' => 'Review catalogue editor changes and manager product publication requests before publishing.'],
             ['route' => "admin.categories.index", 'label' => "Categories", 'matches' => ["admin.categories.*"], 'icon' => "folder-open", 'description' => "Organise the main product categories."],
             ['route' => "admin.subcategories.index", 'label' => "Subcategories", 'matches' => ["admin.subcategories.*"], 'icon' => "folder", 'description' => "Group products within a category."],
             ['route' => "admin.brands.index", 'label' => "Brands", 'matches' => ["admin.brands.index", "admin.brands.create", "admin.brands.edit", "admin.brands.show"], 'icon' => "copyright", 'description' => "Manage product brands and their details."],
@@ -32,6 +34,7 @@ return [
         'items' => [
             ['route' => "admin.markup.index", 'label' => "Price markup", 'matches' => ["admin.markup.*"], 'icon' => "percent", 'description' => "Set price margins and markup rules."],
             ['route' => "admin.discount.index", 'label' => "Discounts", 'matches' => ["admin.discount.*"], 'icon' => "scissors", 'description' => "Manage product discounts."],
+            ['route' => 'admin.marketing.index', 'label' => 'Email campaigns', 'matches' => ['admin.marketing.*'], 'icon' => 'envelope', 'description' => 'Create promotions for opted-in registered customers.'],
             ['route' => "admin.coupons.index", 'label' => "Coupon codes", 'matches' => ["admin.coupons.*"], 'icon' => "ticket", 'description' => "Create and manage checkout offers."],
         ],
     ],
@@ -39,13 +42,11 @@ return [
         'id' => "delivery", 'label' => "Delivery & pickup", 'icon' => "truck",
         'description' => "Configure destinations, collection points and charges.",
         'items' => [
-            ['route' => "admin.states.index", 'label' => "States", 'matches' => ["admin.states.*"], 'icon' => "map", 'description' => "Manage the states you serve."],
-            ['route' => "admin.cities.index", 'label' => "Cities", 'matches' => ["admin.cities.*"], 'icon' => "city", 'description' => "Manage delivery cities."],
-            ['route' => "admin.locations.index", 'label' => "Delivery areas", 'matches' => ["admin.locations.*"], 'icon' => "location-dot", 'description' => "Set delivery destinations and areas."],
-            ['route' => "admin.pickup-points.index", 'label' => "Pickup points", 'matches' => ["admin.pickup-points.*"], 'icon' => "store", 'description' => "Set collection points and addresses."],
-            ['route' => "admin.store-locations.index", 'label' => "Store locations", 'matches' => ["admin.store-locations.*"], 'icon' => "map-marker-alt", 'description' => "Manage physical store locations."],
-            ['route' => "admin.shipping.index", 'label' => "Shipping charges", 'matches' => ["admin.shipping.*"], 'icon' => "truck", 'description' => "Configure shipping options and charges."],
-            ['route' => "admin.weight.index", 'label' => "Weight-based charges", 'matches' => ["admin.weight.*"], 'icon' => "weight-hanging", 'description' => "Configure delivery pricing by weight."],
+            ['route' => 'admin.store-locations.index', 'label' => 'Store locator entries', 'matches' => ['admin.store-locations.*'], 'icon' => 'map-marker-alt', 'description' => 'Edit public store locator names, addresses, phone numbers and opening hours.'],
+            ['route' => 'admin.shopping-locations.index', 'label' => 'Stores & collection points', 'matches' => ['admin.shopping-locations.*','admin.pickup-points.*'], 'icon' => 'store', 'description' => 'Manage stores by state, collection addresses, product assignments and delivery coverage.'],
+            ['route' => 'admin.states.index', 'label' => 'States', 'matches' => ['admin.states.*'], 'icon' => 'map', 'description' => 'Manage state names and storefront visibility.'],
+            ['route' => "admin.shipping.index", 'label' => "Delivery settings", 'matches' => ["admin.shipping.*","admin.locations.*","admin.cities.*"], 'icon' => "truck", 'description' => "Enable states and manage delivery areas and charges."],
+            ['route' => "admin.weight.index", 'label' => "Delivery weights & truck rules", 'matches' => ["admin.weight.*"], 'icon' => "weight-hanging", 'description' => "Set inherited product weights and thresholds for standard versus truck delivery charges."],
         ],
     ],
     [

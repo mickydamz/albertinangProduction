@@ -128,6 +128,7 @@ public function store(Request $request)
         'sizes.*'                            => 'exists:sizes,id',
         'colors'                             => 'nullable|array',
         'colors.*'                           => 'exists:colors,id',
+        'pickup_points' => 'nullable|array|max:100', 'pickup_points.*' => 'integer|exists:pickup_points,id',
         'locations'                          => 'nullable|array',
         'locations.*'                        => 'exists:locations,id',
         'options'                            => 'nullable|array',
@@ -146,6 +147,7 @@ public function store(Request $request)
         'installation_options.*.description' => 'nullable|string|max:500',
     ]);
 
+    $originIds = \App\Services\ShoppingLocation::validateAssignments($request->input('locations',[]),$request->input('pickup_points',[]),$request->boolean('is_active'));
     $data = $request->only(
         'name', 'description', 'price',
         'subcategory_id', 'stock', 'category_id', 'moq'
@@ -227,7 +229,8 @@ public function store(Request $request)
     // ── Sizes / Colors / Locations ────────────────────────────────────────
     $product->sizes()->sync($request->input('sizes', []));
     $product->colors()->sync($request->input('colors', []));
-    $product->locations()->sync($request->input('locations', []));
+    if ($request->has('locations')) $product->locations()->sync($request->input('locations', []));
+    $product->pickupPoints()->sync($originIds);
 
     // ── Custom Attributes + Grouped Attributes ────────────────────────────
     $flatAttributes = [];
@@ -376,6 +379,7 @@ public function update(Request $request, Product $product)
         'sizes.*'                            => 'exists:sizes,id',
         'colors'                             => 'nullable|array',
         'colors.*'                           => 'exists:colors,id',
+        'pickup_points' => 'nullable|array|max:100', 'pickup_points.*' => 'integer|exists:pickup_points,id',
         'locations'                          => 'nullable|array',
         'locations.*'                        => 'exists:locations,id',
         'options'                            => 'nullable|array',
@@ -392,6 +396,7 @@ public function update(Request $request, Product $product)
         'installation_options.*.description' => 'nullable|string|max:500',
     ]);
 
+    $originIds = \App\Services\ShoppingLocation::validateAssignments($request->input('locations',[]),$request->input('pickup_points',[]),$request->boolean('is_active'));
     $data = $request->only(
         'name', 'description', 'price',
         'subcategory_id', 'stock', 'category_id', 'moq'
@@ -486,7 +491,8 @@ public function update(Request $request, Product $product)
     // ── Sizes / Colors / Locations ────────────────────────────────────────
     $product->sizes()->sync($request->input('sizes', []));
     $product->colors()->sync($request->input('colors', []));
-    $product->locations()->sync($request->input('locations', []));
+    if ($request->has('locations')) $product->locations()->sync($request->input('locations', []));
+    $product->pickupPoints()->sync($originIds);
 
     // ── Custom Attributes + Grouped Attributes ────────────────────────────
     $flatAttributes = [];
@@ -620,6 +626,7 @@ public function update(Request $request, Product $product)
                 'subcategory_id' => 'Choose a product type (subcategory) in the product editor before publishing.',
             ]);
         }
+        if (!$product->is_active) \App\Services\ShoppingLocation::validateAssignments($product->locations()->pluck('locations.id')->all(),$product->pickupPoints()->pluck('pickup_points.id')->all(),true);
         $product->is_active = !$product->is_active;
         $product->save();
 

@@ -39,6 +39,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\TwoFactorAuth::class,
+            \App\Http\Middleware\ShoppingContext::class,
         ],
 
         'api' => [
@@ -69,6 +70,7 @@ class Kernel extends HttpKernel
         'verified.optional' => \App\Http\Middleware\EnsureEmailIsVerifiedIfEnabled::class,
         'role' => \App\Http\Middleware\CheckRole::class,
         '2fa' => \App\Http\Middleware\TwoFactorAuth::class,
+            \App\Http\Middleware\ShoppingContext::class,
         'role.redirect' => \App\Http\Middleware\RedirectBasedOnRole::class,
         'manager' => \App\Http\Middleware\ManagerMiddleware::class,
     ];

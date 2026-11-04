@@ -1,4 +1,4 @@
-﻿@extends('layouts.adminlayout')
+@extends('layouts.adminlayout')
 
 @section('content')
 
@@ -70,9 +70,9 @@
                                         <input class="form-check-input" type="checkbox" id="is_active"
                                                name="is_active" value="1"
                                                {{ old('is_active', $state->is_active) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="is_active">Active</label>
+                                        <label class="form-check-label" for="is_active">Visible on storefront</label>
                                     </div>
-                                    <small class="text-muted">Inactive states are hidden from the delivery dropdown at checkout.</small>
+                                    <small class="text-muted">Hide this state from customer shopping choices. Configure delivery separately in Delivery settings.</small>
                                 </div>
 
                                 <div class="mt-2">
@@ -91,9 +91,9 @@
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h4 class="card-title mb-0">Delivery Locations in this State</h4>
+                            <h4 class="card-title mb-0">Delivery areas in this State</h4>
                             <a href="{{ route('admin.locations.create', ['state_id' => $state->id, 'return' => route('admin.states.edit', $state->id)]) }}" class="btn btn-sm btn-primary">
-                                <i class="fas fa-plus me-50"></i> Add Location
+                                <i class="fas fa-plus me-50"></i> Add delivery area
                             </a>
                         </div>
                         <div class="card-body p-0">

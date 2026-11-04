@@ -83,6 +83,7 @@ class RegisterController extends Controller
             'shipping_address' => ['nullable', 'string', 'max:255'],
             'city'             => ['nullable', 'string', 'max:100'],
             'postal_code'    => ['nullable', 'string', 'max:20'],
+            'marketing_opt_in' => ['nullable', 'boolean'],
         ], [
             'country_id.required' => 'Please select a country.',
             'country_id.exists'   => 'The selected country is not valid.',
@@ -112,6 +113,8 @@ class RegisterController extends Controller
                 'city'             => $data['city'] ?? null,
                 'role'           => 'user',
             ]);
+
+            $user->forceFill(['marketing_subscribed_at' => !empty($data['marketing_opt_in']) ? now() : null])->save();
 
             session()->flash('success', 'Registration successful! Welcome to our platform, ' . $user->name . '!');
 

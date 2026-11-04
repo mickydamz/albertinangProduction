@@ -1,0 +1,2 @@
+@extends('layouts.simslayout')
+@section('content')<div style="max-width:640px;margin:60px auto;padding:25px"><h1>Product unavailable in this state</h1><p>This product is not available in your selected state. Change your state above, or browse products available here. Any affected basket items are marked at checkout and must be removed before proceeding.</p><a href="/">Browse available products</a></div>@endsection

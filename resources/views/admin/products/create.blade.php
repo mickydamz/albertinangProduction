@@ -1,4 +1,4 @@
-﻿@extends('layouts.adminlayout')
+@extends('layouts.adminlayout')
 
 @section('content')
 
@@ -517,7 +517,7 @@
                                         <div class="pe-panel-ico"><i class="fas fa-swatchbook"></i></div>
                                         <div>
                                             <h4>Tags &amp; Variants</h4>
-                                            <p>Tags, sizes, colors, locations and rating</p>
+                                            <p>Tags, sizes, colors, stores and rating</p>
                                         </div>
                                     </div>
 
@@ -553,7 +553,7 @@
                                             @error('sizes') <p class="text-danger mt-25" style="font-size:.857rem;">{{ $message }}</p> @enderror
                                         </div>
                                         <div class="col-md-6 mb-1">
-                                            <label class="form-label">Colour</label><p class="small text-muted">Choose a standard colour here. It joins the same customer Colour filter as existing colour specifications.</p>
+                                            <label class="form-label">Colour</label><p class="small text-muted">Select every colour customers can order at the same price. These become customer swatches, colour filters and order choices. Gallery photos alone do not create colour options.</p>
                                             <div class="position-relative">
                                                 <div class="pill-box">
                                                     <div id="sel-colors" style="display:contents;"></div>
@@ -567,19 +567,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="mb-1">
-                                        <label class="form-label">Locations</label>
-                                        <div class="position-relative">
-                                            <div class="pill-box">
-                                                <div id="sel-locs" style="display:contents;"></div>
-                                                <input type="text" id="loc-inp" placeholder="Search locations…">
-                                            </div>
-                                            <div class="sugg-box" id="loc-sugg"></div>
-                                        </div>
-                                        <p class="avail-label">Available</p>
-                                        <div class="avail-pills" id="avail-locs"></div>
-                                        @error('locations') <p class="text-danger mt-25" style="font-size:.857rem;">{{ $message }}</p> @enderror
-                                    </div>
+
 
                                     <div class="mb-1">
                                         <label class="form-label">Customer Rating</label>
@@ -770,6 +758,7 @@
 
                                 {{-- ━━━━━━━━━━━ VISIBILITY ━━━━━━━━━━━ --}}
                                 <div class="pe-panel" id="pane-visibility">
+@include('partials.product-origins')
                                     <div class="pe-panel-head">
                                         <div class="pe-panel-ico"><i class="fas fa-eye"></i></div>
                                         <div>
@@ -1228,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     mkSel({ inpId: 'size-inp',  suggId: 'size-sugg',  selId: 'sel-sizes',  avlId: 'avail-sizes',  items: allSizes,     state: selSizes, field: 'sizes[]' });
     mkSel({ inpId: 'color-inp', suggId: 'color-sugg', selId: 'sel-colors', avlId: 'avail-colors', items: allColors,    state: selClrs,  field: 'colors[]' });
-    mkSel({ inpId: 'loc-inp',   suggId: 'loc-sugg',   selId: 'sel-locs',   avlId: 'avail-locs',   items: allLocations, state: selLocs,  field: 'locations[]' });
+
 
     /* ─── Grouped Attributes ─── */
     const attrContainer = document.getElementById('attr-groups-container');

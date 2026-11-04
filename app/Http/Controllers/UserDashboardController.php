@@ -16,7 +16,7 @@ class UserDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $locationFilter = $request->query('location');
+        $locationFilter = null; // The trusted session context scopes all catalogue queries.
         $currencyFilter = $request->query('currency', 'NGN');
 
         $banners = Banner::where('status', true)
@@ -28,7 +28,7 @@ class UserDashboardController extends Controller
         $ck = 'hp_' . ($locationFilter ?: 'all');
 
         // Best Selling — 16 newest active products
-        $products = Cache::remember($ck . '_best', 900, function () use ($locationFilter) {
+        $products = \App\Support\ShoppingCache::remember($ck . '_best', 900, function () use ($locationFilter) {
             $q = Product::where('is_active', true)
                 ->with(['images', 'category', 'Subcategory', 'brand'])
                 ->withReviewStats()
@@ -40,7 +40,7 @@ class UserDashboardController extends Controller
         });
 
         // Featured — highest-rated products (distinct from Best Selling)
-        $featured = Cache::remember($ck . '_featured', 900, function () use ($locationFilter) {
+        $featured = \App\Support\ShoppingCache::remember($ck . '_featured', 900, function () use ($locationFilter) {
             $q = Product::where('is_active', true)
                 ->with(['images', 'category', 'Subcategory', 'brand'])
                 ->withReviewStats()
@@ -53,7 +53,7 @@ class UserDashboardController extends Controller
         });
 
         // Televisions
-        $televisions = Cache::remember($ck . '_tv', 900, function () use ($locationFilter) {
+        $televisions = \App\Support\ShoppingCache::remember($ck . '_tv', 900, function () use ($locationFilter) {
             $q = Product::where('is_active', true)
                 ->whereHas('Subcategory', function ($query) {
                     $query->where('name', 'Televisions')
@@ -69,7 +69,7 @@ class UserDashboardController extends Controller
         });
 
         // Air Conditioners
-        $acs = Cache::remember($ck . '_ac', 900, function () use ($locationFilter) {
+        $acs = \App\Support\ShoppingCache::remember($ck . '_ac', 900, function () use ($locationFilter) {
             $q = Product::where('is_active', true)
                 ->whereHas('category', fn ($query) => $query->where('name', 'Air Cooling'))
                 ->with(['images', 'category', 'Subcategory', 'brand'])
@@ -82,7 +82,7 @@ class UserDashboardController extends Controller
         });
 
         // Washing Machines
-        $washingMachines = Cache::remember($ck . '_wm', 900, function () use ($locationFilter) {
+        $washingMachines = \App\Support\ShoppingCache::remember($ck . '_wm', 900, function () use ($locationFilter) {
             $q = Product::where('is_active', true)
                 ->whereHas('category', fn ($query) => $query->where('name', 'Garment Care'))
                 ->with(['images', 'category', 'Subcategory', 'brand'])

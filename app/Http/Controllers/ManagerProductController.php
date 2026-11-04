@@ -238,24 +238,149 @@ class ManagerProductController extends Controller
     //  Toggle Active (AJAX) — same behaviour as the admin side
     // =========================================================================
 
+    public function create()
+    {
+        $brands = \App\Models\Brand::where('manager_id', auth()->id())->orderBy('name')->get();
+        $categories = \App\Models\Category::with('subcategories')->get();
+        $tags = \App\Models\Tag::all(); $sizes = \App\Models\Size::all();
+        $colors = \App\Models\Color::all(); $locations = \App\Models\Location::all();
+        $product = new Product(); $customAttributes = []; $selectedTags = [];
+        $previousOptions = [];
+        foreach (old('new_tag_options_data', []) as $json) {
+            $entry = json_decode($json, true);
+            if (is_array($entry) && isset($entry['name']) && is_array($entry['options'] ?? null)) $previousOptions[$entry['name']] = $entry['options'];
+        }
+        foreach (old('tags', []) as $input) {
+            $tag = ctype_digit((string)$input) ? \App\Models\Tag::find($input) : null;
+            if (!$tag && ctype_digit((string)$input)) continue;
+            $name = $tag ? $tag->name : strip_tags((string)$input);
+            $selectedTags[] = ['id'=>$tag?->id, 'name'=>$name, 'isNew'=>!$tag, 'customOptions'=>$previousOptions[$name] ?? [$name]];
+        }
+        return view('manager.products.create', compact('brands','categories','tags','sizes','colors','locations','product','customAttributes','selectedTags'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'brand_id' => ['required', 'integer', \Illuminate\Validation\Rule::exists('brands', 'id')->where('manager_id', auth()->id())],
+            'name' => 'required|string|max:255', 'description' => 'nullable|string|max:10000',
+            'category_id' => 'required|integer|exists:categories,id',
+            'subcategory_id' => [\Illuminate\Validation\Rule::requiredIf(fn () => \App\Models\Subcategory::where('category_id', $request->input('category_id'))->exists()), 'nullable', 'integer', \Illuminate\Validation\Rule::exists('subcategories', 'id')->where('category_id', $request->input('category_id'))],
+            'price' => 'required|numeric|min:0.01|max:999999999',
+            'stock' => 'required|integer|min:0|max:1000000', 'moq' => 'nullable|integer|min:1|max:1000000',
+            'weight_kg' => 'nullable|numeric|min:0|max:99999',
+            'images' => 'nullable|array|max:10', 'images.*' => 'required|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'manager_id' => 'prohibited', 'supplier_id' => 'prohibited', 'brand' => 'prohibited',
+                        'is_active' => 'prohibited',
+            'requires_truck_set' => 'nullable|in:1', 'requires_truck' => 'nullable|boolean',
+            'markup_percent' => 'nullable|numeric|min:0|max:1000', 'discount_percent' => 'nullable|numeric|min:0|max:100',
+            'tags' => 'nullable|array|max:50', 'tags.*' => 'required|string|max:255',
+            'new_tag_options_data' => 'nullable|array|max:50', 'new_tag_options_data.*' => 'required|json|max:10000',
+            'sizes' => 'nullable|array|max:100', 'sizes.*' => 'integer|exists:sizes,id',
+            'colors' => 'nullable|array|max:100', 'colors.*' => 'integer|exists:colors,id',
+            'pickup_points'=>'nullable|array|max:100', 'pickup_points.*'=>'integer|exists:pickup_points,id',
+            'locations' => 'nullable|array|max:100', 'locations.*' => 'integer|exists:locations,id',
+            'options' => 'nullable|array|max:200', 'options.*.key' => 'required|string|max:255', 'options.*.value' => 'nullable|string|max:2000',
+            'attr_groups' => 'nullable|array|max:50', 'attr_groups.*.group' => 'required|string|max:255',
+            'attr_groups.*.attrs' => 'nullable|array|max:200', 'attr_groups.*.attrs.*.key' => 'nullable|string|max:255',
+            'attr_groups.*.attrs.*.value' => 'nullable|string|max:2000',
+            'installation_options' => 'nullable|array|max:30', 'installation_options.*.label' => 'nullable|string|max:255',
+            'installation_options.*.price' => 'nullable|numeric|min:0|max:999999999', 'installation_options.*.description' => 'nullable|string|max:500',
+            'description_blocks' => 'nullable|json|max:200000',
+        ]);
+        $paths = [];
+        try {
+            $product = \Illuminate\Support\Facades\DB::transaction(function () use ($data, $request, &$paths) {
+                // Recheck ownership under a lock so a concurrent reassignment cannot grant access.
+                $brand = \App\Models\Brand::where('manager_id', auth()->id())->lockForUpdate()->findOrFail($data['brand_id']);
+                $product = Product::create([
+                    'name' => $data['name'], 'description' => strip_tags($data['description'] ?? ''),
+                    'brand_id' => $brand->id, 'brand' => $brand->name, 'manager_id' => auth()->id(),
+                    'category_id' => $data['category_id'], 'subcategory_id' => $data['subcategory_id'] ?? null,
+                    'stock' => $data['stock'], 'moq' => $data['moq'] ?? 1, 'weight_kg' => $data['weight_kg'] ?? null,
+                    'price' => $data['price'], 'is_active' => false,
+                    'requires_truck' => $request->filled('requires_truck_set') ? $request->boolean('requires_truck') : null,
+                    'markup_percent' => !empty($data['markup_percent']) ? $data['markup_percent'] : null,
+                    'discount_percent' => !empty($data['discount_percent']) ? $data['discount_percent'] : null,
+                ]);
+                foreach ($request->file('images', []) as $image) {
+                    $path = $image->store('images/products', 'public'); $paths[] = $path;
+                    $product->images()->create(['image_url' => $path]);
+                }
+                $flat = []; $groups = [];
+                foreach ($data['options'] ?? [] as $option) {
+                    $key = trim($option['key']); if ($key !== '') $flat[$key] = trim($option['value'] ?? '');
+                }
+                foreach ($data['attr_groups'] ?? [] as $group) {
+                    $attributes = [];
+                    foreach ($group['attrs'] ?? [] as $attr) {
+                        $key = trim($attr['key'] ?? ''); if ($key === '') continue;
+                        $value = trim($attr['value'] ?? ''); $attributes[] = ['key'=>$key,'value'=>$value]; $flat[$key] = $value;
+                    }
+                    $groups[] = ['group'=>trim($group['group']),'attrs'=>$attributes];
+                }
+                $tagIds = []; $tagNames = [];
+                foreach ($data['tags'] ?? [] as $input) {
+                    if (ctype_digit((string)$input)) $tag = \App\Models\Tag::findOrFail($input);
+                    else {
+                        $name = trim(strip_tags($input)); $slug = \Illuminate\Support\Str::slug($name);
+                        if ($slug === '') throw \Illuminate\Validation\ValidationException::withMessages(['tags'=>'Enter a valid tag name.']);
+                        $tag = \App\Models\Tag::firstOrCreate(['slug'=>$slug],['name'=>$name]);
+                    }
+                    $tagIds[] = $tag->id; $tagNames[$tag->name] = true;
+                }
+                $tagOptions = [];
+                foreach ($data['new_tag_options_data'] ?? [] as $json) {
+                    $entry = json_decode($json, true);
+                    if (!is_array($entry) || !isset($tagNames[$entry['name'] ?? '']) || !is_array($entry['options'] ?? null))
+                        throw \Illuminate\Validation\ValidationException::withMessages(['tags'=>'Tag options must belong to a selected tag.']);
+                    foreach ($entry['options'] as $value) if (!is_string($value) || strlen($value)>255)
+                        throw \Illuminate\Validation\ValidationException::withMessages(['tags'=>'Invalid tag option.']);
+                    $tagOptions[$entry['name']] = array_values($entry['options']);
+                }
+                if ($tagOptions) $flat['tag_options'] = $tagOptions;
+                $product->tags()->sync(array_unique($tagIds));
+                foreach (['sizes','colors','locations'] as $relation) $product->$relation()->sync($data[$relation] ?? []);
+                $product->pickupPoints()->sync(\App\Services\ShoppingLocation::validateAssignments($data['locations']??[],$data['pickup_points']??[],false));
+                $installation = [];
+                foreach ($data['installation_options'] ?? [] as $option) {
+                    if (trim($option['label'] ?? '') === '') continue;
+                    $installation[] = ['label'=>$option['label'],'price'=>(float)($option['price'] ?? 0),'description'=>$option['description'] ?? ''];
+                }
+                $blocks = empty($data['description_blocks']) ? null : json_decode($data['description_blocks'], true);
+                if ($blocks !== null && (!is_array($blocks) || !array_is_list($blocks)))
+                    throw \Illuminate\Validation\ValidationException::withMessages(['description_blocks'=>'Description blocks must be a list.']);
+                $this->validateDescriptionBlocks($blocks ?? []);
+                $product->update(['custom_attributes'=>$flat,'custom_attribute_groups'=>$groups,'installation_options'=>$installation,'description_blocks'=>$blocks]);
+                return $product;
+            });
+        } catch (\Throwable $error) {
+            foreach ($paths as $path) Storage::disk('public')->delete($path);
+            throw $error;
+        }
+        \App\Http\Controllers\UserDashboardController::clearHomepageCache();
+        return redirect()->route('manager.products.edit', $product)->with('success', $product->is_active ? 'Product published with all product details.' : 'Product saved as a draft with all product details.');
+    }
+
+    private function validateDescriptionBlocks(array $nodes, int $depth = 0): void
+    {
+        if ($depth > 20) throw \Illuminate\Validation\ValidationException::withMessages(['description_blocks'=>'Description nesting is too deep.']);
+        foreach ($nodes as $key => $value) {
+            if (is_array($value)) $this->validateDescriptionBlocks($value, $depth+1);
+            elseif ($key === 'url' && is_string($value) && $value !== '' && !preg_match('~^(https?://|/(?!/)|\#)~i', $value))
+                throw \Illuminate\Validation\ValidationException::withMessages(['description_blocks'=>'Use an HTTP(S) or local URL for description links and images.']);
+        }
+    }
+
+    public function uploadBlockImage(Request $request): \Illuminate\Http\JsonResponse
+    {
+        abort_unless(\App\Models\Brand::where('manager_id', auth()->id())->exists(), 403);
+        return (new AdminProductController())->uploadBlockImage($request);
+    }
+
     public function toggleActive(Product $product)
     {
-        // 404 if the product doesn't belong to this manager
-        $product = $this->findOwned($product->id);
-
-        if (!$product->is_active && \App\Models\Subcategory::where('category_id', $product->category_id)->exists()
-            && !\App\Models\Subcategory::where('category_id', $product->category_id)->where('id', $product->subcategory_id)->exists()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'subcategory_id' => 'An administrator must assign a valid product type before this product can be published.',
-            ]);
-        }
-        $product->is_active = ! $product->is_active;
-        $product->save();
-
-        return response()->json([
-            'success'   => true,
-            'is_active' => (bool) $product->is_active,
-        ]);
+        abort(403, 'Only an administrator can publish or unpublish products.');
     }
 
     // =========================================================================
@@ -265,8 +390,8 @@ class ManagerProductController extends Controller
     public function edit(Product $product)
     {
         $product = $this->findOwned($product->id);
-
-        return view('manager.products.edit', compact('product'));
+        $submission = \App\Models\CatalogueRevision::where('editor_id',auth()->id())->where('product_id',$product->id)->latest('id')->first();
+        return view('manager.products.edit', compact('product','submission'));
     }
 
     // =========================================================================
@@ -278,6 +403,7 @@ class ManagerProductController extends Controller
         $product = $this->findOwned($product->id);
 
         $validated = $request->validate([
+            'is_active' => 'prohibited', 'manager_id' => 'prohibited', 'brand_id' => 'prohibited',
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
             'price'       => 'required|numeric|min:0',

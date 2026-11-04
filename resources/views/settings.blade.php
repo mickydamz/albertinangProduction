@@ -101,17 +101,7 @@
                                             </svg>
                                         </span>
                                     </a>
-                                    <a href="/my-deposits" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-3 py-2 bg-light rounded shadow-sm mb-2 hover-custom">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-sync-alt font-medium-3 me-2"></i>
-                                            <span class="align-middle">Deposit History</span>
-                                        </div>
-                                        <span class="badge badge-pill badge-light rounded-circle gold-arrow">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
-                                                <path d="M9 18l6-6-6-6"></path>
-                                            </svg>
-                                        </span>
-                                    </a>
+                                    
                                 </div>
 
                                 <!-- Additional Settings can be added below -->

@@ -240,6 +240,14 @@
                    value="{{ old('postal_code') }}">
         </div>
 
+        <div class="form-group">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="marketing_opt_in" name="marketing_opt_in" value="1" @checked(old('marketing_opt_in'))>
+                <label class="form-check-label" for="marketing_opt_in">Email me AlbertinaNG offers, sales and promotions (optional).</label>
+            </div>
+            <p class="text-muted" style="margin-top:8px;font-size:13px">You can register without subscribing and unsubscribe at any time in Email preferences.</p>
+        </div>
+
         {{-- Terms --}}
         <div class="form-group" style="margin-bottom:22px;">
             <div class="form-check">

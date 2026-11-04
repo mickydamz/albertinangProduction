@@ -45,19 +45,19 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('/app-asset/css/plugins/charts/chart-apex.css') }}">
     <link rel="stylesheet" type="text/css" href="{{ asset('/app-asset/css/plugins/extensions/ext-component-toastr.css') }}">
     <!-- END: Page CSS-->
-    
+
     @livewireStyles
-    
+
     <style>
         .horizontal-layout {
             background: linear-gradient(to bottom, rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.90)),
             url("{{ asset('app-assets/images/backgrounds/bg.svg') }}");
-            height: 500px;
+            min-height: 100vh; height: auto;
             background-position: center;
             background-repeat: no-repeat;
             background-size: cover;
-            font-weight: bold;
-            font-size: 1.1rem; 
+            font-weight: 400;
+            font-size: 1rem;
         }
 
         .bg {
@@ -72,12 +72,12 @@
         section, table {
             background: linear-gradient(to bottom, rgba(255, 255, 255, 0.90), rgba(255, 255, 255, 0.90)),
             url("{{ asset('app-assets/images/backgrounds/bg.svg') }}");
-            height: 7rem;
+            height: auto;
             background-position: center;
             background-repeat: no-repeat;
             background-size: cover;
-            font-weight: bold;
-            font-size: 1.1rem; 
+            font-weight: 400;
+            font-size: 1rem;
         }
 
         .small-text {
@@ -135,7 +135,7 @@
                         <i class="ficon" data-feather="moon"></i>
                     </a>
                 </li>
-                
+
                 <li class="nav-item dropdown dropdown-user">
                     <a class="nav-link dropdown-toggle dropdown-user-link" id="dropdown-user" href="#" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <div class="user-nav d-sm-flex d-none">
@@ -147,7 +147,7 @@
                                 <img class="round" src="{{ asset('storage/'.auth()->user()->avatar) }}" alt="avatar" height="40" width="40" />
                             @else
                                 <img class="round" src="{{ asset('/app-asset/images/portrait/small/avatar-s-11.jpg') }}" alt="avatar" height="40" width="40">
-                            @endif 
+                            @endif
                             <span class="avatar-status-online"></span>
                         </span>
                     </a>
@@ -167,7 +167,7 @@
             </ul>
         </div>
     </nav>
-    
+
     <ul class="main-search-list-defaultlist d-none">
         <li class="d-flex align-items-center"><a href="#"><h6 class="section-label mt-75 mb-0">Files</h6></a></li>
         <li class="auto-suggestion"><a class="d-flex align-items-center justify-content-between w-100" href="app-file-manager">
@@ -265,7 +265,7 @@
             <!-- Horizontal menu content-->
             <div class="navbar-container main-menu-content" data-menu="menu-container">
                 <ul class="nav navbar-nav" id="main-menu-navigation" data-menu="menu-navigation">
-                    
+
                     <!-- Dashboard -->
                     <li class="nav-item">
                         <a class="nav-link d-flex align-items-center" href="/manager/dashboard">
@@ -274,6 +274,9 @@
                         </a>
                     </li>
 
+                    <li class="nav-item"><a class="nav-link" href="{{ route('manager.orders.index') }}">Orders</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('manager.sales.index') }}">Sales</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('manager.orders.create') }}">Add Order</a></li>
                     <!-- Products Menu -->
                     <li class="dropdown nav-item" data-menu="dropdown">
                         <a class="dropdown-toggle nav-link d-flex align-items-center" href="#" data-bs-toggle="dropdown">
@@ -296,7 +299,7 @@
                         </ul>
                     </li>
 
-                   
+
 
                 </ul>
             </div>
@@ -339,10 +342,10 @@
     <script src="{{ asset('/app-asset/vendors/js/charts/apexcharts.min.js') }}"></script>
     <script src="{{ asset('/app-asset/vendors/js/extensions/toastr.min.js') }}"></script>
     <!-- END: Page Vendor JS-->
-     
+
     <script src="{{ asset('/app-assets/vendors/js/tables/datatable/dataTables.responsive.min.js') }}"></script>
     <script src="{{ asset('/app-assets/vendors/js/tables/datatable/responsive.bootstrap5.js') }}"></script>
-    
+
     <!-- BEGIN: Theme JS-->
     <script src="{{ asset('/app-asset/js/core/app-menu.js') }}"></script>
     <script src="{{ asset('/app-asset/js/core/app.js') }}"></script>

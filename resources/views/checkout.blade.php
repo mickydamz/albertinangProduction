@@ -361,20 +361,22 @@
                     </div>
 
                     {{-- Pickup panel --}}
-                    <div class="fulfillment-panel" id="pickupPanel">
+                    <div id="pickupPanel" style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border)">
                         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem;padding:12px 14px;background:var(--surf2);border-radius:var(--radius-sm);border:1px solid var(--border);font-size:13.5px;color:var(--ink2);">
                             <i class="fas fa-map-marker-alt" style="color:var(--g500);font-size:15px;flex-shrink:0;"></i>
-                            <span>Pickup location: <strong id="currentPickupLocation" style="color:var(--g600);">Not selected</strong></span>
+                            <span>Your state: <strong id="currentPickupLocation" style="color:var(--g600);">Not selected</strong></span>
                             <button id="changePickupLocationBtn" style="margin-left:auto;">Change</button>
                         </div>
+                        <div id="collectionStoreInfo">
                         <p class="pickup-hint" id="pickupPointHint" style="display:none;">
                             <i class="fas fa-info-circle" style="margin-right:5px;color:var(--g500);"></i>
-                            Choose a pickup point below to continue.
+                            Choose the store that will collect your items or arrange delivery.
                         </p>
                         <div id="pickupPointsList" style="display:none;margin-top:8px;"></div>
                         <p id="noPickupPointsMessage" style="display:none;text-align:center;padding:1.25rem;background:var(--surf2);border-radius:var(--radius-sm);font-size:13px;color:var(--ink3);">
-                            No pickup points available for this location yet.
+                            No store has a confirmed transfer price for this basket in your state. Contact us for a quote or choose another state.
                         </p>
+                        </div>
                     </div>
 
                     {{-- Delivery panel --}}
@@ -402,7 +404,7 @@
                         </select>
 
                         <div class="delivery-fee-display" id="deliveryFeeDisplay" style="display:none;">
-                            <span style="display:flex;align-items:center;gap:8px;"><i class="fas fa-truck"></i> Delivery Fee</span>
+                            <span style="display:flex;align-items:center;gap:8px;"><i class="fas fa-truck"></i> Area delivery</span>
                             <span id="deliveryFeeAmount">&#8358;0</span>
                         </div>
                         <p id="noDeliveryLocationsMessage" style="display:none;text-align:center;padding:1.25rem;background:var(--surf2);border-radius:var(--radius-sm);font-size:13px;color:var(--ink3);">
@@ -429,6 +431,12 @@
                             <span>Subtotal</span>
                             <span id="summarySubtotal">&#8358;0</span>
                         </div>
+                        <div id="transportSummary" style="background:var(--g50);border:1px solid var(--g200);border-radius:10px;padding:12px;margin:8px 0 14px;font-size:13px">
+                            <strong id="dispatchStoreLabel">Choose your state and store</strong>
+                            <div class="summary-item" style="margin:8px 0"><span>Store transfers <small>(per unit)</small></span><strong id="summaryTransferFee">Not confirmed</strong></div>
+                            <div class="summary-item" id="areaDeliveryRow" style="display:none;margin:8px 0"><span>Area delivery</span><strong id="summaryAreaFee">Choose an area</strong></div>
+                            <details><summary id="availabilitySummary" style="cursor:pointer">View item availability</summary><div id="availabilityLines" style="display:grid;gap:8px;margin-top:10px"></div></details>
+                        </div>
                         <div class="summary-item">
                             <span>Installation</span>
                             <span id="summaryInstallation">&#8358;0</span>
@@ -437,8 +445,8 @@
                             <span><i class="fas fa-tag" style="margin-right:5px;font-size:11px;"></i>Coupon (<span id="summaryCouponCode">—</span>)</span>
                             <span id="summaryCouponDiscount">-&#8358;0</span>
                         </div>
-                        <div class="summary-item">
-                            <span id="summaryShippingLabel">Shipping</span>
+                        <div class="summary-item" hidden style="display:none">
+                            <span id="summaryShippingLabel">Transport total</span>
                             <span id="summaryShipping">&#8358;0</span>
                         </div>
                         <div class="summary-total">
@@ -482,6 +490,11 @@
                             <div id="messages"></div>
 
                             <form id="main-checkout-form">
+                                <div style="margin-bottom:1rem;">
+                                    <label for="delivery-mobile"><strong>Collection/ delivery number</strong> *</label>
+                                    <input type="tel" id="delivery-mobile" name="delivery_mobile" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="08012345678" pattern="(0[789][01][0-9]{8}|\+234[789][01][0-9]{8})" required aria-describedby="delivery-mobile-help">
+                                    <p id="delivery-mobile-help">Nigerian mobile numbers only.</p>
+                                </div>
                                 <div style="display:none;">
                                     <label for="amount">Amount (USD):</label>
                                     <input type="number" id="amount" name="amount" step="0.01" min="0.50" value="0.50" readonly>
@@ -642,6 +655,9 @@
         const summaryCouponDiscount = document.getElementById('summaryCouponDiscount');
 
         let cart                       = [];
+        let locationCartValid = false;
+        const shoppingState = window.shoppingState;
+        let unavailableIds = [];
         let selectedLocation           = null;
         let selectedPickupPoint        = null;   // pickup: the chosen physical pickup point
         let appliedCoupon              = null;   // { id, code, discountNgn }
@@ -651,6 +667,7 @@
         const installationOptionsCache = {};
         let availableLocations         = [];
         let pickupPointsCache          = {};
+        let pickupRenderVersion = 0;
         let _rawTotalNgn               = 0;
 
         // ── Delivery state ───────────────────────────────────────────────────
@@ -722,7 +739,9 @@
         // Its LABEL tells them exactly what step is outstanding.
         function refreshPaymentGate() {
             const btn = proceedToPaymentBtn;
+            if (!locationCartValid) { btn.disabled=true;btn.textContent='Review basket for your selected state';return; }
             btn.disabled = false; // clickable on purpose — the click handler guides them
+            if(!selectedPickupPoint){btn.textContent='Choose your state and store';btn.classList.add('btn-needs-action');return;}
 
             if (fulfillmentMethod === 'delivery') {
                 if (!selectedDeliveryState) {
@@ -739,10 +758,7 @@
                     btn.classList.remove('btn-needs-action');
                 }
             } else {
-                if (!selectedLocation) {
-                    btn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Select a pickup location';
-                    btn.classList.add('btn-needs-action');
-                } else if (!selectedPickupPoint) {
+                if (!selectedPickupPoint) {
                     btn.innerHTML = '<i class="fas fa-store"></i> Select a pickup point';
                     btn.classList.add('btn-needs-action');
                 } else {
@@ -819,6 +835,27 @@
         });
 
         // ── calculateCartTotals ───────────────────────────────────────────────
+        function updateTransportSummary(transferFee,areaFee){
+            const point=selectedPickupPoint, lines=document.getElementById('availabilityLines');lines.replaceChildren();
+            document.getElementById('dispatchStoreLabel').textContent=fulfillmentMethod==='delivery' ? 'Delivery charges' : (point ? 'From '+point.name : 'Choose your state and store');
+            document.getElementById('availabilitySummary').parentElement.style.display='';
+            document.getElementById('summaryTransferFee').textContent=point ? (transferFee ? fmt(transferFee) : 'Free — available here') : 'Not confirmed';
+            document.getElementById('areaDeliveryRow').style.display=fulfillmentMethod==='delivery'?'flex':'none';
+            document.getElementById('summaryAreaFee').textContent=selectedDeliveryLocation ? fmt(areaFee) : 'Choose an area';
+            let local=0, transferred=0;
+            cart.forEach(item=>{
+                const quote=point?.transfers?.find(q=>Number(q.product_id)===Number(item.id));
+                const row=document.createElement('div');row.style.cssText='border-top:1px solid var(--g200);padding-top:8px';
+                const name=document.createElement('strong');name.textContent=item.name;row.appendChild(name);
+                const status=document.createElement('div');status.style.cssText='font-size:12px;margin-top:3px;line-height:1.5';
+                if(!quote){status.textContent='Choose a state to check transfer charges';}
+                else if(quote.available_locally){local++;status.textContent='✓ Available here · no transfer charge';}
+                else{transferred++;status.textContent='↔ From '+quote.supplying_point_name+' · '+fmt(Number(quote.transfer_unit_fee_ngn))+' × '+Number(item.quantity||1)+' = '+fmt(Number(quote.transfer_unit_fee_ngn)*Number(item.quantity||1));}
+                row.appendChild(status);lines.appendChild(row);
+            });
+            document.getElementById('availabilitySummary').textContent=point ? (fulfillmentMethod==='delivery' ? 'Item transfer charges — details' : '✓ '+local+' available here · ↔ '+transferred+' to transfer — details') : 'View item availability';
+        }
+
         function calculateCartTotals() {
             let subtotalNgn     = 0;
             let installationNgn = 0;
@@ -858,10 +895,10 @@
             let deliveryFeeNgn = 0;
             if (fulfillmentMethod === 'delivery' && selectedDeliveryLocation) {
                 // If anything in the cart requires a truck, upgrade to the truck price for this location
-                deliveryFeeNgn = orderRequiresTruck 
-                    ? selectedDeliveryLocation.truckFeeNgn 
+                deliveryFeeNgn = orderRequiresTruck
+                    ? selectedDeliveryLocation.truckFeeNgn
                     : selectedDeliveryLocation.baseFeeNgn;
-                
+
                 deliveryFeeAmount.textContent = fmt(deliveryFeeNgn);
                 deliveryFeeDisplay.style.display = 'flex';
 
@@ -872,6 +909,10 @@
                 localStorage.setItem('deliveryFeeNgn', '0');
             }
 
+            const areaFeeNgn = deliveryFeeNgn;
+            const transferFeeNgn=selectedPickupPoint ? cart.reduce((sum,item)=>sum+Number(selectedPickupPoint.transfers?.find(t=>Number(t.product_id)===Number(item.id))?.transfer_unit_fee_ngn||0)*Number(item.quantity||1),0) : 0;
+            deliveryFeeNgn=areaFeeNgn+transferFeeNgn;
+            updateTransportSummary(transferFeeNgn,areaFeeNgn);
             const preCouponTotal = subtotalNgn + installationNgn + deliveryFeeNgn;
 
             // Coupon deduction
@@ -922,9 +963,11 @@
         }
 
         async function fetchPickupPoints(locationId) {
-            if (pickupPointsCache[locationId]) return pickupPointsCache[locationId];
+            // Availability is refreshed against the current basket, including removals.
             try {
-                const res = await fetch('/api/pickup-points?location_id=' + locationId, { headers: { 'Accept': 'application/json' } });
+                const params=new URLSearchParams(cart.map(i=>['items[]',String(i.id)]));
+                params.set('state_id',String(shoppingState?.id || ''));
+                const res = await fetch('/api/pickup-points?' + params, { cache:'no-store', headers: { 'Accept': 'application/json' } });
                 if (!res.ok) throw new Error('Failed');
                 const points = await res.json();
                 pickupPointsCache[locationId] = points;
@@ -955,9 +998,20 @@
         function populateStateSelect() {
             deliveryStateSelect.innerHTML = '<option value="">Select a state\u2026</option>'
                 + availableStates.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('');
-            const savedStateId = localStorage.getItem('deliveryStateId');
-            if (savedStateId && availableStates.some(s => String(s.id) === savedStateId)) {
-                deliveryStateSelect.value = savedStateId;
+            const state = availableStates.find(s => String(s.id) === String(shoppingState?.id));
+            deliveryStateSelect.disabled = true;
+            if (state) {
+                if (localStorage.getItem('deliveryStateId') !== String(state.id)) {
+                    for (const key of ['deliveryLocationId','deliveryLocationName','deliveryBaseFeeNgn','deliveryTruckFeeNgn']) localStorage.removeItem(key);
+                }
+                deliveryStateSelect.value = String(state.id);
+                selectedDeliveryState = {id:state.id,name:state.name};
+                localStorage.setItem('deliveryStateId',String(state.id));
+                localStorage.setItem('deliveryStateName',state.name);
+            } else {
+                localStorage.removeItem('deliveryStateId');
+                selectedDeliveryState = null;
+                deliveryStateSelect.replaceChildren(new Option((shoppingState?.name || 'Choose your shopping state') + ' — delivery unavailable', ''));
             }
         }
 
@@ -986,7 +1040,7 @@
                     const name = String(l.name).replace(/"/g, '&quot;');
                     return '<option value="' + l.id + '" data-base-fee="' + baseFee + '" data-truck-fee="' + truckFee + '" data-name="' + name + '">' + l.name + '</option>';
                 }).join('');
-            
+
             deliveryLocationSelect.disabled = false;
 
             if (preselectLocationId) {
@@ -1010,22 +1064,22 @@
                 calculateCartTotals();
                 return;
             }
-            
+
             const baseFeeNgn = parseFloat(opt.dataset.baseFee) || 0;
             const truckFeeNgn = parseFloat(opt.dataset.truckFee) || 0;
-            
-            selectedDeliveryLocation = { 
-                id: opt.value, 
-                name: opt.dataset.name, 
+
+            selectedDeliveryLocation = {
+                id: opt.value,
+                name: opt.dataset.name,
                 baseFeeNgn: baseFeeNgn,
                 truckFeeNgn: truckFeeNgn
             };
-            
+
             localStorage.setItem('deliveryLocationId', opt.value);
             localStorage.setItem('deliveryLocationName', opt.dataset.name);
             localStorage.setItem('deliveryBaseFeeNgn', String(baseFeeNgn));
             localStorage.setItem('deliveryTruckFeeNgn', String(truckFeeNgn));
-            
+
             refreshPaymentGate();
             calculateCartTotals();
         }
@@ -1038,6 +1092,7 @@
             tabPickupBtn.classList.toggle('active', method === 'pickup');
             tabDeliveryBtn.classList.toggle('active', method === 'delivery');
             pickupPanel.classList.toggle('active', method === 'pickup');
+            document.getElementById('collectionStoreInfo').style.display=method==='delivery'?'none':'';
             deliveryPanel.classList.toggle('active', method === 'delivery');
             // If the user switches to delivery and a state is already selected but the
             // location dropdown hasn't been loaded yet (still disabled), fetch locations
@@ -1246,12 +1301,15 @@
                 const effective   = base + totalExtra;
                 const row = document.createElement('tr');
                 row.className = 'cart-item-row';
+                const unavailable = unavailableIds.includes(Number(item.id));
+                if(unavailable)row.style.background='#fff1e8';
+                const displayName = window.cartText(item.name);
                 row.dataset.productId = item.id;
-                row.innerHTML = '<td data-label="Product"><div class="cart-item-info"><img src="' + img + '" alt="' + item.name + '" onerror="this.src=\'https://placehold.co/80x80/f5f9f0/c5d9ae?text=Product\'"><div style="flex:1;min-width:0;"><div class="item-name">' + item.name + '</div><div class="item-price-single">' + fmt(base) + ' per item</div>' + installHtml + '</div></div></td>'
+                row.innerHTML = '<td data-label="Product"><div class="cart-item-info"><img src="' + img + '" alt="' + displayName + '" onerror="this.onerror=null;this.src=\'https://placehold.co/80x80/f5f9f0/c5d9ae?text=Product\'"><div style="flex:1;min-width:0;"><div class="item-name">' + displayName + '</div>' + (unavailable ? '<p role="alert" style="color:#9b2c18;font-weight:700">Unavailable in this state — remove this product to proceed.</p>' : '') + '<div class="item-price-single">' + fmt(base) + ' per item</div>' + installHtml + '</div></div></td>'
                     + '<td data-label="Price">' + fmt(effective) + '</td>'
                     + '<td data-label="Quantity"><div class="quantity-controls"><button class="quantity-btn decrease-qty" data-index="' + index + '">\u2212</button><input type="number" class="quantity-input" value="' + qty + '" min="1" data-index="' + index + '"><button class="quantity-btn increase-qty" data-index="' + index + '">+</button></div></td>'
                     + '<td data-label="Subtotal"><span class="item-subtotal">' + fmt(effective * qty) + '</span></td>'
-                    + '<td><button class="remove-item-btn" data-index="' + index + '" aria-label="Remove ' + item.name + '"><i class="fas fa-times-circle"></i></button></td>';
+                    + '<td><button class="remove-item-btn" data-index="' + index + '" aria-label="Remove ' + displayName + '"><i class="fas fa-times-circle"></i></button></td>';
                 tbody.appendChild(row);
             });
             cartItemsDisplay.appendChild(table);
@@ -1283,13 +1341,11 @@
             calculateCartTotals();
         }
 
-        function handleRemoveItem(e) {
+        async function handleRemoveItem(e) {
             const btn = e.target.closest('.remove-item-btn');
             if (!btn) return;
             const idx = parseInt(btn.dataset.index);
             if (isNaN(idx) || idx < 0 || idx >= cart.length) return;
-            Swal.fire({ title: 'Are you sure?', text: 'Remove "' + cart[idx].name + '" from your cart?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#4e7a1a', cancelButtonColor: '#6c757d', confirmButtonText: 'Yes, remove it!' }).then(r => {
-                if (r.isConfirmed) {
                     delete installationSelections[idx];
                     const newSelections = {};
                     Object.keys(installationSelections).forEach(k => {
@@ -1300,15 +1356,15 @@
                     Object.keys(installationSelections).forEach(k => delete installationSelections[k]);
                     Object.assign(installationSelections, newSelections);
                     cart.splice(idx, 1);
+                    document.getElementById('shoppingCartWarning')?.remove();
+                    await checkLocationCart();
                     saveCartToLocalStorage();
-                    renderCartItems();
-                    Swal.fire('Removed!', 'Item removed from cart.', 'success');
-                }
-            });
+                    await renderCartItems();
+                    await renderPickupSection();
         }
 
         // ── Location / pickup ─────────────────────────────────────────────────
-        function openLocationModal()  { locationModalOverlay.classList.add('active'); populateLocationList(); }
+        function openLocationModal() { document.getElementById('changeShoppingLocation').click(); }
         function closeLocationModal() { locationModalOverlay.classList.remove('active'); }
 
         function populateLocationList() {
@@ -1334,29 +1390,34 @@
         }
 
         async function renderPickupSection() {
-            const savedId   = localStorage.getItem('pickupLocationId');
-            const savedName = localStorage.getItem('pickupLocation');
-            selectedLocation = savedId ? { id: savedId, name: savedName } : null;
-            currentPickupLocationSpan.textContent = selectedLocation?.name || 'Not selected';
-
+            const renderVersion=++pickupRenderVersion;
+            selectedLocation = shoppingState ? {id:shoppingState.id,name:shoppingState.name} : null;
+            currentPickupLocationSpan.textContent = selectedLocation?.name || 'Choose your state';
             // A pickup point must be chosen before payment is allowed (pickup mode only).
             selectedPickupPoint                 = null;
+            calculateCartTotals();
             refreshPaymentGate();
             pickupPointsList.innerHTML           = '';
             pickupPointHint.style.display        = 'none';
             noPickupPointsMessage.style.display  = 'none';
             pickupPointsList.style.display       = 'none';
 
-            if (!selectedLocation) return;
 
+
+            if(!selectedLocation)return;
             pickupPointsList.style.display = 'block';
             pickupPointsList.innerHTML = '<div style="padding:.75rem;font-size:12px;color:#888;"><i class="fas fa-circle-notch fa-spin" style="color:#4e7a1a;margin-right:6px;"></i>Loading pickup points\u2026</div>';
 
-            const points = await fetchPickupPoints(selectedLocation.id);
+            const points = await fetchPickupPoints(selectedLocation?.id || 0);
+            if(renderVersion!==pickupRenderVersion)return;
             pickupPointsList.innerHTML = '';
 
             if (points.length) {
                 const savedPointId = localStorage.getItem('pickupPointId');
+                const preferredPoint=points.find(p=>p.available && String(p.id)===String(savedPointId)) || points.filter(p=>p.available).sort((a,b)=>{
+                    const fee=p=>cart.reduce((sum,item)=>sum+Number(p.transfers?.find(q=>Number(q.product_id)===Number(item.id))?.transfer_unit_fee_ngn||0)*Number(item.quantity||1),0);
+                    return fee(a)-fee(b);
+                })[0];
                 pickupPointHint.style.display = 'block';
 
                 points.forEach(p => {
@@ -1365,26 +1426,35 @@
                     div.dataset.pointId      = p.id;
                     div.dataset.pointName    = p.name;
                     div.dataset.pointAddress = p.address || '';
-                    div.innerHTML = '<h4>' + p.name + '</h4><p>' + (p.address || '') + '</p>' + (p.hours ? '<p class="hours">' + p.hours + '</p>' : '');
+                    div.setAttribute('role','button');div.tabIndex=p.available?0:-1;div.setAttribute('aria-disabled',String(!p.available));
+                    for(const value of [p.name,p.address,p.hours,!p.available?p.unavailable_message:null]){if(value){const line=document.createElement('p');line.textContent=value;div.appendChild(line);}}
+                    if(!p.available){div.style.opacity='.6';div.style.cursor='not-allowed';}
 
-                    // Restore previously-selected point
-                    if (savedPointId && String(p.id) === savedPointId) {
+                    // Restore a valid selection, or confirm the lowest priced available dispatch point.
+                    if (p.available && preferredPoint && String(p.id) === String(preferredPoint.id)) {
                         div.classList.add('selected');
-                        selectedPickupPoint = { id: p.id, name: p.name, address: p.address || '' };
+                        selectedPickupPoint = { id: p.id, name: p.name, address: p.address || '', transfers:p.transfers || [] };
+                        localStorage.setItem('pickupPointId',String(p.id));
+                        calculateCartTotals();
                         pickupPointHint.style.display = 'none';
                         refreshPaymentGate();
                     }
 
-                    div.addEventListener('click', () => {
+                    const choosePoint = () => {
+                        if(!p.available)return;
                         pickupPointsList.querySelectorAll('.pickup-point-item').forEach(i => i.classList.remove('selected'));
                         div.classList.add('selected');
-                        selectedPickupPoint = { id: p.id, name: p.name, address: p.address || '' };
+                        selectedPickupPoint = { id: p.id, name: p.name, address: p.address || '', transfers:p.transfers || [] };
+                        calculateCartTotals();
                         localStorage.setItem('pickupPointId',      p.id);
                         localStorage.setItem('pickupPointName',    p.name);
                         localStorage.setItem('pickupPointAddress', p.address || '');
+                        localStorage.setItem('pickupLocationId', p.location_id || '');
+                        localStorage.setItem('pickupLocation', shoppingState?.name || '');
                         pickupPointHint.style.display = 'none';
                         refreshPaymentGate();
-                    });
+                    };
+                    div.addEventListener('click',choosePoint);div.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choosePoint();}});
 
                     pickupPointsList.appendChild(div);
                 });
@@ -1455,6 +1525,7 @@
             if (f.fulfillment_method === 'delivery') {
                 return {
                     method:               'delivery',
+                    dispatch_point_id: selectedPickupPoint?.id ?? null,
                     delivery_location_id: f.delivery_location_id ?? null,
                     shipping_address:     f.shipping_address      ?? null,
                 };
@@ -1470,7 +1541,14 @@
         // computes prices, generates the reference, and returns both. Blocks on
         // failure — without a server-generated reference, the popup cannot open.
         async function savePendingCheckout() {
+            const mobileInput = document.getElementById('delivery-mobile');
+            if (!mobileInput.value.trim() || !mobileInput.reportValidity()) {
+                showMessage('danger', 'Enter a Nigerian mobile number.');
+                mobileInput.focus();
+                return { validationError: true };
+            }
             const body = JSON.stringify({
+                delivery_mobile: document.getElementById('delivery-mobile').value,
                 customer_email: emailInput.value,
                 // ⚠️ DO NOT REMOVE / DO NOT CHANGE THE SOURCE OF installation_option.
                 // This save-checkout payload builds PendingCheckout, which is the ONLY
@@ -1484,6 +1562,7 @@
                     const sels = Array.isArray(installationSelections[idx]) ? installationSelections[idx] : [];
                     return {
                         product_id:          item.id,
+                        colour_id: item.colour_id || null,
                         quantity:            item.quantity,
                         installation_option: sels.length > 0 ? sels.map(s => s.label).join(', ') : null,
                     };
@@ -1501,7 +1580,14 @@
                     const res = await fetch('/paystack/save-checkout', opts);
                     if (res.ok) {
                         const data = await res.json();
+                        if(Math.abs(Number(data.total_ngn)-Number(_rawTotalNgn))>0.01){showMessage('danger','Your basket price or transfer quote changed. Review the refreshed collection options and total before paying.');await renderPickupSection();return {validationError:true};}
                         return data; // { reference, total_ngn, coupon, coupon_error }
+                    }
+                    if (res.status === 422) {
+                        const error = await res.json();
+                        showMessage('danger', error.errors?.delivery_mobile?.[0] || error.message || 'Please check your checkout details.');
+                        mobileInput.focus();
+                        return { validationError: true };
                     }
                     console.warn('[savePendingCheckout] server error', res.status);
                 } catch (e) {
@@ -1590,6 +1676,7 @@
         }
 
         proceedToPaymentBtn.addEventListener('click', () => {
+            if(!selectedPickupPoint){flashFulfillmentSection();showMessage('danger','Choose a store so item availability and transfer charges can be confirmed.');return;}
             if (fulfillmentMethod === 'delivery') {
                 if (!selectedDeliveryState) {
                     flashFulfillmentSection();
@@ -1608,11 +1695,6 @@
                     return;
                 }
             } else {
-                if (!selectedLocation) {
-                    flashFulfillmentSection();
-                    Swal.fire({ icon: 'warning', title: 'Pickup Location Required', text: 'Please select a pickup location first — tap "Change" in the Pickup Options section.', confirmButtonColor: '#4e7a1a' });
-                    return;
-                }
                 if (!selectedPickupPoint) {
                     flashFulfillmentSection();
                     Swal.fire({ icon: 'warning', title: 'Pickup Point Required', text: 'Almost there! Choose one of the pickup points shown below to continue.', confirmButtonColor: '#4e7a1a' });
@@ -1705,7 +1787,7 @@
                 const saved = await savePendingCheckout();
                 if (!saved?.reference) {
                     hideLoading(stripeSubmitButton, stripeSpinner);
-                    showMessage('danger', 'Could not prepare your order. Please check your connection and try again.');
+                    if (!saved?.validationError) showMessage('danger', 'Could not prepare your order. Please check your connection and try again.');
                     return;
                 }
                 // 2. Create the PaymentIntent for that reference (amount set server-side).
@@ -1759,7 +1841,7 @@
             const saved = await savePendingCheckout();
             if (!saved?.reference) {
                 hideLoading(paystackSubmitButton, paystackSpinner);
-                showMessage('danger', 'Could not prepare your order. Please check your connection and try again.');
+                if (!saved?.validationError) showMessage('danger', 'Could not prepare your order. Please check your connection and try again.');
                 return;
             }
             const ref       = saved.reference;
@@ -1905,6 +1987,22 @@
             if (changed) saveCartToLocalStorage();
         } catch (_) {}
     }
+    async function checkLocationCart() {
+        locationCartValid=false;unavailableIds=[];
+        document.getElementById('shoppingCartWarning')?.remove();
+        if (!cart.length) return;
+        try {
+            const res=await fetch('/shopping/cart-check',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':getCsrfToken()},body:JSON.stringify({items:cart.map(i=>Number(i.id))})});
+            const data=await res.json();unavailableIds=(data.incompatible_ids||[]).map(Number);
+            locationCartValid=res.ok;localStorage.setItem('shoppingUnavailableIds',JSON.stringify(unavailableIds));
+            if (!res.ok) {
+                const warning=document.createElement('p');warning.id='shoppingCartWarning';warning.setAttribute('role','alert');warning.style.cssText='padding:14px;background:#fff1e8;color:#8a3419;border-radius:8px';
+                warning.textContent='Some products are unavailable in your selected state. Remove each marked product below to proceed, or change state above.';
+                cartItemsDisplay.before(warning);
+            }
+        } catch(e) { locationCartValid=false; }
+    }
+    await checkLocationCart();
     await syncTruckFlags();
 
     await fetchLocations();
@@ -1933,7 +2031,7 @@
             const savedBaseFeeNgn = parseFloat(localStorage.getItem('deliveryBaseFeeNgn')) || 0;
             const savedTruckFeeNgn = parseFloat(localStorage.getItem('deliveryTruckFeeNgn')) || 0;
             const savedLocationId = localStorage.getItem('deliveryLocationId');
-            
+
             if (savedLocationId) {
                 selectedDeliveryLocation = {
                     id: savedLocationId,

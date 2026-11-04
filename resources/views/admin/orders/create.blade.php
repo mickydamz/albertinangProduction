@@ -1,4 +1,4 @@
-﻿@extends('layouts.adminlayout')
+@extends('layouts.adminlayout')
 
 @section('content')
 <div class="app-content content">
@@ -243,7 +243,7 @@
                     </div>
 
                 </div>{{-- /.row --}}
-            </form>
+            <label>Dispatch store (required for delivery)</label><select name="dispatch_point_id" class="form-select"><option value="">Choose dispatch store</option>@foreach($pickupPoints as $point)<option value="{{ $point->id }}">{{ $point->state?->name }} → {{ $point->name }} — {{ $point->address }}</option>@endforeach</select><p>Delivery charges are calculated from the selected store's configured destinations.</p></form>
         </div>
     </div>
 </div>

@@ -654,6 +654,7 @@
                         @endif
                     </div>
                     <h4 class="title-71g"><a href="/product/{{ $product->id }}">{{ $product->name }}</a></h4>
+                    @include('partials.colour-swatches',['product'=>$product])
                     <div class="price-row">
                         <p class="product-gfx" data-base-price-ngn="{{ $product->sell_price }}">&#8358;{{ number_format($product->sell_price, 0) }}</p>
                         @if($product->old_price)<p class="product-original-price" data-old-price-ngn="{{ $product->old_price }}">&#8358;{{ number_format($product->old_price, 0) }}</p>@endif
@@ -701,6 +702,7 @@
                         @endif
                     </div>
                     <h4 class="title-71g"><a href="/product/{{ $product->id }}">{{ $product->name }}</a></h4>
+                    @include('partials.colour-swatches',['product'=>$product])
                     <div class="price-row">
                         <p class="product-gfx" data-base-price-ngn="{{ $product->sell_price }}">&#8358;{{ number_format($product->sell_price, 0) }}</p>
                         @if($product->old_price)<p class="product-original-price" data-old-price-ngn="{{ $product->old_price }}">&#8358;{{ number_format($product->old_price, 0) }}</p>@endif
@@ -748,6 +750,7 @@
                         @endif
                     </div>
                     <h4 class="title-71g"><a href="/product/{{ $product->id }}">{{ $product->name }}</a></h4>
+                    @include('partials.colour-swatches',['product'=>$product])
                     <div class="price-row">
                         <p class="product-gfx" data-base-price-ngn="{{ $product->sell_price }}">&#8358;{{ number_format($product->sell_price, 0) }}</p>
                         @if($product->old_price)<p class="product-original-price" data-old-price-ngn="{{ $product->old_price }}">&#8358;{{ number_format($product->old_price, 0) }}</p>@endif
@@ -795,6 +798,7 @@
                         @endif
                     </div>
                     <h4 class="title-71g"><a href="/product/{{ $product->id }}">{{ $product->name }}</a></h4>
+                    @include('partials.colour-swatches',['product'=>$product])
                     <div class="price-row">
                         <p class="product-gfx" data-base-price-ngn="{{ $product->sell_price }}">&#8358;{{ number_format($product->sell_price, 0) }}</p>
                         @if($product->old_price)<p class="product-original-price" data-old-price-ngn="{{ $product->old_price }}">&#8358;{{ number_format($product->old_price, 0) }}</p>@endif
@@ -841,6 +845,7 @@
                         @endif
                     </div>
                     <h4 class="title-71g"><a href="/product/{{ $product->id }}">{{ $product->name }}</a></h4>
+                    @include('partials.colour-swatches',['product'=>$product])
                     <div class="price-row">
                         <p class="product-gfx" data-base-price-ngn="{{ $product->sell_price }}">&#8358;{{ number_format($product->sell_price, 0) }}</p>
                         @if($product->old_price)<p class="product-original-price" data-old-price-ngn="{{ $product->old_price }}">&#8358;{{ number_format($product->old_price, 0) }}</p>@endif

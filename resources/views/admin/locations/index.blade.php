@@ -10,10 +10,10 @@
             <div class="col-12 mb-2">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <div>
-                        <h2 class="content-header-title mb-0">Locations</h2>
+                        <h2 class="content-header-title mb-0">Delivery areas</h2>
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Home</a></li>
-                            <li class="breadcrumb-item active">Locations</li>
+                            <li class="breadcrumb-item active">Delivery areas</li>
                         </ol>
                     </div>
                     <a href="{{ route('admin.locations.create') }}" class="btn btn-primary">

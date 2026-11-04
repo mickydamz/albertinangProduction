@@ -93,6 +93,10 @@ use Matthewbdaly\LaravelCities\Models\City;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // Storefront home — the page every visitor lands on
+Route::get('/products/{id}/colour-options',[\App\Http\Controllers\ProductColourController::class,'index'])->whereNumber('id');
+Route::get('/shopping/locations', [\App\Http\Controllers\ShoppingLocationController::class,'options']);
+Route::post('/shopping/location', [\App\Http\Controllers\ShoppingLocationController::class,'select'])->middleware('throttle:60,1');
+Route::post('/shopping/cart-check', [\App\Http\Controllers\ShoppingLocationController::class,'cart']);
 Route::get('/',     [UserDashboardController::class, 'index'])->name('dashboard');
 Route::get('/shop', [UserDashboardController::class, 'index'])->name('shop');
 
@@ -313,6 +317,11 @@ Route::get('/main', fn () => redirect('/'));
 Route::get('/dashboard', fn () => redirect('/'));
 
 Route::middleware('auth')->group(function () {
+    // Legacy deposit bookmarks return to the account; deposit menus are retired.
+    Route::get('/my-deposits', fn () => redirect()->route('account.index'))->name('legacy.deposits');
+    Route::get('/deposit-history', fn () => redirect()->route('account.index'));
+    Route::get('/deposit-create', fn () => redirect()->route('account.index'));
+
 
     // ── Email verification (used only when enabled in admin Settings) ──────────
     Route::get('/email/verify', [\App\Http\Controllers\Auth\VerificationController::class, 'show'])
@@ -549,6 +558,11 @@ Route::put('contact', [AdminContactController::class, 'update'])->name('contact.
     Route::patch('states/{state}/toggle-active', [AdminStateController::class, 'toggleActive'])->name('states.toggleActive');
 
     // ── Locations ─────────────────────────────────────────────────────────────
+    Route::post('collection-transfer-rates',[\App\Http\Controllers\AdminShoppingLocationController::class,'transferRate'])->name('collection-transfer-rates.store');
+    Route::put('collection-transfer-rates/{rate}',[\App\Http\Controllers\AdminShoppingLocationController::class,'updateTransferRate'])->whereNumber('rate')->name('collection-transfer-rates.update');
+    Route::delete('collection-transfer-rates/{rate}',[\App\Http\Controllers\AdminShoppingLocationController::class,'deleteTransferRate'])->whereNumber('rate')->name('collection-transfer-rates.destroy');
+    Route::get('shopping-locations',[\App\Http\Controllers\AdminShoppingLocationController::class,'index'])->name('shopping-locations.index');
+    Route::put('shopping-locations/{point}',[\App\Http\Controllers\AdminShoppingLocationController::class,'update'])->name('shopping-locations.update');
     Route::resource('locations', AdminLocationController::class);
     Route::patch('locations/{location}/toggle-active', [AdminLocationController::class, 'toggleActive'])->name('locations.toggleActive');
 
@@ -745,12 +759,12 @@ Route::get('/admin/sync-brand-managers', function () {
 
 
 Route::middleware(['auth', 'manager'])->prefix('manager')->name('manager.')->group(function () {
-    Route::get('/dashboard', fn () => redirect()->route('manager.products.index'))->name('dashboard');
+    Route::get('/dashboard', fn () => redirect()->route('manager.orders.index'))->name('dashboard');
     Route::resource('products', ManagerProductController::class)->only(['index', 'edit', 'update']);
 });
 
 Route::middleware(['auth', 'manager'])->prefix('manager')->name('manager.')->group(function () {
-    Route::get('/dashboard', fn () => redirect()->route('manager.products.index'))->name('dashboard');
+    Route::get('/dashboard', fn () => redirect()->route('manager.orders.index'))->name('dashboard');
     Route::patch('products/{product}/toggle-active', [ManagerProductController::class, 'toggleActive'])
         ->name('products.toggleActive');
     Route::resource('products', ManagerProductController::class)->only(['index', 'edit', 'update']);
@@ -771,14 +785,34 @@ Route::get('/states', function () {
     return \App\Models\State::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 });
 
-Route::get('/locations', function (\Illuminate\Http\Request $request) {
-    $query = \App\Models\Location::where('is_active', true);
-    if ($request->filled('state_id')) {
-        $query->where('state_id', $request->query('state_id'));
-    }
-    return $query->orderBy('name')->get(['id', 'name', 'shipping_cost']);
-});
+Route::get('/locations', [LocationController::class,'index']);
 
 
 // Add this alongside your existing location routes
 Route::get('/states', [LocationController::class, 'states']);
+
+// Customer marketing preferences and signed unsubscribe confirmation.
+Route::get('/account/email-preferences', [\App\Http\Controllers\MarketingPreferenceController::class, 'edit'])->middleware('auth')->name('marketing.preferences');
+Route::post('/account/email-preferences', [\App\Http\Controllers\MarketingPreferenceController::class, 'update'])->middleware('auth')->name('marketing.preferences.update');
+Route::get('/marketing/unsubscribe/{user}', [\App\Http\Controllers\MarketingPreferenceController::class, 'unsubscribe'])->middleware('signed')->name('marketing.unsubscribe');
+Route::post('/marketing/unsubscribe/{user}', [\App\Http\Controllers\MarketingPreferenceController::class, 'confirmUnsubscribe'])->middleware('signed');
+Route::middleware(['auth', 'role:admin'])->prefix('admin/marketing')->name('admin.marketing.')->group(function () {
+    Route::post('/{campaign}/duplicate', [\App\Http\Controllers\AdminMarketingController::class, 'duplicate'])->name('duplicate');
+    Route::post('/{campaign}/control', [\App\Http\Controllers\AdminMarketingController::class, 'control'])->name('control');
+    Route::get('/{campaign}/report', [\App\Http\Controllers\AdminMarketingController::class, 'export'])->name('export');
+    Route::get('/', [\App\Http\Controllers\AdminMarketingController::class, 'index'])->name('index');
+    Route::post('/', [\App\Http\Controllers\AdminMarketingController::class, 'store'])->name('store');
+    Route::get('/{campaign}', [\App\Http\Controllers\AdminMarketingController::class, 'show'])->name('show');
+    Route::put('/{campaign}', [\App\Http\Controllers\AdminMarketingController::class, 'update'])->name('update');
+    Route::get('/{campaign}/preview', [\App\Http\Controllers\AdminMarketingController::class, 'preview'])->name('preview');
+    Route::post('/{campaign}/test', [\App\Http\Controllers\AdminMarketingController::class, 'test'])->middleware('throttle:5,1')->name('test');
+    Route::post('/{campaign}/send', [\App\Http\Controllers\AdminMarketingController::class, 'send'])->name('send');
+});
+
+Route::get('/marketing/offer/{delivery}', [\App\Http\Controllers\MarketingTrackingController::class, 'click'])->middleware(['signed', 'throttle:120,1'])->name('marketing.click');
+
+Route::post('/marketing/unsubscribe-one-click/{user}', [\App\Http\Controllers\MarketingPreferenceController::class, 'oneClickUnsubscribe'])->middleware(['signed', 'throttle:60,1'])->name('marketing.unsubscribe.oneclick');
+
+require __DIR__.'/manager-orders.php';
+
+require __DIR__.'/catalogue.php';

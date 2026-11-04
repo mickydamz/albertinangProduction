@@ -21,8 +21,9 @@ class UnlimitedStockPolicyTest extends RegressionTestCase
     {
         $product=$this->product(); $product->update(['stock'=>0]);
         $this->actingAs($this->customer())->postJson('/paystack/save-checkout',[
+            'delivery_mobile'=>'08012345678',
             'items'=>[['product_id'=>$product->id,'quantity'=>150]],
-            'fulfillment'=>['method'=>'pickup'],
+            'fulfillment'=>['method'=>'pickup','pickup_point_id'=>$this->shoppingPoint->id],
         ])->assertOk()->assertJsonPath('total_ngn',1500000);
         $this->assertEquals(0,$product->fresh()->stock);
     }

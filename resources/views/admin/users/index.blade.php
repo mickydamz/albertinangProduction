@@ -71,8 +71,8 @@
             <select name="role" class="form-select" style="width:120px; flex-shrink:0; min-width:0;"
                     onchange="this.form.submit()">
               <option value="">All Roles</option>
-              @foreach (['admin','manager','user'] as $r)
-                <option value="{{ $r }}" {{ ($role ?? '') === $r ? 'selected' : '' }}>{{ ucfirst($r) }}</option>
+              @foreach (['admin','manager','catalogue_editor','user'] as $r)
+                <option value="{{ $r }}" {{ ($role ?? '') === $r ? 'selected' : '' }}>{{ ucwords(str_replace('_',' ',$r)) }}</option>
               @endforeach
             </select>
 
@@ -133,7 +133,7 @@
                       $roleColors = ['admin'=>'danger','manager'=>'info','supplier'=>'warning','affiliate'=>'success','user'=>'secondary'];
                       $roleColor  = $roleColors[$user->role] ?? 'secondary';
                     @endphp
-                    <span class="badge rounded-pill bg-light-{{ $roleColor }} text-{{ $roleColor }}">{{ ucfirst($user->role) }}</span>
+                    <span class="badge rounded-pill bg-light-{{ $roleColor }} text-{{ $roleColor }}">{{ ucwords(str_replace('_',' ',$user->role)) }}</span>
                   </td>
                   @if($emailVerify)
                   <td data-label="Verified">

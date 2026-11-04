@@ -1,4 +1,4 @@
-﻿@extends('layouts.adminlayout')
+@extends('layouts.adminlayout')
 
 @section('content')
 
@@ -18,10 +18,10 @@
             <div class="col-12 mb-2">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h2 class="content-header-title mb-0">Create Location</h2>
+                        <h2 class="content-header-title mb-0">Add delivery area</h2>
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('admin.locations.index') }}">Locations</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('admin.locations.index') }}">Delivery areas</a></li>
                             <li class="breadcrumb-item active">Create</li>
                         </ol>
                     </div>
@@ -44,7 +44,7 @@
                                     @csrf
                                     <input type="hidden" name="redirect_to" value="{{ $returnTo }}">
                                     <div class="mb-1">
-                                        <label class="form-label" for="name">Location Name <span class="text-danger">*</span></label>
+                                        <label class="form-label" for="name">Delivery area name <span class="text-danger">*</span></label>
                                         <input type="text" id="name" class="form-control @error('name') is-invalid @enderror" name="name" placeholder="Enter location name" value="{{ old('name') }}" required />
                                         @error('name')
                                             <div class="invalid-feedback">{{ $message }}</div>

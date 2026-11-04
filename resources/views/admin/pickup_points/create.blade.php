@@ -1,4 +1,4 @@
-﻿@extends('layouts.adminlayout')
+@extends('layouts.adminlayout')
 
 @section('content')
 
@@ -11,15 +11,15 @@
             <div class="col-12 mb-2">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h2 class="content-header-title mb-0">Create Pickup Point</h2>
+                        <h2 class="content-header-title mb-0">Create Store / Collection Point</h2>
                         <ol class="breadcrumb mb-0">
                             <li class="breadcrumb-item"><a href="{{ route('admin.dashboard') }}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('admin.pickup-points.index') }}">Pickup Points</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('admin.shopping-locations.index') }}">Store / Collection Points</a></li>
                             <li class="breadcrumb-item active">Create</li>
                         </ol>
                     </div>
-                    <a href="{{ route('admin.pickup-points.index') }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="fas fa-arrow-left me-50"></i> Back to Pickup Points
+                    <a href="{{ route('admin.shopping-locations.index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left me-50"></i> Back to Store / Collection Points
                     </a>
                 </div>
             </div>
@@ -31,31 +31,31 @@
                     <div class="col-12">
                         <div class="card">
                             <div class="card-header">
-                                <h4 class="card-title">New Pickup Point</h4>
+                                <h4 class="card-title">New Store / Collection Point</h4>
                             </div>
                             <div class="card-body">
                                 <form action="{{ route('admin.pickup-points.store') }}" method="POST">
                                     @csrf
 
                                     <div class="mb-1">
-                                        <label class="form-label" for="location_id">Location <span class="text-danger">*</span></label>
-                                        <select id="location_id" name="location_id"
-                                                class="form-select @error('location_id') is-invalid @enderror" required>
-                                            <option value="">— Select a location —</option>
-                                            @foreach ($locations as $location)
-                                                <option value="{{ $location->id }}"
-                                                    {{ old('location_id') == $location->id ? 'selected' : '' }}>
-                                                    {{ $location->name }}
+                                        <label class="form-label" for="state_id">State <span class="text-danger">*</span></label>
+                                        <select id="state_id" name="state_id"
+                                                class="form-select @error('state_id') is-invalid @enderror" required>
+                                            <option value="">— Select a state —</option>
+                                            @foreach ($states as $state)
+                                                <option value="{{ $state->id }}"
+                                                    {{ old('state_id') == $state->id ? 'selected' : '' }}>
+                                                    {{ $state->name }}
                                                 </option>
                                             @endforeach
                                         </select>
-                                        @error('location_id')
+                                        @error('state_id')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
 
                                     <div class="mb-1">
-                                        <label class="form-label" for="name">Pickup Point Name <span class="text-danger">*</span></label>
+                                        <label class="form-label" for="name">Store / Collection Point Name <span class="text-danger">*</span></label>
                                         <input type="text" id="name" name="name"
                                                class="form-control @error('name') is-invalid @enderror"
                                                placeholder="e.g. Ikeja Mall Pickup"
@@ -88,9 +88,9 @@
                                     </div>
 
                                     <button type="submit" class="btn btn-primary me-1">
-                                        <i class="fas fa-save me-50"></i> Save Pickup Point
+                                        <i class="fas fa-save me-50"></i> Save Store / Collection Point
                                     </button>
-                                    <a href="{{ route('admin.pickup-points.index') }}" class="btn btn-outline-secondary">Cancel</a>
+                                    <a href="{{ route('admin.shopping-locations.index') }}" class="btn btn-outline-secondary">Cancel</a>
                                 </form>
                             </div>
                         </div>

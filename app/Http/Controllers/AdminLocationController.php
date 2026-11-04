@@ -121,6 +121,7 @@ class AdminLocationController extends Controller
 
     public function destroy(Location $location)
     {
+        if ($location->products()->exists() || $location->pickupPoints()->exists() || \Illuminate\Support\Facades\DB::table('origin_delivery_areas')->where('location_id',$location->id)->exists() || \App\Models\Order::where('delivery_location_id',$location->id)->orWhere('pickup_location_id',$location->id)->exists()) return back()->withErrors(['location'=>'This area is referenced by products, stores, routes or orders. Deactivate it instead.']);
         $location->delete();
         Cache::forget('ref_locations');
 

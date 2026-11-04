@@ -19,9 +19,11 @@ class RedirectBasedOnRole
     {
         if (Auth::check()) {
             $user = Auth::user();
-            
+
             // Redirect based on user role
             switch ($user->role) {
+                case 'catalogue_editor':
+                    return redirect()->route('catalogue.dashboard');
                 case 'admin':
                     return redirect('/admin');
                 case 'supplier':

@@ -773,7 +773,7 @@ ul { list-style: none; }
                                                    {{ $empty ? 'disabled' : '' }}
                                                    @checked($checked)>
                                             <label for="cust-{{ Str::slug($key) }}-{{ $idx }}">
-                                                {{ $opt }} <span class="facet-count">({{ $count }})</span>
+                                                @if($key === 'colour')<span aria-hidden="true" style="display:inline-block;width:14px;height:14px;border:1px solid #9ca3af;border-radius:50%;vertical-align:middle;background:{{ \App\Support\ProductColours::swatch($opt) }}"></span> @endif{{ $opt }} <span class="facet-count">({{ $count }})</span>
                                             </label>
                                         </div>
                                     @endforeach
@@ -961,8 +961,9 @@ ul { list-style: none; }
                             </div>
                         </a>
 
+                        @include('partials.colour-swatches',['product'=>$product])
                         <button class="cat-card__atc"
-                                @if(($product->stock ?? 1) === 0) disabled @endif
+
                                onclick="event.stopPropagation();
     window.addToCart(
         '{{ $product->id }}',
@@ -978,7 +979,7 @@ ul { list-style: none; }
                                         this.style.background='';
                                     },1800);">
                             <i class="fas fa-shopping-bag" style="font-size:11px;"></i>
-                            {{ ($product->stock ?? 1) === 0 ? 'Out of Stock' : 'Add to Cart' }}
+                            Add to Cart
                         </button>
 
                     </div>

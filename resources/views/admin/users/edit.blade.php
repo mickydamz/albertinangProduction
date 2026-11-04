@@ -35,7 +35,7 @@
                                 @if(session('success'))
                                     <div class="alert alert-success">{{ session('success') }}</div>
                                 @endif
-                                 
+
                                 @if($errors->any())
                                     <div class="alert alert-danger">
                                         <ul>
@@ -90,8 +90,9 @@
                                         <select name="role" id="role" class="form-control" required>
                                             <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Admin</option>
                                            <option value="user" {{ $user->role == 'user' ? 'selected' : '' }}>User</option>
+                                            <option value="catalogue_editor" {{ old('role', $user->role ?? '') == 'catalogue_editor' ? 'selected' : '' }}>Catalogue Editor</option>
                                             <option value="manager" {{ $user->role == 'manager' ? 'selected' : '' }}>Manager</option>
-                                           
+
                                         </select>
                                     </div>
 

@@ -81,6 +81,7 @@ class CheckoutTruckDeliveryTest extends TestCase
     private function checkoutDelivery(User $user, Product $product, int $qty, Location $location): array
     {
         $res = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items'       => [[
                 'product_id' => $product->id,
                 'quantity'   => $qty,
@@ -270,6 +271,7 @@ class CheckoutTruckDeliveryTest extends TestCase
         $product = $this->makeProduct(['weight_kg' => 100, 'requires_truck' => true]);
 
         $res = $this->actingAs($user)->postJson('/paystack/save-checkout', [
+            'delivery_mobile' => '08012345678',
             'items'       => [['product_id' => $product->id, 'quantity' => 1]],
             'fulfillment' => ['method' => 'pickup'],
         ]);

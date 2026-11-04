@@ -64,6 +64,7 @@ class AdminStateController extends Controller
 
     public function destroy(State $state)
     {
+        if(\App\Models\PickupPoint::where('state_id',$state->id)->exists())return back()->withErrors(['state'=>'This state has collection stores. Hide the state instead of deleting it.']);
         $state->delete();
 
         return redirect()->route('admin.states.index')

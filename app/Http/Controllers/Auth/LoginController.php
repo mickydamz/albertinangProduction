@@ -48,16 +48,16 @@ class LoginController extends Controller
                 $user->two_factor_code = rand(100000, 999999);
                 $user->two_factor_expires_at = Carbon::now()->addMinutes(10);
                 $user->save();
-                
+
                 // Send the 2FA code to the user's email
                 Mail::to($user->email)->send(new TwoFactorCodeMail($user));
-                
+
                 // Success message for 2FA code sent
                 session()->flash('success', 'A verification code has been sent to your email. Please check your inbox.');
-                
+
                 // Redirect to the 2FA verification page
                 return redirect()->route('2fa');
-                
+
             } catch (\Exception $e) {
                 // Handle email sending failure
                 session()->flash('error', 'Failed to send verification code. Please try again.');
@@ -70,6 +70,7 @@ class LoginController extends Controller
         session()->flash('success', 'Welcome back, ' . $user->name . '! You have been successfully logged in.');
 
         // Redirect to the page the user was trying to reach, or fall back to the role's dashboard
+        if ($user->role === 'catalogue_editor') return redirect()->route('catalogue.dashboard');
         if ($user->role === 'admin') {
             return redirect()->intended(route('admin.dashboard'));
         } elseif ($user->role === 'supplier' || $user->role === 'affiliate') {
@@ -90,7 +91,7 @@ class LoginController extends Controller
     protected function sendFailedLoginResponse(Request $request)
     {
         session()->flash('error', 'Invalid credentials. Please check your email and password and try again.');
-        
+
         return redirect()->back()
             ->withInput($request->only($this->username(), 'remember'))
             ->withErrors([
@@ -109,9 +110,9 @@ class LoginController extends Controller
         $this->guard()->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        
+
         session()->flash('success', 'You have been successfully logged out.');
-        
+
         return redirect('/');
     }
 }

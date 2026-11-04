@@ -35,24 +35,29 @@ class OrderController extends Controller
      */
     public function saveCheckout(Request $request)
     {
+        $request->merge(['delivery_mobile' => \App\Support\DeliveryMobile::normalize($request->input('delivery_mobile'))]);
         $validated = $request->validate([
+            'delivery_mobile' => 'required|string|max:16',
             'customer_email'                   => 'nullable|email|max:255',
             'items'                            => 'required|array|min:1',
             'items.*.product_id'               => 'required|integer|exists:products,id',
+            'items.*.colour_id' => 'nullable|integer',
             'items.*.quantity'                 => 'required|integer|min:1',
             'items.*.installation_option'      => 'nullable|string|max:255',
             'coupon_code'                      => 'nullable|string|max:64',
             'fulfillment'                      => 'nullable|array',
+            'fulfillment.dispatch_point_id'    => 'nullable|integer',
             'fulfillment.method'               => 'nullable|string|in:pickup,delivery',
             'fulfillment.pickup_point_id'      => 'nullable|integer',
             'fulfillment.pickup_location'      => 'nullable|string|max:255',
             'fulfillment.delivery_location_id' => 'nullable|integer',
             'fulfillment.shipping_address'     => 'nullable|string|max:500',
-        ]);
+        ], ['delivery_mobile.required' => 'Enter a valid Nigerian mobile number.']);
 
+        if (\App\Services\ShoppingLocation::unavailable(array_column($validated['items'],'product_id'))) \App\Services\ShoppingLocation::fail('items','Some products are unavailable in your selected state. Remove the affected products to proceed.');
         // 1. Load active products in one query. Inactive/unlisted products are rejected.
         $productIds = array_column($validated['items'], 'product_id');
-        $products   = Product::active()->with(['category', 'Subcategory'])
+        $products   = Product::active()->with(['category', 'Subcategory','colors'])
             ->whereIn('id', $productIds)->get()->keyBy('id');
 
         // 2. Compute item snapshots using integer kobo arithmetic to avoid float drift.
@@ -71,6 +76,7 @@ class OrderController extends Controller
                 $requiresTruck = true;
             }
 
+            $colour=\App\Support\ProductColours::resolve($product,isset($row['colour_id'])?(int)$row['colour_id']:null);
             $basePriceKobo = (int) round((float) $product->sell_price * 100);
             $qty           = (int) $row['quantity'];
 
@@ -109,7 +115,8 @@ class OrderController extends Controller
 
             $computedItems[] = [
                 'id'                     => $product->id,
-                'name'                   => $product->name,
+                'name'                   => $product->name.($colour ? ' — Colour: '.$colour['name'] : ''),
+                'colour_id' => $colour['id'] ?? null, 'colour_name' => $colour['name'] ?? null,
                 'basePriceNgn'           => $basePriceKobo / 100,
                 'effective_price_ngn'    => $effectivePriceKobo / 100,
                 'quantity'               => $qty,
@@ -165,51 +172,19 @@ class OrderController extends Controller
 
         // 4. Delivery fee and all display names resolved from the database.
         //    The browser sends only IDs; we never trust client-supplied strings or fees.
-        $fulfillment     = $validated['fulfillment'] ?? [];
-        $method          = $fulfillment['method']    ?? 'pickup';
-        $deliveryFeeKobo = 0;
-        $resolvedFulfillment = ['method' => $method];
-
-        if ($method === 'delivery') {
-            $locationId = $fulfillment['delivery_location_id'] ?? null;
-            if ($locationId) {
-                $location = \App\Models\Location::with('state')->find($locationId);
-                if (!$location || !$location->is_active) {
-                    return response()->json(['error' => 'Selected delivery location is not available.'], 422);
-                }
-                $deliveryFeeKobo = $requiresTruck
-                    ? (int) round((float) $location->truck_shipping_cost * 100)
-                    : (int) round((float) $location->shipping_cost * 100);
-
-                $resolvedFulfillment['delivery_location_id']   = $location->id;
-                $resolvedFulfillment['delivery_location_name'] = $location->name;
-                $resolvedFulfillment['delivery_state_id']      = $location->state_id;
-                $resolvedFulfillment['delivery_state_name']    = $location->state?->name;
-                $resolvedFulfillment['delivery_fee_ngn']       = $deliveryFeeKobo / 100;
-                $resolvedFulfillment['shipping_address']       = $fulfillment['shipping_address'] ?? null;
-
-                // Note: the checkout delivery address is stored on the order only.
-                // The customer's profile address is managed from the account page
-                // and is intentionally NOT overwritten from checkout.
-            }
-        } else {
-            $pickupPointId = $fulfillment['pickup_point_id'] ?? null;
-            if ($pickupPointId) {
-                $point = \App\Models\PickupPoint::with('location')->find($pickupPointId);
-                if ($point) {
-                    $resolvedFulfillment['pickup_point_id']      = $point->id;
-                    $resolvedFulfillment['pickup_point_name']    = $point->name;
-                    $resolvedFulfillment['pickup_point_address'] = $point->address;
-                    $resolvedFulfillment['pickup_location_id']   = $point->location_id;
-                    $resolvedFulfillment['pickup_location']      = $point->location?->name;
-                }
-            }
-            $resolvedFulfillment['delivery_fee_ngn'] = 0;
-            // Fall back to a plain string for pages that don't use pickup-point IDs.
-            if (!isset($resolvedFulfillment['pickup_location'])) {
-                $resolvedFulfillment['pickup_location'] = $fulfillment['pickup_location'] ?? null;
-            }
-        }
+        $resolvedFulfillment = \App\Services\ShoppingLocation::resolve(
+            $validated['fulfillment'] ?? [], array_column($validated['items'],'product_id'), $requiresTruck);
+        $transferKobo=0;
+        foreach($computedItems as &$item){
+            $quote=$resolvedFulfillment['collection_transfers'][$item['id']]??[];
+            $unit=(int)round(($quote['transfer_unit_fee_ngn']??0)*100);
+            $item=array_merge($item,$quote,['transfer_total_ngn'=>$unit*$item['quantity']/100]);
+            $transferKobo+=$unit*$item['quantity'];
+        }unset($item);
+        $resolvedFulfillment['collection_transfer_total_ngn']=$transferKobo/100;
+        $resolvedFulfillment['delivery_fee_ngn']+=$transferKobo/100;
+        $resolvedFulfillment['requires_truck'] = $requiresTruck;
+        $deliveryFeeKobo = (int) round($resolvedFulfillment['delivery_fee_ngn'] * 100);
 
         // 5. Total in integer kobo — coupon discount and delivery fee applied.
         $couponDiscountKobo = (int) round((float) ($couponData['discount_ngn'] ?? 0) * 100);
@@ -219,6 +194,7 @@ class OrderController extends Controller
         $reference = 'ps_' . \Illuminate\Support\Str::ulid();
 
         PendingCheckout::create([
+            'delivery_mobile' => $validated['delivery_mobile'],
             'reference'      => $reference,
             'user_id'        => Auth::id(),
             'customer_email' => $validated['customer_email'] ?? Auth::user()?->email,

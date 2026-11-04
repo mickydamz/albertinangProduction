@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PendingCheckout extends Model
 {
     protected $fillable = [
+        'delivery_mobile',
         'reference',
         'user_id',
         'customer_email',

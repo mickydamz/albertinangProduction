@@ -514,6 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Cart state ────────────────────────────────────────────────────────────
     let cart = [];
+    let unavailableIds = [];
 
     function fmt(ngnAmount) {
         if (window.CURRENCY && typeof window.CURRENCY.format === 'function') {
@@ -568,6 +569,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Render ────────────────────────────────────────────────────────────────
+    async function checkState(){
+      try{const res=await fetch('/shopping/cart-check',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json','X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content},body:JSON.stringify({items:cart.map(i=>Number(i.id))})});const data=await res.json();unavailableIds=(data.incompatible_ids||[]).map(Number);localStorage.setItem('shoppingUnavailableIds',JSON.stringify(unavailableIds));}catch(e){}
+    }
     function render() {
         if (loadingSpinner) loadingSpinner.classList.add('hidden');
         if (!cartItemsDisplay) return;
@@ -609,25 +613,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const row = document.createElement('div');
             row.className         = 'ci-row';
+            const unavailable=unavailableIds.includes(Number(item.id));if(unavailable)row.style.background='#fff1e8';
             row.dataset.productId = item.id;
+            row.dataset.index = index;
+            const displayName = window.cartText(item.name);
             row.innerHTML = `
                 <div class="ci-product">
-                    <img src="${img}" class="ci-img" alt="${item.name}"
-                         onerror="this.src='https://placehold.co/72x72/f5f5f5/cccccc?text=Product'">
-                    <a href="${href}" class="ci-name">${item.name}</a>
+                    <img src="${img}" class="ci-img" alt="${displayName}"
+                         onerror="this.onerror=null;this.src='https://placehold.co/72x72/f5f5f5/cccccc?text=Product'">
+                    <a href="${href}" class="ci-name">${displayName}</a>${unavailable ? '<strong role="alert" style="color:#9b2c18">Unavailable in this state — remove to proceed.</strong>' : ''}
                 </div>
                 <div class="ci-unit" data-ngn="${price}">${fmt(price)}</div>
                 <div class="ci-qty">
                     <div class="qty-ctrl">
                         <button class="qty-btn decrease-qty" data-index="${index}" aria-label="Decrease">−</button>
                         <input type="number" class="qty-inp quantity-input" data-index="${index}"
-                               value="${qty}" min="1" aria-label="Quantity for ${item.name}">
+                               value="${qty}" min="1" aria-label="Quantity for ${displayName}">
                         <button class="qty-btn increase-qty" data-index="${index}" aria-label="Increase">+</button>
                     </div>
                 </div>
                 <div class="ci-sub item-subtotal" data-ngn="${subtotal}">${fmt(subtotal)}</div>
                 <div class="ci-remove">
-                    <button class="ci-remove-btn remove-item-btn" data-index="${index}" aria-label="Remove ${item.name}">
+                    <button class="ci-remove-btn remove-item-btn" data-index="${index}" aria-label="Remove ${displayName}">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>`;
@@ -693,7 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleRemove(e) {
         const idx = parseInt(e.currentTarget.dataset.index);
         if (isNaN(idx) || !cart[idx]) return;
-        const doRemove = () => { cart.splice(idx, 1); saveCart(); render(); };
+        const doRemove = async () => { cart.splice(idx, 1); saveCart(); await checkState(); render(); };
         if (window.Swal) {
             Swal.fire({
                 title: 'Remove item?',
@@ -712,7 +719,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Live row update ───────────────────────────────────────────────────────
     function updateRow(idx) {
         const item = cart[idx];
-        const row  = cartItemsDisplay.querySelector(`.ci-row[data-product-id="${item.id}"]`);
+        const row  = cartItemsDisplay.querySelector(`.ci-row[data-index="${idx}"]`);
         if (!row) return;
         const price    = item.basePriceNgn || 0;
         const subtotal = price * item.quantity;
@@ -736,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Init ──────────────────────────────────────────────────────────────────
     loadCart();
-    render();
+    checkState().then(render);
     updateHeaderBadge();
 });
 </script>

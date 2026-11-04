@@ -69,6 +69,7 @@
         @endif
     </div>
 
+    @include('partials.colour-swatches',['product'=>$product])
     <button class="pcard__atc" aria-label="Add {{ $product->name }} to cart">
         <i class="fas fa-shopping-bag" style="font-size:12px;"></i>
         Add to Cart

@@ -68,6 +68,7 @@
                                         <label for="role" class="form-label">Role:</label>
                                         <select name="role" id="role" class="form-control" required>
                                             <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                                            <option value="catalogue_editor" {{ old('role', $user->role ?? '') == 'catalogue_editor' ? 'selected' : '' }}>Catalogue Editor</option>
                                             <option value="manager" {{ old('role') == 'manager' ? 'selected' : '' }}>Manager</option>
                                             <option value="user" {{ old('role') == 'user' ? 'selected' : '' }}>User</option>
                                         </select>
@@ -105,7 +106,7 @@
                                     </div>
 
                                     <!-- New Fields -->
-                                 
+
 
                                     <!-- Postal Code Field -->
                                     <div class="mb-1">
@@ -137,7 +138,7 @@
                                         <textarea name="shipping_address" id="shipping_address" class="form-control" rows="3">{{ old('shipping_address') }}</textarea>
                                     </div>
 
-                                    
+
 
                                     <div class="d-flex gap-2 mt-1">
                                         <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Create User</button>

@@ -97,7 +97,7 @@ class ProductFilterNormalizationTest extends CriticalTestCase
         $category=\App\Models\Category::create(['name'=>'Typed appliances','is_active'=>true]);
         $type=\App\Models\Subcategory::create(['name'=>'Washing Machines','category_id'=>$category->id]);
         $this->actingAs($this->customer('admin'));
-        $input=['name'=>'New typed washer','price'=>45000,'stock'=>3,'category_id'=>$category->id,'is_active'=>1];
+        $input=['name'=>'New typed washer','price'=>45000,'stock'=>3,'category_id'=>$category->id,'is_active'=>1,'locations'=>[$this->shoppingArea->id],'pickup_points'=>[$this->shoppingPoint->id]];
         $this->post('/admin/products',$input)->assertSessionHasErrors('subcategory_id');
         $this->post('/admin/products',array_merge($input,['is_active'=>0]))->assertSessionHasNoErrors();
         $p=\App\Models\Product::where('name',$input['name'])->firstOrFail();

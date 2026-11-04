@@ -291,26 +291,7 @@ s0.parentNode.insertBefore(s1,s0);
         </a>
     </li>
 
-    <li class="dropdown nav-item" data-menu="dropdown">
-        <a class="dropdown-toggle nav-link d-flex align-items-center" href="#" data-bs-toggle="dropdown">
-            <i data-feather="dollar-sign"></i> <!-- Unique icon for supplier -->
-            <span data-i18n="Deposit">Deposit</span>
-        </a>
-        <ul class="dropdown-menu" data-bs-popper="none">
-            <li data-menu="">
-                <a class="dropdown-item d-flex align-items-center" href="/deposit-create" data-i18n="Make Deposit">
-                    <i data-feather="arrow-up-circle"></i> <!-- Unique icon for deposit -->
-                    <span data-i18n="Make Deposit">Make Deposit</span>
-                </a>
-            </li>
-            <li data-menu="">
-                <a class="dropdown-item d-flex align-items-center" href="/my-deposits" data-i18n="Deposit History">
-                    <i data-feather="clock"></i> <!-- Unique icon for deposit history -->
-                    <span data-i18n="Deposit History">Deposit History</span>
-                </a>
-            </li>
-        </ul>
-    </li>
+    
 
     <li class="nav-item">
         <a class="nav-link d-flex align-items-center" href="/supplier/products">
@@ -364,26 +345,7 @@ s0.parentNode.insertBefore(s1,s0);
         </a>
     </li>
 
-    <li class="dropdown nav-item" data-menu="dropdown">
-        <a class="dropdown-toggle nav-link d-flex align-items-center" href="#" data-bs-toggle="dropdown">
-            <i data-feather="box"></i> <!-- Icon for deposit -->
-            <span data-i18n="Deposit">Deposit</span>
-        </a>
-        <ul class="dropdown-menu" data-bs-popper="none">
-            <li data-menu="">
-                <a class="dropdown-item d-flex align-items-center" href="/deposit-create" data-i18n="Make Deposit">
-                    <i data-feather="arrow-up-circle"></i>
-                    <span data-i18n="Make Deposit">Make Deposit</span>
-                </a>
-            </li>
-            <li data-menu="">
-                <a class="dropdown-item d-flex align-items-center" href="/my-deposits" data-i18n="Deposit History">
-                    <i data-feather="clock"></i>
-                    <span data-i18n="Deposit History">Deposit History</span>
-                </a>
-            </li>
-        </ul>
-    </li>
+    
 @endif
 
                    

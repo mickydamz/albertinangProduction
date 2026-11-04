@@ -87,7 +87,7 @@ class AdminOrderController extends Controller
         $statuses = ['pending', 'paid', 'processing', 'ready_for_pickup', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded'];
 
         // Pickup points the admin can reassign this order to.
-        $pickupPoints = PickupPoint::with('location')
+        $pickupPoints = PickupPoint::with('location','state')
             ->orderBy('name')
             ->get();
 
@@ -117,8 +117,9 @@ class AdminOrderController extends Controller
 
         // Pickup point reassignment — snapshot the chosen point onto the order.
         if ($request->filled('pickup_point_id') && (int) $request->pickup_point_id !== (int) $order->pickup_point_id) {
-            $point = PickupPoint::with('location')->find($request->pickup_point_id);
+            $point = PickupPoint::with('location','state')->find($request->pickup_point_id);
             if ($point) {
+                if ($order->dispatch_point_id && (int)$order->dispatch_point_id !== (int)$point->id) \App\Services\ShoppingLocation::fail('pickup_point_id','This order is tied to its original store. Create an explicitly reviewed replacement order to change its origin.');
                 $payload['pickup_point_id']      = $point->id;
                 $payload['pickup_point_name']    = $point->name;
                 $payload['pickup_point_address'] = $point->address;
@@ -184,7 +185,7 @@ class AdminOrderController extends Controller
 
     public function create()
     {
-        $pickupPoints = PickupPoint::with('location')->orderBy('name')->get();
+        $pickupPoints = PickupPoint::with('location','state')->orderBy('name')->get();
         $states       = State::where('is_active', true)->orderBy('name')->get();
 
         return view('admin.orders.create', compact('pickupPoints', 'states'));
@@ -198,6 +199,7 @@ class AdminOrderController extends Controller
             'payment_method'     => 'required|string|in:paystack,stripe,cash,bank_transfer,pos,other',
             'payment_reference'  => 'nullable|string|max:255',
             'fulfillment_method' => 'required|in:pickup,delivery',
+            'dispatch_point_id'=>'nullable|integer|exists:pickup_points,id',
             'pickup_point_id'    => 'required_if:fulfillment_method,pickup|nullable|exists:pickup_points,id',
             'delivery_state_id'  => 'required_if:fulfillment_method,delivery|nullable|exists:states,id',
             'delivery_location_id' => 'nullable|exists:locations,id',
@@ -215,7 +217,15 @@ class AdminOrderController extends Controller
 
         $items       = $request->input('items');
         $subtotal    = collect($items)->sum(fn ($i) => $i['price'] * $i['quantity']);
-        $shipping    = (float) ($request->shipping_cost ?? 0);
+        $originId=$request->fulfillment_method==='pickup' ? $request->pickup_point_id : $request->dispatch_point_id;
+        $origin=$originId ? \App\Services\ShoppingLocation::point((int)$originId) : null;
+        if (!$origin) \App\Services\ShoppingLocation::fail('dispatch_point_id','Choose an active dispatch store.');
+        $truck=false;$weight=0;
+        foreach($items as $row){$p=Product::with(['category','Subcategory'])->findOrFail($row['product_id']);$truck=$truck||$p->requires_truck;$weight+=(float)($p->weight_kg??$p->Subcategory?->estimated_weight_kg??$p->category?->estimated_weight_kg??5)*(int)$row['quantity'];}
+        $truck=$truck || $weight>=(float)\App\Models\Setting::get('truck_weight_threshold_kg',30) || $subtotal>=(float)\App\Models\Setting::get('truck_order_value_threshold_ngn',1000000);
+        $originData=\App\Services\ShoppingLocation::resolve(['method'=>$request->fulfillment_method,'pickup_point_id'=>$request->pickup_point_id,'delivery_location_id'=>$request->delivery_location_id,'shipping_address'=>$request->shipping_address],array_column($items,'product_id'),$truck,$origin);
+        \App\Services\CollectionTransfer::applyItems($items,$originData);
+        $shipping = $originData['delivery_fee_ngn'];
         $discount    = (float) ($request->coupon_discount_ngn ?? 0);
         $total       = $subtotal + $shipping - $discount;
 
@@ -226,7 +236,7 @@ class AdminOrderController extends Controller
 
         $pickupPoint = null;
         if ($request->fulfillment_method === 'pickup' && $request->pickup_point_id) {
-            $pickupPoint = PickupPoint::with('location')->find($request->pickup_point_id);
+            $pickupPoint = PickupPoint::with('location','state')->find($request->pickup_point_id);
         }
 
         $deliveryState    = null;
@@ -239,6 +249,7 @@ class AdminOrderController extends Controller
         $user = $request->user_id ? User::find($request->user_id) : null;
 
         $order = Order::create([
+            'shopping_location_id'=>$origin->location_id,'shopping_location_name'=>$origin->state->name,'dispatch_point_id'=>$origin->id,'dispatch_point_name'=>$origin->name,'dispatch_point_address'=>$origin->address,
             'user_id'                => $user?->id,
             'status'                 => 'paid',
             'total'                  => $total,
@@ -272,6 +283,7 @@ class AdminOrderController extends Controller
                 'sku'                    => $product?->sku ?? null,
                 'installation_option'    => $item['installation_option']    ?? null,
                 'installation_extra_ngn' => $item['installation_extra_ngn'] ?? 0,
+                'supplying_point_id'=>$item['supplying_point_id']??null,'supplying_point_name'=>$item['supplying_point_name']??null,'transfer_unit_fee_ngn'=>$item['transfer_unit_fee_ngn']??0,'transfer_total_ngn'=>$item['transfer_total_ngn']??0,
             ]);
         }
 

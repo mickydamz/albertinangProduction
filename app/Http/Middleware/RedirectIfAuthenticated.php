@@ -23,6 +23,7 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
+                if (Auth::guard($guard)->user()->role === 'catalogue_editor') return redirect()->route('catalogue.dashboard');
                 return redirect(RouteServiceProvider::HOME);
             }
         }

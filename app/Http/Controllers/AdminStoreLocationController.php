@@ -31,7 +31,7 @@ class AdminStoreLocationController extends Controller
 
     public function create()
     {
-        return view('admin.store_locations.create');
+        return redirect()->route('admin.pickup-points.create');
     }
 
     public function store(Request $request)

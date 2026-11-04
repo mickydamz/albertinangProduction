@@ -328,7 +328,7 @@
 
     {{-- INFO --}}
     <div class="pd-info">
-        <h1 class="pd-name">{{ $product->name }}</h1>
+        <h1 class="pd-name">{{ $product->name }}</h1><span class="pd-stock in">In stock</span>
 
         <div class="pd-meta-row">
             <div class="pd-brand">
@@ -382,6 +382,7 @@
             <span class="pd-trust-item"><i class="fas fa-truck"></i> Fast Delivery</span>
         </div>
 
+        @include('partials.colour-selector')
         <div class="pd-qty-block">
             <span class="pd-qty-label">Quantity</span>
             <div class="pd-qty-row">
@@ -601,7 +602,7 @@
                             </div>
                         </div>
                         <button class="rel-card__atc"
-                        
+
                                 onclick="event.stopPropagation(); window.addToCart('{{ $rel->id }}', '{{ addslashes($rel->name) }}', {{ $rel->sell_price }}, '{{ $rel->images->first() ? asset('storage/' . $rel->images->first()->image_url) : '' }}', {{ $rel->requires_truck ? 'true' : 'false' }})"
                             <i class="fas fa-shopping-bag" style="font-size:10px;"></i> Add to Cart
                         </button>
@@ -1088,22 +1089,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const basePrice            = {{ $product->sell_price }};
     const productRequiresTruck = {{ $product->requires_truck ? 'true' : 'false' }};
 
-    function doAddToCart() {
+    document.querySelectorAll('input[name="product_colour"]').forEach(input=>input.addEventListener('change',()=>{
+        document.getElementById('chosenColourName').textContent=input.dataset.colourName;
+        document.getElementById('colourChoiceError').textContent='';
+    }));
+    async function doAddToCart() {
+        const choices=document.getElementById('productColourChoices');
+        const colour=document.querySelector('input[name="product_colour"]:checked');
+        if(choices && !colour){document.getElementById('colourChoiceError').textContent='Please choose a colour.';choices.scrollIntoView({block:'center',behavior:'smooth'});return false;}
         if (!window.addToCart) return;
         for (let i = 0; i < qty; i++) {
-            window.addToCart(productId, productName, basePrice, productImg, productRequiresTruck);
+            if(!await window.addToCart(productId, productName, basePrice, productImg, productRequiresTruck,colour ? Number(colour.value):null))return false;
         }
+        return true;
     }
     const atcBtn = document.getElementById('pd-atcBtn');
-    atcBtn?.addEventListener('click', () => {
-        doAddToCart();
+    atcBtn?.addEventListener('click', async () => {
+        if(!await doAddToCart())return;
         atcBtn.innerHTML = '<i class="fas fa-check"></i> Added!';
         atcBtn.style.background = 'var(--g700)';
         setTimeout(() => { atcBtn.innerHTML = '<i class="fas fa-shopping-bag"></i> Add to Cart'; atcBtn.style.background = ''; }, 1800);
     });
     const buyBtn = document.getElementById('pd-buyBtn');
-    buyBtn?.addEventListener('click', () => {
-        doAddToCart();
+    buyBtn?.addEventListener('click', async () => {
+        if(!await doAddToCart())return;
         buyBtn.innerHTML = '<i class="fas fa-check"></i> Redirecting…';
         setTimeout(() => { window.location.href = '/cart'; }, 1200);
     });

@@ -127,6 +127,11 @@ class StripeOrderService
                     'reference'              => $reference,
                     'fulfillment_method'     => $fulfillment['method']                ?? 'pickup',
                     'pickup_location'        => $fulfillment['pickup_location']        ?? null,
+                    'shopping_location_id' => $fulfillment['shopping_location_id'] ?? null,
+                    'shopping_location_name' => $fulfillment['shopping_location_name'] ?? null,
+                    'dispatch_point_id' => $fulfillment['dispatch_point_id'] ?? null,
+                    'dispatch_point_name' => $fulfillment['dispatch_point_name'] ?? null,
+                    'dispatch_point_address' => $fulfillment['dispatch_point_address'] ?? null,
                     'pickup_location_id'     => $fulfillment['pickup_location_id']     ?? null,
                     'pickup_point_id'        => $fulfillment['pickup_point_id']        ?? null,
                     'pickup_point_name'      => $fulfillment['pickup_point_name']      ?? null,
@@ -137,6 +142,7 @@ class StripeOrderService
                     'delivery_location_name' => $fulfillment['delivery_location_name'] ?? null,
                     'shipping_address'       => $fulfillment['shipping_address']       ?? null,
                     'shipping_cost'          => $fulfillment['delivery_fee_ngn']       ?? 0,
+                    'delivery_mobile'        => $pending->delivery_mobile,
                     'customer_email'         => $custEmail,
                     'coupon_id'              => $couponData['id']           ?? null,
                     'coupon_code_used'       => $couponData['code']         ?? null,
@@ -145,8 +151,10 @@ class StripeOrderService
 
                 foreach ($items as $item) {
                     $order->items()->create([
+                        'supplying_point_id'=>$item['supplying_point_id']??null,'supplying_point_name'=>$item['supplying_point_name']??null,'transfer_unit_fee_ngn'=>$item['transfer_unit_fee_ngn']??0,'transfer_total_ngn'=>$item['transfer_total_ngn']??0,
                         'product_id'             => $item['id'],
                         'name'                   => $item['name'],
+                        'colour_id' => $item['colour_id'] ?? null,'colour_name' => $item['colour_name'] ?? null,
                         'price'                  => $item['effective_price_ngn'],
                         'quantity'               => $item['quantity'],
                         'image'                  => $item['image']                  ?? null,
@@ -240,6 +248,14 @@ class StripeOrderService
 
     private function result(bool $success, ?int $orderId, ?string $orderNumber, bool $duplicate, ?string $errorType, string $message): array
     {
+        // Successful callbacks and idempotent retries retain the original checkout contact.
+        if ($success && $orderId) {
+            try {
+                app(OrderDeliveryContact::class)->restore($orderId);
+            } catch (\Throwable $e) {
+                Log::warning('Order delivery contact needs reconciliation', ['order_id' => $orderId]);
+            }
+        }
         return [
             'success'      => $success,
             'order_id'     => $orderId,

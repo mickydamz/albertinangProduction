@@ -117,6 +117,7 @@
                 <!-- Title + line-style brand tabs -->
                 <div class="card-header d-block pb-0">
                     <h4 class="card-title mb-1"><i class="fas fa-box me-1"></i> My Products</h4>
+                    <a class="btn btn-primary mb-1" href="{{ route('manager.products.create') }}">Add product</a>
 
                     <ul class="nav nav-tabs manager-brand-tabs mb-0" role="tablist">
                         <li class="nav-item">
@@ -207,17 +208,7 @@
                                     <td data-label="Price">₦{{ number_format($product->price, 2) }}</td>
                                     <td data-label="Status">
                                         <div class="form-check form-switch d-flex align-items-center gap-50 ps-0 m-0">
-                                            <input class="form-check-input product-toggle m-0" type="checkbox" role="switch"
-                                                   id="toggle-{{ $product->id }}"
-                                                   data-id="{{ $product->id }}"
-                                                   data-url="{{ route('manager.products.toggleActive', $product->id) }}"
-                                                   {{ $product->is_active ? 'checked' : '' }}
-                                                   style="width:42px; height:22px; cursor:pointer; flex-shrink:0;">
-                                            <label for="toggle-{{ $product->id }}" class="form-check-label toggle-label-{{ $product->id }} m-0"
-                                                   style="font-size:12px; font-weight:500; cursor:pointer;
-                                                          color:{{ $product->is_active ? '#28c76f' : '#b0b0b0' }};">
-                                                {{ $product->is_active ? 'Active' : 'Inactive' }}
-                                            </label>
+                                            <span class="badge bg-light-secondary text-secondary">{{ $product->is_active ? 'Published' : 'Unpublished' }} · Admin controlled</span>
                                         </div>
                                     </td>
                                     <td data-label="Stock" class="text-center">
@@ -396,44 +387,6 @@
   document.addEventListener('DOMContentLoaded', function () {
     [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
       .forEach(el => new bootstrap.Tooltip(el));
-
-    // ── Status toggle (AJAX) ──────────────────────────────────────────
-    // Uses POST + _method=PATCH spoofing so it works even on hosts
-    // that block PATCH requests at the server level.
-    document.querySelectorAll('.product-toggle').forEach(toggle => {
-      toggle.addEventListener('change', async function () {
-        const label = document.querySelector('.toggle-label-' + this.dataset.id);
-        this.disabled = true;
-
-        try {
-          const res = await fetch(this.dataset.url, {
-            method: 'POST',
-            headers: {
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-              'Accept': 'application/json',
-            },
-            body: new URLSearchParams({ _method: 'PATCH' }),
-          });
-
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const data = await res.json();
-
-          // Sync the switch with what the server actually saved
-          this.checked = data.is_active;
-
-          if (label) {
-            label.textContent = data.is_active ? 'Active' : 'Inactive';
-            label.style.color = data.is_active ? '#28c76f' : '#b0b0b0';
-          }
-        } catch (e) {
-          // Revert the switch if the request failed
-          this.checked = !this.checked;
-          alert('Toggle failed: ' + e.message);
-        } finally {
-          this.disabled = false;
-        }
-      });
-    });
 
     // ── Search auto-submit (debounced) ────────────────────────────────
     const form  = document.getElementById('managerFilterForm');

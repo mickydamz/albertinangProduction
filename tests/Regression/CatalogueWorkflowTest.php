@@ -22,11 +22,11 @@ class CatalogueWorkflowTest extends CriticalTestCase
         $this->post('/admin/products',$input)->assertSessionHasNoErrors()->assertRedirect();
         $product=Product::where('name',$input['name'])->firstOrFail();
         $this->assertFalse((bool)$product->is_active);
-        $this->put('/admin/products/'.$product->id,array_merge($input,['price'=>60000,'stock'=>8,'is_active'=>1]))->assertSessionHasNoErrors();
+        $this->put('/admin/products/'.$product->id,array_merge($input,['price'=>60000,'stock'=>8,'is_active'=>1,'locations'=>[$this->shoppingArea->id],'pickup_points'=>[$this->shoppingPoint->id]]))->assertSessionHasNoErrors();
         $this->assertEquals(60000,$product->fresh()->price);
         $this->assertSame(8,$product->fresh()->stock);
         $this->preview($this->get('/admin/products/create')->assertOk()->assertSee('Product essentials'), 'product-editor.html');
-        $this->get('/admin/products/'.$product->id.'/edit')->assertOk();
+        $this->preview($this->get('/admin/products/'.$product->id.'/edit')->assertOk(), 'product-edit.html');
     }
     public function test_blank_optional_moq_defaults_to_one_on_create_and_edit(): void
     {
@@ -103,7 +103,7 @@ class CatalogueWorkflowTest extends CriticalTestCase
         $p=$this->product();$p->update(['category_id'=>$category->id]);
         $user=$this->customer();$o=$this->order($user,'completed','paystack',$p);
         $this->actingAs($user)->get('/admin/products/create')->assertForbidden();
-        $this->actingAs($this->customer('admin'))->put('/admin/products/'.$p->id,['name'=>$p->name,'price'=>25000,'stock'=>5,'category_id'=>$category->id,'is_active'=>1])->assertSessionHasNoErrors();
+        $this->actingAs($this->customer('admin'))->put('/admin/products/'.$p->id,['name'=>$p->name,'price'=>25000,'stock'=>5,'category_id'=>$category->id,'is_active'=>1,'locations'=>[$this->shoppingArea->id],'pickup_points'=>[$this->shoppingPoint->id]])->assertSessionHasNoErrors();
         $this->assertEquals(10000,$o->items()->first()->price);
         $this->assertEquals(25000,$p->fresh()->price);
         $p->update(['name'=>'Hidden unpublished item','is_active'=>false]);

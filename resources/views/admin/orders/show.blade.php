@@ -1,6 +1,9 @@
 @extends('layouts.adminlayout')
 
 @section('content')
+@if($order->items->contains(fn($i)=>$i->supplying_point_id))<div class="alert alert-info"><strong>Store transfers ₦{{ number_format($order->items->sum('transfer_total_ngn'),2) }} · Area delivery ₦{{ number_format(max(0,$order->shipping_cost-$order->items->sum('transfer_total_ngn')),2) }}</strong>@foreach($order->items as $transferItem)<p>{{ $transferItem->name }} — Supply: {{ $transferItem->supplying_point_name ?? 'Legacy order: see dispatch details' }} · Transfer ₦{{ number_format($transferItem->transfer_unit_fee_ngn,2) }} per unit × {{ $transferItem->quantity }} = ₦{{ number_format($transferItem->transfer_total_ngn,2) }}</p>@endforeach</div>@endif
+
+@if($order->dispatch_point_name)<div class="alert alert-info">Shopping area: {{ $order->shopping_location_name }} · Dispatch / collection store: {{ $order->dispatch_point_name }} — {{ $order->dispatch_point_address }}</div>@endif
 <div class="app-content content">
     <div class="content-overlay"></div>
     <div class="header-navbar-shadow"></div>
@@ -95,6 +98,14 @@
                                 <li class="d-flex justify-content-between py-50 border-bottom">
                                     <span class="text-muted">Status</span>
                                     <span class="badge bg-light-{{ $color }}">{{ ucfirst(str_replace('_',' ',$order->status)) }}</span>
+                                </li>
+                                <li class="d-flex justify-content-between py-50 border-bottom">
+                                    <span class="text-muted">Delivery mobile:</span>
+                                    @if($order->delivery_mobile)
+                                        <strong><a href="tel:{{ $order->delivery_mobile }}">{{ $order->delivery_mobile }}</a></strong>
+                                    @else
+                                        <span class="text-muted">Not provided</span>
+                                    @endif
                                 </li>
                                 <li class="d-flex justify-content-between py-50 border-bottom">
                                     <span class="text-muted">Payment Method</span>

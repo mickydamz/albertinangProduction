@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class OrderItem extends Model
 {
     protected $fillable = [
-        'order_id',
+        'order_id','colour_id','colour_name','supplying_point_id','supplying_point_name','transfer_unit_fee_ngn','transfer_total_ngn',
         'product_id',
         'name',
         'price',
